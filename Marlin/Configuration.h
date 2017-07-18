@@ -252,14 +252,14 @@
 #define MAX_REDUNDANT_TEMP_SENSOR_DIFF 10
 
 // Extruder temperature must be close to target for this long before M109 returns success
-#define TEMP_RESIDENCY_TIME 10  // (seconds)
-#define TEMP_HYSTERESIS 5       // (degC) range of +/- temperatures considered "close" to the target one
-#define TEMP_WINDOW     2       // (degC) Window around target to start the residency timer x degC early.
+#define TEMP_RESIDENCY_TIME 5  // (seconds)
+#define TEMP_HYSTERESIS 10       // (degC) range of +/- temperatures considered "close" to the target one
+#define TEMP_WINDOW     3       // (degC) Window around target to start the residency timer x degC early.
 
 // Bed temperature must be close to target for this long before M190 returns success
-#define TEMP_BED_RESIDENCY_TIME 10  // (seconds)
+#define TEMP_BED_RESIDENCY_TIME 5  // (seconds)
 #define TEMP_BED_HYSTERESIS 3       // (degC) range of +/- temperatures considered "close" to the target one
-#define TEMP_BED_WINDOW     1       // (degC) Window around target to start the residency timer x degC early.
+#define TEMP_BED_WINDOW     2       // (degC) Window around target to start the residency timer x degC early.
 
 // The minimal temperature defines the temperature below which the heater will not be enabled It is used
 // to check that the wiring to the thermistor is not broken.
@@ -307,9 +307,9 @@
   //#define  DEFAULT_Ki 1.08
   //#define  DEFAULT_Kd 114
   
-    #define  DEFAULT_Kp 12.36
+    #define  DEFAULT_Kp 14.0
     #define  DEFAULT_Ki 0.40
-    #define  DEFAULT_Kd 95.91
+    #define  DEFAULT_Kd 110
 
   // MakerGear
   //#define  DEFAULT_Kp 7.0
