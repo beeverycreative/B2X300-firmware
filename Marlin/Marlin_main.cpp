@@ -8798,15 +8798,22 @@ inline void gcode_M503() {
         filament_change_beep();
       #endif
 
+	  
+	  /*
+	  //DR - disabled otherwise it would stall on the reheat procedure
       if (!nozzle_timed_out && ELAPSED(millis(), nozzle_timeout)) {
         nozzle_timed_out = true; // on nozzle timeout remember the nozzles need to be reheated
         HOTEND_LOOP() thermalManager.setTargetHotend(0, e); // Turn off all the nozzles
         lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_CLICK_TO_HEAT_NOZZLE);
       }
+	  */
+	  
       idle(true);
     }
     KEEPALIVE_STATE(IN_HANDLER);
 
+	/*
+	//DR Removed otherwise it would get stuck on heating the nozzle
     if (nozzle_timed_out)      // Turn nozzles back on if they were turned off
       HOTEND_LOOP() thermalManager.setTargetHotend(temps[e], e);
 
@@ -8818,12 +8825,13 @@ inline void gcode_M503() {
       idle();
       wait_for_heatup = false;
       HOTEND_LOOP() {
-        if (abs(thermalManager.degHotend(e) - temps[e]) > 5) {
+        if (abs(thermalManager.degHotend(e) - temps[e]) > 12) {  //DR -Changed the value to 12 to avoid unnecessary wait time
           wait_for_heatup = true;
           break;
         }
       }
     }
+	*/
 
     // Show "insert filament"
     if (nozzle_timed_out)
@@ -8835,7 +8843,7 @@ inline void gcode_M503() {
 
     KEEPALIVE_STATE(PAUSED_FOR_USER);
     wait_for_user = true;    // LCD click or M108 will clear this
-    while (wait_for_user && nozzle_timed_out) {
+    while (wait_for_user) {
       #if HAS_BUZZER
         filament_change_beep();
       #endif
