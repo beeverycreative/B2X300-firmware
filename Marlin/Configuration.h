@@ -433,7 +433,7 @@
 //#define USE_ZMAX_PLUG
 
 // coarse Endstop Settings
-#define ENDSTOPPULLUPS // Comment this out (using // at the start of the line) to disable the endstop pullup resistors
+//#define ENDSTOPPULLUPS // Comment this out (using // at the start of the line) to disable the endstop pullup resistors
 
 #if DISABLED(ENDSTOPPULLUPS)
   // fine endstop settings: Individual pullups. will be ignored if ENDSTOPPULLUPS is defined
@@ -457,7 +457,7 @@
 
 // Enable this feature if all enabled endstop pins are interrupt-capable.
 // This will remove the need to poll the interrupt pins, saving many CPU cycles.
-//#define ENDSTOP_INTERRUPTS_FEATURE
+#define ENDSTOP_INTERRUPTS_FEATURE
 
 //=============================================================================
 //============================== Movement Settings ============================
