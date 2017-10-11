@@ -523,7 +523,7 @@
  */
 #define DEFAULT_XJERK                  5.0
 #define DEFAULT_YJERK                  5.0
-#define DEFAULT_ZJERK                  0.0
+#define DEFAULT_ZJERK                  0.5
 #define DEFAULT_EJERK                  5.0
 
 
