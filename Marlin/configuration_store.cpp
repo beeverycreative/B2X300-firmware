@@ -306,9 +306,16 @@ void MarlinSettings::postprocess() {
     EEPROM_WRITE(planner.min_segment_time);
     EEPROM_WRITE(planner.max_jerk);
     
+	//DR - 23/10/2017
+	//hBp - Copies the z probe offset to the home offset  - Verify it it is necessary
+	#ifndef hBp_Autolevel
+	
+	#else
     //copy zprobe_offset to home  offset
     if(zprobe_zoffset < 0 )
       home_offset[2] = -zprobe_zoffset;  
+  
+	#endif
      
     #if !HAS_HOME_OFFSET
       const float home_offset[XYZ] = { 0 };
