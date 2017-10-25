@@ -2176,7 +2176,8 @@ static void lcd_filament_change()
 		lcd_goto_screen(_lcd_level_bed_homing);
       #else
         lcd_return_to_status();
-        enqueue_and_echo_commands_P(axis_homed[X_AXIS] && axis_homed[Y_AXIS] ? PSTR("G29") : PSTR("G28\nG29"));
+	//DR - Forces homing before autoleveling
+        enqueue_and_echo_commands_P(PSTR("G28\nG29"));
       #endif
     }
 

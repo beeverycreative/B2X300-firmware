@@ -305,6 +305,11 @@ void MarlinSettings::postprocess() {
     EEPROM_WRITE(planner.min_travel_feedrate_mm_s);
     EEPROM_WRITE(planner.min_segment_time);
     EEPROM_WRITE(planner.max_jerk);
+    
+    //copy zprobe_offset to home  offset
+    if(zprobe_zoffset < 0 )
+      home_offset[2] = -zprobe_zoffset;  
+     
     #if !HAS_HOME_OFFSET
       const float home_offset[XYZ] = { 0 };
     #endif

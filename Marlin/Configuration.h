@@ -54,6 +54,48 @@
  * https://sites.google.com/site/repraplogphase/calibration-of-your-reprap
  * http://www.thingiverse.com/thing:298812
  */
+ 
+//===========================================================================
+//========================= helloBEEprusa Printer ===========================
+//===========================================================================
+// Please select the correct options for your helloBEEprusa
+//
+//
+//
+// If your helloBEEprusa has Allegro A4988 stepper drivers please uncomment the correct line, delete the // before the #define.
+//
+// -Allegro A4988 on the Extruders and DRV8825 on the X, Y and Z axis
+// #define hBp_A4988ext
+//
+// -Allegro A4988 on all axis
+// #define hBp_A4988all
+//
+//
+//
+// If your helloBEEprusa has auto bed leveling please uncomment the following line.
+// #define hBp_Autolevel
+//
+//
+//
+// If your helloBEEprusa has the extended bed please uncomment the following line.
+// #define hBp_Extendedbed
+//
+//
+//
+// If your helloBEEprusa has trapezoidal Z threaded rods please uncomment the following line.
+// #define hBp_Trapezoidal
+//
+//
+//
+// If your helloBEEprusa has bowden extruders please uncomment the following line.
+// #define hBp_Bowden
+//
+//
+//
+// DEBUG - Bowden with smaller PTFE 500mm
+// #define hBp_Bowden_500
+
+ 
 
 //===========================================================================
 //============================= DELTA Printer ===============================
@@ -163,9 +205,19 @@
 // Offset of the extruders (uncomment if using more than one and relying on firmware to position when changing).
 // The offset has to be X=0, Y=0 for the extruder 0 hotend (default extruder).
 // For the other hotends it is their distance from the extruder 0 hotend.
-#define HOTEND_OFFSET_X {0.0, 67.5} // (in mm) for each extruder, offset of the hotend on the X axis
-#define HOTEND_OFFSET_Y {0.0, 0.30}  // (in mm) for each extruder, offset of the hotend on the Y axis
 
+
+//hBp - Checks if bowden to apply the correct offset
+#ifndef hBp_Bowden
+	//direct drive
+	#define HOTEND_OFFSET_X {0.0, 67.5} // (in mm) for each extruder, offset of the hotend on the X axis
+	#define HOTEND_OFFSET_Y {0.0, 0.30}  // (in mm) for each extruder, offset of the hotend on the Y axis
+#else
+	//has bowden
+	#define HOTEND_OFFSET_X {0.0, 13.0} // (in mm) for each extruder, offset of the hotend on the X axis
+	#define HOTEND_OFFSET_Y {0.0, 0.00}  // (in mm) for each extruder, offset of the hotend on the Y axis
+#endif
+	
 /**
  * Select your power supply here. Use 0 if you haven't connected the PS_ON_PIN
  *
@@ -343,7 +395,18 @@
 // all forms of bed control obey this (PID, bang-bang, bang-bang with hysteresis)
 // setting this to anything other than 255 enables a form of PWM to the bed just like HEATER_BED_DUTY_CYCLE_DIVIDER did,
 // so you shouldn't use it unless you are OK with PWM on your bed.  (see the comment on enabling PIDTEMPBED)
+
+
+// hBp - Checks if the extended bed is being used and adjusts the power limit
+#ifndef hBp_Extendedbed 
 #define MAX_BED_POWER 255 // limits duty cycle to bed; 255=full current
+
+#else
+#define MAX_BED_POWER 140 // limits duty cycle to bed; 140= 55% of the maximum current
+
+#endif
+
+
 
 #if ENABLED(PIDTEMPBED)
 
@@ -453,7 +516,7 @@
 #define X_MAX_ENDSTOP_INVERTING false // set to true to invert the logic of the endstop.
 #define Y_MAX_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.
 #define Z_MAX_ENDSTOP_INVERTING false // set to true to invert the logic of the endstop.
-#define Z_MIN_PROBE_ENDSTOP_INVERTING false // set to true to invert the logic of the probe.
+#define Z_MIN_PROBE_ENDSTOP_INVERTING true // set to true to invert the logic of the probe.
 
 // Enable this feature if all enabled endstop pins are interrupt-capable.
 // This will remove the need to poll the interrupt pins, saving many CPU cycles.
@@ -484,14 +547,59 @@
  * Override with M92
  *                                      X, Y, Z, E0 [, E1[, E2[, E3[, E4]]]]
  */
-#define DEFAULT_AXIS_STEPS_PER_UNIT   { 160,160,8000, 180}
+ 
+ #ifndef hBp_A4988all
+ 
+	#ifndef hBp_Trapezoidal
+ 
+		#ifndef hBp_A4988ext
+			// All stepper drivers are DRV8825
+			#define DEFAULT_AXIS_STEPS_PER_UNIT   { 160,160,8000, 180}
+
+		#else
+			// DRV8825 on XYZ and A4988 on Extruders
+			#define DEFAULT_AXIS_STEPS_PER_UNIT   { 160,160,8000, 90}
+	
+		#endif
+	#else
+		#ifndef hBp_A4988ext
+			// All stepper drivers are DRV8825 with trapezoidal threaded rod
+			#define DEFAULT_AXIS_STEPS_PER_UNIT   { 160,160,3200, 180}
+
+		#else 
+			// DRV8825 on XYZ and A4988 on Extruders with trapezoidal threaded rod
+			#define DEFAULT_AXIS_STEPS_PER_UNIT   { 160,160,3200, 90}	
+		#endif
+	#endif
+
+#else
+	#ifndef hBp_Trapezoidal
+		// A4988 on all stepper drivers 
+		#define DEFAULT_AXIS_STEPS_PER_UNIT   { 80,80,4000, 90}
+	#else
+		// A4988 on all stepper drivers with trapezoidal threaded rod
+		#define DEFAULT_AXIS_STEPS_PER_UNIT   { 80,80,1600, 90}
+	#endif
+
+#endif
+
 
 /**
  * Default Max Feed Rate (mm/s)
  * Override with M203
  *                                      X, Y, Z, E0 [, E1[, E2[, E3[, E4]]]]
  */
-#define DEFAULT_MAX_FEEDRATE          { 200, 200, 2, 20 }
+ 
+ //DR 20/10/2017
+ //hBp - Increases the max extruder speed for a faster load/unload
+ 
+#ifndef hBp_Bowden
+	#define DEFAULT_MAX_FEEDRATE          { 200, 200, 2, 20 }
+
+#else
+	#define DEFAULT_MAX_FEEDRATE          { 200, 200, 2, 60 }
+
+#endif
 
 /**
  * Default Max Acceleration (change/s) change = mm/s
@@ -588,8 +696,12 @@
 /**
  * Z Servo Probe, such as an endstop switch on a rotating arm.
  */
-//#define Z_ENDSTOP_SERVO_NR 0   // Defaults to SERVO 0 connector.
-//#define Z_SERVO_ANGLES {70,0}  // Z Servo Deploy and Stow angles
+ #ifndef hBp_Autolevel
+ #else
+#define Z_ENDSTOP_SERVO_NR 0   // Defaults to SERVO 0 connector.
+#define Z_SERVO_ANGLES {95,10}  // Z Servo Deploy and Stow angles
+ 
+ #endif
 
 /**
  * The BLTouch probe uses a Hall effect sensor and emulates a servo.
@@ -639,9 +751,26 @@
  *      O-- FRONT --+
  *    (0,0)
  */
-#define X_PROBE_OFFSET_FROM_EXTRUDER 10  // X offset: -left  +right  [of the nozzle]
-#define Y_PROBE_OFFSET_FROM_EXTRUDER 10  // Y offset: -front +behind [the nozzle]
-#define Z_PROBE_OFFSET_FROM_EXTRUDER 0   // Z offset: -below +above  [the nozzle]
+
+ //hBp - Checks if there is autoleveling
+ #ifndef hBp_Autolevel
+ // no leveling so no changes
+ #else
+	 #ifndef hBp_Bowden
+		// direct drive
+		#define X_PROBE_OFFSET_FROM_EXTRUDER 18  // X offset: -left  +right  [of the nozzle]
+		#define Y_PROBE_OFFSET_FROM_EXTRUDER 34  // Y offset: -front +behind [the nozzle]
+		#define Z_PROBE_OFFSET_FROM_EXTRUDER -21.5   // Z offset: -below +above  [the nozzle]
+	
+	#else
+		// bowden
+		#define X_PROBE_OFFSET_FROM_EXTRUDER 7  // X offset: -left  +right  [of the nozzle]
+		#define Y_PROBE_OFFSET_FROM_EXTRUDER 39  // Y offset: -front +behind [the nozzle]
+		#define Z_PROBE_OFFSET_FROM_EXTRUDER -21.5   // Z offset: -below +above  [the nozzle]
+		
+	#endif
+#endif
+
 
 // X and Y axis travel speed (mm/m) between probes
 #define XY_PROBE_SPEED 8000
@@ -649,11 +778,15 @@
 // Speed for the first approach when double-probing (with PROBE_DOUBLE_TOUCH)
 #define Z_PROBE_SPEED_FAST HOMING_FEEDRATE_Z
 
+
+//DR - 17-10-17 13h50 Activated probe double touch and reduced the second probing speed
+
 // Speed for the "accurate" probe of each point
-#define Z_PROBE_SPEED_SLOW (Z_PROBE_SPEED_FAST / 2)
+#define Z_PROBE_SPEED_SLOW (Z_PROBE_SPEED_FAST / 4)
 
 // Use double touch for probing
-//#define PROBE_DOUBLE_TOUCH
+#define PROBE_DOUBLE_TOUCH
+
 
 /**
  * Z probes require clearance when deploying, stowing, and moving between
@@ -669,12 +802,12 @@
  * Example: `M851 Z-5` with a CLEARANCE of 4  =>  9mm from bed to nozzle.
  *     But: `M851 Z+1` with a CLEARANCE of 2  =>  2mm from bed to nozzle.
  */
-#define Z_CLEARANCE_DEPLOY_PROBE   10 // Z Clearance for Deploy/Stow
-#define Z_CLEARANCE_BETWEEN_PROBES  5 // Z Clearance between probe points
+#define Z_CLEARANCE_DEPLOY_PROBE   1 // Z Clearance for Deploy/Stow
+#define Z_CLEARANCE_BETWEEN_PROBES  1 // Z Clearance between probe points
 
 // For M851 give a range for adjusting the Z probe offset
-#define Z_PROBE_OFFSET_RANGE_MIN -20
-#define Z_PROBE_OFFSET_RANGE_MAX 20
+#define Z_PROBE_OFFSET_RANGE_MIN -30
+#define Z_PROBE_OFFSET_RANGE_MAX 30
 
 // Enable the M48 repeatability test to test probe accuracy
 //#define Z_MIN_PROBE_REPEATABILITY_TEST
@@ -732,10 +865,31 @@
 // @section machine
 
 // Travel limits after homing (units are in mm)
-#define X_MIN_POS -48
+
+// hBp - Sets the bed size
+#ifndef hBp_Extendedbed
+	//default bed
+	#define X_MIN_POS -48
+	#define X_MAX_POS 185
+	
+#else
+	//extended bed
+	#define X_MIN_POS 0
+	#define X_MAX_POS 300
+	
+#endif
+		
 #define Y_MIN_POS 0
-#define Z_MIN_POS 0
-#define X_MAX_POS 185
+
+// hBp - Fixes probe offset problems
+#ifndef hBp_Autolevel
+	#define Z_MIN_POS 0
+
+#else
+	#define Z_MIN_POS -11
+
+#endif
+
 #define Y_MAX_POS 195
 #define Z_MAX_POS 190
 
@@ -806,7 +960,16 @@
 //#define AUTO_BED_LEVELING_LINEAR
 //#define AUTO_BED_LEVELING_BILINEAR
 //#define AUTO_BED_LEVELING_UBL
-#define MESH_BED_LEVELING
+//#define MESH_BED_LEVELING
+
+// hBp - Enables auto bed leveling
+#ifndef hBp_Autolevel
+	//manual leveling
+	#define MESH_BED_LEVELING
+#else
+	//auto leveling
+	#define AUTO_BED_LEVELING_BILINEAR
+#endif
 
 /**
  * Enable detailed logging of G28, G29, M48, etc.
@@ -828,29 +991,33 @@
   #define GRID_MAX_POINTS_X 3
   #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
 
+  //DR - 17-10-17 13h00 The probing place is closer to the edge of the bed
+  
   // Set the boundaries for probing (where the probe can reach).
   #define LEFT_PROBE_BED_POSITION 30
-  #define RIGHT_PROBE_BED_POSITION 155
-  #define FRONT_PROBE_BED_POSITION 30
-  #define BACK_PROBE_BED_POSITION 155
+  #define RIGHT_PROBE_BED_POSITION 270
+  #define FRONT_PROBE_BED_POSITION 40
+  #define BACK_PROBE_BED_POSITION 190
 
   // The Z probe minimum outer margin (to validate G29 parameters).
   #define MIN_PROBE_EDGE 10
 
   // Probe along the Y axis, advancing X after each column
   //#define PROBE_Y_FIRST
+  
+  //DR - 17-10-17 13h00 Activated bilinear extrapolation and bilinear subdivision to improove the quality of the leveling
 
   #if ENABLED(AUTO_BED_LEVELING_BILINEAR)
 
     // Beyond the probed grid, continue the implied tilt?
     // Default is to maintain the height of the nearest edge.
-    //#define EXTRAPOLATE_BEYOND_GRID
+    #define EXTRAPOLATE_BEYOND_GRID
 
     //
     // Experimental Subdivision of the grid by Catmull-Rom method.
     // Synthesizes intermediate points to produce a more detailed mesh.
     //
-    //#define ABL_BILINEAR_SUBDIVISION
+    #define ABL_BILINEAR_SUBDIVISION
     #if ENABLED(ABL_BILINEAR_SUBDIVISION)
       // Number of subdivisions between probe points
       #define BILINEAR_SUBDIVISIONS 3
@@ -904,8 +1071,15 @@
  * Use the LCD controller for bed leveling
  * Requires MESH_BED_LEVELING or PROBE_MANUALLY
  */
-#define LCD_BED_LEVELING
-
+ 
+ // hBp - Enables LCD bed leveling when autoleveling is off
+ #ifndef hBp_Autolevel
+	// Manual LCD leveling
+	#define LCD_BED_LEVELING
+	
+#endif
+	
+	
 #if ENABLED(LCD_BED_LEVELING)
   #define MBL_Z_STEP 0.025    // Step size while manually probing Z axis.
   #define LCD_PROBE_Z_RANGE 4 // Z Range centered on Z_MIN_POS for LCD Z adjustment
@@ -929,6 +1103,8 @@
 //#define MANUAL_Y_HOME_POS 0
 //#define MANUAL_Z_HOME_POS 0
 
+
+
 // Use "Z Safe Homing" to avoid homing with a Z probe outside the bed area.
 //
 // With this feature enabled:
@@ -938,6 +1114,13 @@
 // - Move the Z probe (or nozzle) to a defined XY point before Z Homing when homing all axes (G28).
 // - Prevent Z homing when the Z probe is outside bed area.
 //#define Z_SAFE_HOMING
+
+// hBp - Setting the home position to allow the probe to measure
+#ifndef hBp_Autolevel
+#else
+	#define Z_SAFE_HOMING
+#endif
+
 
 #if ENABLED(Z_SAFE_HOMING)
   #define Z_SAFE_HOMING_X_POINT ((X_MIN_POS + X_MAX_POS) / 2)    // X point for Z homing when homing all axis (G28).
@@ -1530,7 +1713,13 @@
 // leaving it undefined or defining as 0 will disable the servo subsystem
 // If unsure, leave commented / disabled
 //
-//#define NUM_SERVOS 3 // Servo index starts with 0 for M280 command
+
+// hBp - Enabled if it has autoleveling
+#ifndef hBp_Autolevel
+	//does nothing
+#else
+	#define NUM_SERVOS 1 // Servo index starts with 0 for M280 command
+#endif
 
 // Delay (in milliseconds) before the next move will start, to give the servo time to reach its target angle.
 // 300ms is a good value but you can try less delay.
