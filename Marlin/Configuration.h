@@ -359,7 +359,7 @@
   //#define  DEFAULT_Ki 1.08
   //#define  DEFAULT_Kd 114
   
-    #define  DEFAULT_Kp 14.0
+    #define  DEFAULT_Kp 18.0
     #define  DEFAULT_Ki 0.40
     #define  DEFAULT_Kd 110
 
@@ -442,8 +442,18 @@
 
 // This option prevents a single extrusion longer than EXTRUDE_MAXLENGTH.
 // Note that for Bowden Extruders a too-small value here may prevent loading.
-#define PREVENT_LENGTHY_EXTRUDE
-#define EXTRUDE_MAXLENGTH 200
+
+// DR - hBp - 27/10/17 - Allows the correct load and unload of filamento on the bowden extruder
+#ifndef hBp_Bowden
+	#define PREVENT_LENGTHY_EXTRUDE
+	#define EXTRUDE_MAXLENGTH 200
+
+#else
+	#define PREVENT_LENGTHY_EXTRUDE
+	#define EXTRUDE_MAXLENGTH 1000
+
+#endif
+
 
 //===========================================================================
 //======================== Thermal Runaway Protection =======================
@@ -992,12 +1002,16 @@
   #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
 
   //DR - 17-10-17 13h00 The probing place is closer to the edge of the bed
-  
+  //DR - 31-10-17 15h Different probing positions depending on the bed X size
   // Set the boundaries for probing (where the probe can reach).
-  #define LEFT_PROBE_BED_POSITION 30
-  #define RIGHT_PROBE_BED_POSITION 270
-  #define FRONT_PROBE_BED_POSITION 40
-  #define BACK_PROBE_BED_POSITION 190
+
+	  
+		#define LEFT_PROBE_BED_POSITION 30
+		#define RIGHT_PROBE_BED_POSITION X_MAX_POS-30
+		#define FRONT_PROBE_BED_POSITION 40
+		#define BACK_PROBE_BED_POSITION 190
+  
+
 
   // The Z probe minimum outer margin (to validate G29 parameters).
   #define MIN_PROBE_EDGE 10

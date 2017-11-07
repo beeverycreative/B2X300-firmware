@@ -778,10 +778,10 @@
   #define FILAMENT_CHANGE_RETRACT_FEEDRATE 60 // Initial retract feedrate in mm/s
   #define FILAMENT_CHANGE_RETRACT_LENGTH 2    // Initial retract in mm
                                               // It is a short retract used immediately after print interrupt before move to filament exchange position
-  #define FILAMENT_CHANGE_UNLOAD_FEEDRATE 40  // Unload filament feedrate in mm/s - filament unloading can be fast
+  #define FILAMENT_CHANGE_UNLOAD_FEEDRATE 60  // Unload filament feedrate in mm/s - filament unloading can be fast
   
   //DR - 20/10/2017
-  //hBp Selects the correct load and unload lenth for bowden
+  //hBp Selects the correct load and unload length for bowden
   #ifndef hBp_Bowden
   
 	#define FILAMENT_CHANGE_UNLOAD_LENGTH 100   
