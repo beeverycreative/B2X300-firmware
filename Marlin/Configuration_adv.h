@@ -800,11 +800,11 @@
 	//DR - 20/10/2017
 	//DEBUG - Allows for a smaller bowden tube
   #ifndef hBp_Bowden_500
-		#define FILAMENT_CHANGE_LOAD_LENGTH 590       // Load filament length over hotend in mm
+		#define FILAMENT_CHANGE_LOAD_LENGTH 560       // Load filament length over hotend in mm
                                               // Longer length for bowden printers to fast load filament into whole bowden tube over the hotend,
                                               // Short or zero length for printers without bowden where loading is not used
   #else
-		#define FILAMENT_CHANGE_LOAD_LENGTH 490
+		#define FILAMENT_CHANGE_LOAD_LENGTH 460
 
   #endif
   

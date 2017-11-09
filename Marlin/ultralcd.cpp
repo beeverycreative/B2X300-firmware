@@ -1195,12 +1195,18 @@ void kill_screen(const char* lcd_msg) {
 static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool unload_load)
 {
   //change the tool/extruder
-  if (extruder)
-	  active_extruder = 1;
-    //enqueue_and_echo_commands_P(PSTR("T1"));
-  else
-	  active_extruder = 0;
-    //enqueue_and_echo_commands_P(PSTR("T0"));
+	if (extruder)
+	{
+		enqueue_and_echo_commands_P(PSTR("T1"));
+		active_extruder=1;
+	}
+		
+	else
+	{
+		enqueue_and_echo_commands_P(PSTR("T0"));
+		active_extruder = 0;
+	}
+
 
   uint16_t changetemp = 0;
   // heating
@@ -1238,7 +1244,7 @@ static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool u
 	  
 	  HOTEND_LOOP() {
 		  updatetemp = thermalManager.degHotend(extruder);
-        if (abs(updatetemp - changetemp) > 5) {
+        if (abs(updatetemp - changetemp) > 10) {
           update = true;
           break;
         }
@@ -1284,27 +1290,28 @@ static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool u
 	//show "moving"
 	lcd_goto_screen(lcd_filament_change_moving);
 	
-	//lcd.clear();
-	//lcd.setCursor(1, 2);
-    //lcd.print("Moving, please wait...");
-	//lcdDrawUpdate = 0;
+	// update LCD and return
+    lcdDrawUpdate = 2;
 	
 	for(long k = millis()+500; k > millis();)
 		idle(true);
 		
-	//lcdDrawUpdate = 0;
+	
 
 	
   enqueue_and_echo_commands_P(PSTR("G92 E0"));
 
-  //load
-  if (unload_load)
-    enqueue_and_echo_commands_P(PSTR("G1 E 100 F200"));
-  //unload
-  else
-	enqueue_and_echo_commands_P(PSTR("G1 E -100 F200"));
+		//load
+	if (unload_load)
+		enqueue_and_echo_commands_P(PSTR("M600 S1 U0"));
+	
+		//unload
+	else
+		enqueue_and_echo_commands_P(PSTR("M600 S1 U1"));
 
   enqueue_and_echo_commands_P(PSTR("G92 E0"));
+  
+  enqueue_and_echo_commands_P(PSTR("T0"));
   
 /*
 
@@ -3653,6 +3660,11 @@ static void lcd_filament_change()
         case FILAMENT_CHANGE_MESSAGE_STATUS:
           lcd_return_to_status();
           break;
+		  
+		 // DR - 09/11/17 - Filament change move
+		case FILAMENT_CHANGE_MESSAGE_MOVING:
+          lcd_goto_screen(lcd_filament_change_moving);
+          break;		 
       }
     }
 

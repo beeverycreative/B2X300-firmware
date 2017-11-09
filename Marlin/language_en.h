@@ -618,7 +618,8 @@
   #define MSG_FILAMENT_CHANGE_OPTION_EXTRUDE  _UxGT("Extrude more")
 #endif
 #ifndef MSG_FILAMENT_CHANGE_OPTION_RESUME
-  #define MSG_FILAMENT_CHANGE_OPTION_RESUME   _UxGT("Resume print")
+  //#define MSG_FILAMENT_CHANGE_OPTION_RESUME   _UxGT("Resume print")
+  #define MSG_FILAMENT_CHANGE_OPTION_RESUME   _UxGT("Exit")
 #endif
 #ifndef MSG_FILAMENT_CHANGE_MINTEMP
   #define MSG_FILAMENT_CHANGE_MINTEMP         _UxGT("Minimum Temp is ")

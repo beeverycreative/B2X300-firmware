@@ -8689,13 +8689,17 @@ inline void gcode_M503() {
    *  X[position] - Move to this X position, with Y
    *  Y[position] - Move to this Y position, with X
    *  L[distance] - Retract distance for removal (manual reload)
+   *  S[boolean]  - If enabled it is set as load/unload mode
+   *  U[boolean]  - If enabled unload filament
    *
    *  Default values are used for omitted arguments.
    *
    */
   inline void gcode_M600() {
 
-    if (!DEBUGGING(DRYRUN) && thermalManager.tooColdToExtrude(active_extruder)) {
+    if (!DEBUGGING(DRYRUN) && thermalManager.tooColdToExtrude(active_extruder) ) {
+	
+	// If too cold sends a serial error and exits
       SERIAL_ERROR_START;
       SERIAL_ERRORLNPGM(MSG_TOO_COLD_FOR_M600);
       return;
@@ -8708,214 +8712,406 @@ inline void gcode_M503() {
 
     print_job_timer.pause();
 
-    // Show initial message and wait for synchronize steppers
-    lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_INIT);
+    // Synchronize the steppers
     stepper.synchronize();
 
     // Save current position of all axes
     float lastpos[XYZE];
     COPY(lastpos, current_position);
     set_destination_to_current();
+	
 
-    // Initial retract before move to filament change position
-    destination[E_AXIS] += code_seen('E') ? code_value_axis_units(E_AXIS) : 0
-      #if defined(FILAMENT_CHANGE_RETRACT_LENGTH) && FILAMENT_CHANGE_RETRACT_LENGTH > 0
-        - (FILAMENT_CHANGE_RETRACT_LENGTH)
-      #endif
-    ;
 
-    RUNPLAN(FILAMENT_CHANGE_RETRACT_FEEDRATE);
+		// DR - 06/11/17 - Only retracts and unloads if not loading/unloading filament.
+	if (code_seen('S') ? code_value_bool() : 0)
+	{
+		
+		lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_MOVING);
+		
+		/*
+		// Heats up the hotend
+		HOTEND_LOOP() thermalManager.setTargetHotend(220, active_extruder);
+		
+		
+		// Checks if the axis are homed, if not homes them
+		if(!axis_homed[XYZ])   
+		{
+			// Homes XY
+			HOMEAXIS(X);
+			HOMEAXIS(Y);
+			
+			// Homes Z
+			#if ENABLED(Z_SAFE_HOMING)
+			  home_z_safely();
+			#else
+			  HOMEAXIS(Z);
+			#endif
+		}
+		
+		// Move XYZ axes to filament exchange position, middle of XY axis and Z at 30mm
+		destination[Z_AXIS] = 20;
+		
+		RUNPLAN(FILAMENT_CHANGE_XY_FEEDRATE);
+		
+		destination[X_AXIS] = X_MAX_POS/2;
+		destination[Y_AXIS] = Y_MAX_POS/2;
+		
+		RUNPLAN(FILAMENT_CHANGE_XY_FEEDRATE*4);
 
-    // Lift Z axis
-    float z_lift = code_seen('Z') ? code_value_linear_units() :
-      #if defined(FILAMENT_CHANGE_Z_ADD) && FILAMENT_CHANGE_Z_ADD > 0
-        FILAMENT_CHANGE_Z_ADD
-      #else
-        0
-      #endif
-    ;
+		stepper.synchronize();
+		
+		
+		// Show "wait for heating"
+		lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_WAIT_FOR_NOZZLES_TO_HEAT);
+		idle(true);
 
-    if (z_lift > 0) {
-      destination[Z_AXIS] += z_lift;
-      NOMORE(destination[Z_AXIS], Z_MAX_POS);
-      RUNPLAN(FILAMENT_CHANGE_Z_FEEDRATE);
-    }
-
-    // Move XY axes to filament exchange position
-    if (code_seen('X')) destination[X_AXIS] = code_value_linear_units();
-    #ifdef FILAMENT_CHANGE_X_POS
-      else destination[X_AXIS] = FILAMENT_CHANGE_X_POS;
-    #endif
-
-    if (code_seen('Y')) destination[Y_AXIS] = code_value_linear_units();
-    #ifdef FILAMENT_CHANGE_Y_POS
-      else destination[Y_AXIS] = FILAMENT_CHANGE_Y_POS;
-    #endif
-
-    RUNPLAN(FILAMENT_CHANGE_XY_FEEDRATE);
-
-    stepper.synchronize();
-    lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_UNLOAD);
-    idle();
-
-    // Unload filament
-    destination[E_AXIS] += code_seen('L') ? code_value_axis_units(E_AXIS) : 0
-      #if FILAMENT_CHANGE_UNLOAD_LENGTH > 0
-        - (FILAMENT_CHANGE_UNLOAD_LENGTH)
-      #endif
-    ;
-
-    RUNPLAN(FILAMENT_CHANGE_UNLOAD_FEEDRATE);
-
-    // Synchronize steppers and then disable extruders steppers for manual filament changing
-    stepper.synchronize();
-    disable_e_steppers();
-    safe_delay(100);
-
-    const millis_t nozzle_timeout = millis() + (millis_t)(FILAMENT_CHANGE_NOZZLE_TIMEOUT) * 1000UL;
-    bool nozzle_timed_out = false;
-
-    // Wait for filament insert by user and press button
-    lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_INSERT);
-
-    #if HAS_BUZZER
-      filament_change_beep(true);
-    #endif
-
-    idle();
-
-    int16_t temps[HOTENDS];
-    HOTEND_LOOP() temps[e] = thermalManager.target_temperature[e]; // Save nozzle temps
-
-    KEEPALIVE_STATE(PAUSED_FOR_USER);
-    wait_for_user = true;    // LCD click or M108 will clear this
-    while (wait_for_user) {
-
-      if (nozzle_timed_out)
-        lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_CLICK_TO_HEAT_NOZZLE);
-
-      #if HAS_BUZZER
-        filament_change_beep();
-      #endif
-
+		// Loop while waiting
+		wait_for_heatup = true;
+		while (wait_for_heatup) {
+		  idle(true);
+		  //HOTEND_STATUS_ITEM();
+		  
+		  int temp = 200;
+		  wait_for_heatup = false;
+		  HOTEND_LOOP() {
+			  temp = thermalManager.degHotend(e) - 220;
+			if (abs(temp) > 15) {  //DR -Changed the value to 15 to avoid unnecessary wait time
+			  wait_for_heatup = true;
+			  lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_WAIT_FOR_NOZZLES_TO_HEAT);
+			  break;
+			}
+		  }
+		}
+		*/
+		
+		// Checks if the unload flag is enabled, to see if it should execute Load or Unload
+		if(code_seen('U') ? code_value_bool() : 0)
+		{
+			
+			// Show unload message on LCD
+			//lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_UNLOAD);
+			//idle();
+			
+			/*
+			// Pause while waiting for display click
+			KEEPALIVE_STATE(PAUSED_FOR_USER);
+			wait_for_user = true;    // LCD click or M108 will clear this
+			while (wait_for_user) 
+			{
+				#if HAS_BUZZER
+				filament_change_beep();
+				#endif
 	  
-	  /*
-	  //DR - disabled otherwise it would stall on the reheat procedure
-      if (!nozzle_timed_out && ELAPSED(millis(), nozzle_timeout)) {
-        nozzle_timed_out = true; // on nozzle timeout remember the nozzles need to be reheated
-        HOTEND_LOOP() thermalManager.setTargetHotend(0, e); // Turn off all the nozzles
-        lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_CLICK_TO_HEAT_NOZZLE);
-      }
-	  */
+				idle(true);
+			}
+			KEEPALIVE_STATE(IN_HANDLER);
+			*/
+
+			// Unload filament
+			destination[E_AXIS] += code_seen('L') ? code_value_axis_units(E_AXIS) : 0
+			#if FILAMENT_CHANGE_UNLOAD_LENGTH > 0
+				- (FILAMENT_CHANGE_UNLOAD_LENGTH)
+			#endif
+			;
+			
+			RUNPLAN(FILAMENT_CHANGE_UNLOAD_FEEDRATE);
+			stepper.synchronize();
+		}
+		// When loading
+		else
+		{
+			
+			// Show "load" message
+			//lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_LOAD);
+			//idle();
+			
+			/*
+			// Pause while waiting for display click
+			KEEPALIVE_STATE(PAUSED_FOR_USER);
+			wait_for_user = true;    // LCD click or M108 will clear this
+			while (wait_for_user) 
+			{
+				#if HAS_BUZZER
+				filament_change_beep();
+				#endif
 	  
-      idle(true);
-    }
-    KEEPALIVE_STATE(IN_HANDLER);
+				idle(true);
+			}
+			KEEPALIVE_STATE(IN_HANDLER);
+			*/
+		
+			//Checks if Bowden to apply the correct 3 phase load process
+			#ifndef hBp_Bowden
+				//Direct drive
+				
+				// Load filament
+				destination[E_AXIS] += code_seen('L') ? -code_value_axis_units(E_AXIS) : 0
+				#if FILAMENT_CHANGE_LOAD_LENGTH > 0
+				+ FILAMENT_CHANGE_LOAD_LENGTH
+				#endif
+				;
 
-	/*
-	//DR Removed otherwise it would get stuck on heating the nozzle
-    if (nozzle_timed_out)      // Turn nozzles back on if they were turned off
-      HOTEND_LOOP() thermalManager.setTargetHotend(temps[e], e);
+				RUNPLAN(FILAMENT_CHANGE_LOAD_FEEDRATE);
+				stepper.synchronize();
+				
+			#else
+				//Bowden
+			
+				// Load filament slowly into PTFE tube
+				destination[E_AXIS] += (FILAMENT_CHANGE_EXTRUDE_LENGTH/2);
 
-    // Show "wait for heating"
-    lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_WAIT_FOR_NOZZLES_TO_HEAT);
+				RUNPLAN(FILAMENT_CHANGE_EXTRUDE_FEEDRATE);
+				stepper.synchronize();
+				
+				// Load filament quickly into PTFE tube
+				destination[E_AXIS] += FILAMENT_CHANGE_LOAD_LENGTH;
 
-    wait_for_heatup = true;
-    while (wait_for_heatup) {
-      idle();
-      wait_for_heatup = false;
-      HOTEND_LOOP() {
-        if (abs(thermalManager.degHotend(e) - temps[e]) > 12) {  //DR -Changed the value to 12 to avoid unnecessary wait time
-          wait_for_heatup = true;
-          break;
-        }
-      }
-    }
-	*/
+				RUNPLAN(FILAMENT_CHANGE_LOAD_FEEDRATE);
+				stepper.synchronize();
+				
+				
+			
+			#endif
+			
+			// Extrude filament
+			do 
+			{
+			// "Wait for filament extrude"
+			//lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_EXTRUDE);
+			
+			lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_MOVING);
+			
 
-    // Show "insert filament"
-    if (nozzle_timed_out)
-      lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_INSERT);
+			// Extrude filament to get into hotend
+			destination[E_AXIS] += FILAMENT_CHANGE_EXTRUDE_LENGTH;
+			RUNPLAN(FILAMENT_CHANGE_EXTRUDE_FEEDRATE);
+			stepper.synchronize();
 
-    #if HAS_BUZZER
-      filament_change_beep(true);
-    #endif
+			// Show "Extrude More" / "Resume" menu and wait for reply
+			KEEPALIVE_STATE(PAUSED_FOR_USER);
+			wait_for_user = false;
+			lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_OPTION);
+			while (filament_change_menu_response == FILAMENT_CHANGE_RESPONSE_WAIT_FOR) idle(true);
+			KEEPALIVE_STATE(IN_HANDLER);
 
-    KEEPALIVE_STATE(PAUSED_FOR_USER);
-    wait_for_user = true;    // LCD click or M108 will clear this
-    while (wait_for_user) {
-      #if HAS_BUZZER
-        filament_change_beep();
-      #endif
-      idle(true);
-    }
-    KEEPALIVE_STATE(IN_HANDLER);
+			// Keep looping if "Extrude More" was selected
+			} while (filament_change_menu_response == FILAMENT_CHANGE_RESPONSE_EXTRUDE_MORE);
+			
+		}
 
-    // Show "load" message
-    lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_LOAD);
+	}
+	
+		// Default filament change
+	else
+	{
+			// Show initial message and wait for synchronize steppers
+		lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_INIT);
+		
+			// Initial retract before move to filament change position
+		destination[E_AXIS] += code_seen('E') ? code_value_axis_units(E_AXIS) : 0
+		  #if defined(FILAMENT_CHANGE_RETRACT_LENGTH) && FILAMENT_CHANGE_RETRACT_LENGTH > 0
+			- (FILAMENT_CHANGE_RETRACT_LENGTH)
+		  #endif
+		;
 
-    // Load filament
-    destination[E_AXIS] += code_seen('L') ? -code_value_axis_units(E_AXIS) : 0
-      #if FILAMENT_CHANGE_LOAD_LENGTH > 0
-        + FILAMENT_CHANGE_LOAD_LENGTH
-      #endif
-    ;
+		RUNPLAN(FILAMENT_CHANGE_RETRACT_FEEDRATE);
 
-    RUNPLAN(FILAMENT_CHANGE_LOAD_FEEDRATE);
-    stepper.synchronize();
+		// Lift Z axis
+		float z_lift = code_seen('Z') ? code_value_linear_units() :
+		  #if defined(FILAMENT_CHANGE_Z_ADD) && FILAMENT_CHANGE_Z_ADD > 0
+			FILAMENT_CHANGE_Z_ADD
+		  #else
+			0
+		  #endif
+		;
 
-    #if defined(FILAMENT_CHANGE_EXTRUDE_LENGTH) && FILAMENT_CHANGE_EXTRUDE_LENGTH > 0
+		if (z_lift > 0) {
+		  destination[Z_AXIS] += z_lift;
+		  NOMORE(destination[Z_AXIS], Z_MAX_POS);
+		  RUNPLAN(FILAMENT_CHANGE_Z_FEEDRATE);
+		}
 
-      do {
-        // "Wait for filament extrude"
-        lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_EXTRUDE);
+		// Move XY axes to filament exchange position
+		if (code_seen('X')) destination[X_AXIS] = code_value_linear_units();
+		#ifdef FILAMENT_CHANGE_X_POS
+		  else destination[X_AXIS] = FILAMENT_CHANGE_X_POS;
+		#endif
 
-        // Extrude filament to get into hotend
-        destination[E_AXIS] += FILAMENT_CHANGE_EXTRUDE_LENGTH;
-        RUNPLAN(FILAMENT_CHANGE_EXTRUDE_FEEDRATE);
-        stepper.synchronize();
+		if (code_seen('Y')) destination[Y_AXIS] = code_value_linear_units();
+		#ifdef FILAMENT_CHANGE_Y_POS
+		  else destination[Y_AXIS] = FILAMENT_CHANGE_Y_POS;
+		#endif
 
-        // Show "Extrude More" / "Resume" menu and wait for reply
-        KEEPALIVE_STATE(PAUSED_FOR_USER);
-        wait_for_user = false;
-        lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_OPTION);
-        while (filament_change_menu_response == FILAMENT_CHANGE_RESPONSE_WAIT_FOR) idle(true);
-        KEEPALIVE_STATE(IN_HANDLER);
+		RUNPLAN(FILAMENT_CHANGE_XY_FEEDRATE);
 
-        // Keep looping if "Extrude More" was selected
-      } while (filament_change_menu_response == FILAMENT_CHANGE_RESPONSE_EXTRUDE_MORE);
+		stepper.synchronize();
+		lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_UNLOAD);
+		idle();
 
-    #endif
+		// Unload filament
+		destination[E_AXIS] += code_seen('L') ? code_value_axis_units(E_AXIS) : 0
+		  #if FILAMENT_CHANGE_UNLOAD_LENGTH > 0
+			- (FILAMENT_CHANGE_UNLOAD_LENGTH)
+		  #endif
+		;
 
-    // "Wait for print to resume"
-    lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_RESUME);
+		RUNPLAN(FILAMENT_CHANGE_UNLOAD_FEEDRATE);
 
-    // Set extruder to saved position
-    destination[E_AXIS] = current_position[E_AXIS] = lastpos[E_AXIS];
-    planner.set_e_position_mm(current_position[E_AXIS]);
+		// Synchronize steppers and then disable extruders steppers for manual filament changing
+		stepper.synchronize();
+		disable_e_steppers();
+		safe_delay(100);
+		
+		const millis_t nozzle_timeout = millis() + (millis_t)(FILAMENT_CHANGE_NOZZLE_TIMEOUT) * 1000UL;
+		bool nozzle_timed_out = false;
 
-    #if IS_KINEMATIC
-      // Move XYZ to starting position
-      planner.buffer_line_kinematic(lastpos, FILAMENT_CHANGE_XY_FEEDRATE, active_extruder);
-    #else
-      // Move XY to starting position, then Z
-      destination[X_AXIS] = lastpos[X_AXIS];
-      destination[Y_AXIS] = lastpos[Y_AXIS];
-      RUNPLAN(FILAMENT_CHANGE_XY_FEEDRATE);
-      destination[Z_AXIS] = lastpos[Z_AXIS];
-      RUNPLAN(FILAMENT_CHANGE_Z_FEEDRATE);
-    #endif
-    stepper.synchronize();
+		// Wait for filament insert by user and press button
+		lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_INSERT);
 
-    #if ENABLED(FILAMENT_RUNOUT_SENSOR)
-      filament_ran_out = false;
-    #endif
+		#if HAS_BUZZER
+		  filament_change_beep(true);
+		#endif
+
+		idle();
+
+		int16_t temps[HOTENDS];
+		HOTEND_LOOP() temps[e] = thermalManager.target_temperature[e]; // Save nozzle temps
+
+		KEEPALIVE_STATE(PAUSED_FOR_USER);
+		wait_for_user = true;    // LCD click or M108 will clear this
+		while (wait_for_user) {
+
+		  if (nozzle_timed_out)
+			lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_CLICK_TO_HEAT_NOZZLE);
+
+		  #if HAS_BUZZER
+			filament_change_beep();
+		  #endif
+
+		  
+		  /*
+		  //DR - disabled otherwise it would stall on the reheat procedure
+		  if (!nozzle_timed_out && ELAPSED(millis(), nozzle_timeout)) {
+			nozzle_timed_out = true; // on nozzle timeout remember the nozzles need to be reheated
+			HOTEND_LOOP() thermalManager.setTargetHotend(0, e); // Turn off all the nozzles
+			lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_CLICK_TO_HEAT_NOZZLE);
+		  }
+		  */
+		  
+		  idle(true);
+		}
+		KEEPALIVE_STATE(IN_HANDLER);
+
+		/*
+		//DR Removed otherwise it would get stuck on heating the nozzle
+		if (nozzle_timed_out)      // Turn nozzles back on if they were turned off
+		  HOTEND_LOOP() thermalManager.setTargetHotend(temps[e], e);
+
+		// Show "wait for heating"
+		lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_WAIT_FOR_NOZZLES_TO_HEAT);
+
+		wait_for_heatup = true;
+		while (wait_for_heatup) {
+		  idle();
+		  wait_for_heatup = false;
+		  HOTEND_LOOP() {
+			if (abs(thermalManager.degHotend(e) - temps[e]) > 12) {  //DR -Changed the value to 12 to avoid unnecessary wait time
+			  wait_for_heatup = true;
+			  break;
+			}
+		  }
+		}
+		*/
+
+		// Show "insert filament"
+		if (nozzle_timed_out)
+		  lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_INSERT);
+
+		#if HAS_BUZZER
+		  filament_change_beep(true);
+		#endif
+
+		KEEPALIVE_STATE(PAUSED_FOR_USER);
+		wait_for_user = true;    // LCD click or M108 will clear this
+		while (wait_for_user) {
+		  #if HAS_BUZZER
+			filament_change_beep();
+		  #endif
+		  idle(true);
+		}
+		KEEPALIVE_STATE(IN_HANDLER);
+
+		// Show "load" message
+		lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_LOAD);
+
+		// Load filament
+		destination[E_AXIS] += code_seen('L') ? -code_value_axis_units(E_AXIS) : 0
+		  #if FILAMENT_CHANGE_LOAD_LENGTH > 0
+			+ FILAMENT_CHANGE_LOAD_LENGTH
+		  #endif
+		;
+
+		RUNPLAN(FILAMENT_CHANGE_LOAD_FEEDRATE);
+		stepper.synchronize();
+
+		#if defined(FILAMENT_CHANGE_EXTRUDE_LENGTH) && FILAMENT_CHANGE_EXTRUDE_LENGTH > 0
+
+		  do {
+			// "Wait for filament extrude"
+			lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_EXTRUDE);
+
+			// Extrude filament to get into hotend
+			destination[E_AXIS] += FILAMENT_CHANGE_EXTRUDE_LENGTH;
+			RUNPLAN(FILAMENT_CHANGE_EXTRUDE_FEEDRATE/2);
+			stepper.synchronize();
+
+			// Show "Extrude More" / "Resume" menu and wait for reply
+			KEEPALIVE_STATE(PAUSED_FOR_USER);
+			wait_for_user = false;
+			lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_OPTION);
+			while (filament_change_menu_response == FILAMENT_CHANGE_RESPONSE_WAIT_FOR) idle(true);
+			KEEPALIVE_STATE(IN_HANDLER);
+
+			// Keep looping if "Extrude More" was selected
+		  } while (filament_change_menu_response == FILAMENT_CHANGE_RESPONSE_EXTRUDE_MORE);
+
+		#endif
+
+		// "Wait for print to resume"
+		lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_RESUME);
+
+		// Set extruder to saved position
+		destination[E_AXIS] = current_position[E_AXIS] = lastpos[E_AXIS];
+		planner.set_e_position_mm(current_position[E_AXIS]);
+
+		#if IS_KINEMATIC
+		  // Move XYZ to starting position
+		  planner.buffer_line_kinematic(lastpos, FILAMENT_CHANGE_XY_FEEDRATE, active_extruder);
+		#else
+		  // Move XY to starting position, then Z
+		  destination[X_AXIS] = lastpos[X_AXIS];
+		  destination[Y_AXIS] = lastpos[Y_AXIS];
+		  RUNPLAN(FILAMENT_CHANGE_XY_FEEDRATE);
+		  destination[Z_AXIS] = lastpos[Z_AXIS];
+		  RUNPLAN(FILAMENT_CHANGE_Z_FEEDRATE);
+		#endif
+		stepper.synchronize();
+
+		#if ENABLED(FILAMENT_RUNOUT_SENSOR)
+		  filament_ran_out = false;
+		#endif
+				
+			
+	}
 
     // Show status screen
     lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_STATUS);
 
     // Resume the print job timer if it was running
     if (job_running) print_job_timer.start();
+	
+	// Force steppers to synchronize before finishing the command 
+	stepper.synchronize();
 
     busy_doing_M600 = false;  // Allow Stepper Motors to be turned off during inactivity
   }

@@ -92,7 +92,7 @@
 //
 //
 //
-// DEBUG - Bowden with smaller PTFE 500mm
+// Bowden with smaller PTFE tube, less 100mm than the original kit size
 // #define hBp_Bowden_500
 
  
@@ -600,14 +600,24 @@
  *                                      X, Y, Z, E0 [, E1[, E2[, E3[, E4]]]]
  */
  
- //DR 20/10/2017
+ //DR 03/11/2017
  //hBp - Increases the max extruder speed for a faster load/unload
+ // also increased the Z speed for the trapezoidal threaded rods
  
+
 #ifndef hBp_Bowden
-	#define DEFAULT_MAX_FEEDRATE          { 200, 200, 2, 20 }
+	#ifndef hBp_Trapezoidal
+		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 2, 20 }
+	#else
+		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 5, 20 }
+	#endif
 
 #else
-	#define DEFAULT_MAX_FEEDRATE          { 200, 200, 2, 60 }
+	#ifndef hBp_Trapezoidal
+		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 2, 60 }
+	#else
+		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 5, 60 }
+	#endif
 
 #endif
 
@@ -709,7 +719,7 @@
  #ifndef hBp_Autolevel
  #else
 #define Z_ENDSTOP_SERVO_NR 0   // Defaults to SERVO 0 connector.
-#define Z_SERVO_ANGLES {95,10}  // Z Servo Deploy and Stow angles
+#define Z_SERVO_ANGLES {10,95}  // Z Servo Deploy and Stow angles
  
  #endif
 
