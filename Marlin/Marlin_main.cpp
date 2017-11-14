@@ -8727,92 +8727,13 @@ inline void gcode_M503() {
 	{
 		
 		lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_MOVING);
-		
-		/*
-		// Heats up the hotend
-		HOTEND_LOOP() thermalManager.setTargetHotend(220, active_extruder);
-		
-		
-		// Checks if the axis are homed, if not homes them
-		if(!axis_homed[XYZ])   
-		{
-			// Homes XY
-			HOMEAXIS(X);
-			HOMEAXIS(Y);
-			
-			// Homes Z
-			#if ENABLED(Z_SAFE_HOMING)
-			  home_z_safely();
-			#else
-			  HOMEAXIS(Z);
-			#endif
-		}
-		
-		// Move XYZ axes to filament exchange position, middle of XY axis and Z at 30mm
-		destination[Z_AXIS] = 20;
-		
-		RUNPLAN(FILAMENT_CHANGE_XY_FEEDRATE);
-		
-		destination[X_AXIS] = X_MAX_POS/2;
-		destination[Y_AXIS] = Y_MAX_POS/2;
-		
-		RUNPLAN(FILAMENT_CHANGE_XY_FEEDRATE*4);
-
-		stepper.synchronize();
-		
-		
-		// Show "wait for heating"
-		lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_WAIT_FOR_NOZZLES_TO_HEAT);
-		idle(true);
-
-		// Loop while waiting
-		wait_for_heatup = true;
-		while (wait_for_heatup) {
-		  idle(true);
-		  //HOTEND_STATUS_ITEM();
-		  
-		  int temp = 200;
-		  wait_for_heatup = false;
-		  HOTEND_LOOP() {
-			  temp = thermalManager.degHotend(e) - 220;
-			if (abs(temp) > 15) {  //DR -Changed the value to 15 to avoid unnecessary wait time
-			  wait_for_heatup = true;
-			  lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_WAIT_FOR_NOZZLES_TO_HEAT);
-			  break;
-			}
-		  }
-		}
-		*/
+		idle();
 		
 		// Checks if the unload flag is enabled, to see if it should execute Load or Unload
 		if(code_seen('U') ? code_value_bool() : 0)
 		{
-			
-			// Show unload message on LCD
-			//lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_UNLOAD);
-			//idle();
-			
-			/*
-			// Pause while waiting for display click
-			KEEPALIVE_STATE(PAUSED_FOR_USER);
-			wait_for_user = true;    // LCD click or M108 will clear this
-			while (wait_for_user) 
-			{
-				#if HAS_BUZZER
-				filament_change_beep();
-				#endif
-	  
-				idle(true);
-			}
-			KEEPALIVE_STATE(IN_HANDLER);
-			*/
-
 			// Unload filament
-			destination[E_AXIS] += code_seen('L') ? code_value_axis_units(E_AXIS) : 0
-			#if FILAMENT_CHANGE_UNLOAD_LENGTH > 0
-				- (FILAMENT_CHANGE_UNLOAD_LENGTH)
-			#endif
-			;
+			destination[E_AXIS] += -(FILAMENT_CHANGE_UNLOAD_LENGTH);
 			
 			RUNPLAN(FILAMENT_CHANGE_UNLOAD_FEEDRATE);
 			stepper.synchronize();
@@ -8820,26 +8741,6 @@ inline void gcode_M503() {
 		// When loading
 		else
 		{
-			
-			// Show "load" message
-			//lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_LOAD);
-			//idle();
-			
-			/*
-			// Pause while waiting for display click
-			KEEPALIVE_STATE(PAUSED_FOR_USER);
-			wait_for_user = true;    // LCD click or M108 will clear this
-			while (wait_for_user) 
-			{
-				#if HAS_BUZZER
-				filament_change_beep();
-				#endif
-	  
-				idle(true);
-			}
-			KEEPALIVE_STATE(IN_HANDLER);
-			*/
-		
 			//Checks if Bowden to apply the correct 3 phase load process
 			#ifndef hBp_Bowden
 				//Direct drive
@@ -8876,12 +8777,8 @@ inline void gcode_M503() {
 			// Extrude filament
 			do 
 			{
-			// "Wait for filament extrude"
-			//lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_EXTRUDE);
-			
 			lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_MOVING);
 			
-
 			// Extrude filament to get into hotend
 			destination[E_AXIS] += FILAMENT_CHANGE_EXTRUDE_LENGTH;
 			RUNPLAN(FILAMENT_CHANGE_EXTRUDE_FEEDRATE);
