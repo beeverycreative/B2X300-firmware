@@ -308,6 +308,7 @@ void MarlinSettings::postprocess() {
     
 	//DR - 23/10/2017
 	//hBp - Copies the z probe offset to the home offset  - Verify it it is necessary
+	/*
 	#ifndef hBp_Autolevel
 	
 	#else
@@ -316,7 +317,8 @@ void MarlinSettings::postprocess() {
       home_offset[2] = -zprobe_zoffset;  
   
 	#endif
-     
+     */
+	 
     #if !HAS_HOME_OFFSET
       const float home_offset[XYZ] = { 0 };
     #endif
