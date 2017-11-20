@@ -1155,6 +1155,29 @@ void kill_screen(const char* lcd_msg) {
         STATIC_ITEM(" ");
       #endif
 	  
+	  #ifndef REPRAP_DISCOUNT_FULL_GRAPHIC_SMART_CONTROLLER
+			lcd.setCursor(3, 3);
+			lcd.print("Nozzle: ");
+			  
+			if((thermalManager.degHotend(active_extruder)) <100)
+			lcd.print(" ");
+		  
+			lcd.print(thermalManager.degHotend(active_extruder));
+			lcd.print("/");
+			lcd.print(thermalManager.degTargetHotend(active_extruder));
+	  #else
+		    u8g.setCursor(3, 3);
+			u8g.print("Nozzle: ");
+			  
+			if((thermalManager.degHotend(active_extruder)) <100)
+			u8g.print(" ");
+		  
+			u8g.print(thermalManager.degHotend(active_extruder));
+			u8g.print("/");
+			u8g.print(thermalManager.degTargetHotend(active_extruder));
+	  #endif
+	  
+	  /*
 	  lcd.setCursor(3, 3);
 	  lcd.print("Nozzle: ");
 	  
@@ -1164,6 +1187,8 @@ void kill_screen(const char* lcd_msg) {
 	  lcd.print(thermalManager.degHotend(active_extruder));
 	  lcd.print("/");
 	  lcd.print(thermalManager.degTargetHotend(active_extruder));
+	  
+	  */
 	  
 	  //lcd_implementation_drawmenu_static(_lcdLineNr, PSTR(MSG_FILAMENT_CHANGE_NOZZLE), false, true); 
       //lcd_implementation_drawmenu_(_lcdLineNr, thermalManager.degHotend(active_extruder), false, true); 
