@@ -500,7 +500,11 @@
   #endif
 
   // Show a progress bar on HD44780 LCDs for SD printing
-  #define LCD_PROGRESS_BAR
+  // Makes sure progress bar is disabled for 12864 or other graphical displays
+
+  #ifndef DOGLCD
+    #define LCD_PROGRESS_BAR
+  #endif
 
   #if ENABLED(LCD_PROGRESS_BAR)
     // Amount of time (ms) to show the bar
