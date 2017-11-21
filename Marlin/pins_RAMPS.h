@@ -305,6 +305,7 @@
       #define DOGLCD_CS 29
       #define DOGLCD_A0 27
       #define LCD_BACKLIGHT_PIN 33
+	  
     #elif ENABLED(MINIPANEL)
       #define BEEPER_PIN 42
       // Pins for DOGM SPI LCD Support
@@ -326,6 +327,26 @@
       #define BTN_ENC 59
       // not connected to a pin
       #define SD_DETECT_PIN 49
+	  
+	// Included MKS mini screen  
+	#elif ENABLED(MKS_MINI_12864)
+		   #define MISO_PIN      50  // system defined - only needed if using onboard SD card
+		   #define MOSI_PIN      51  // system defined
+		   #define SCK_PIN       52  // system defined
+		   #define SDSS          53  // only needed if using onboard SD card
+
+		   #define BEEPER_PIN    37
+
+		   #define BTN_EN1       31
+		   #define BTN_EN2       33
+		   #define BTN_ENC       35
+
+		   #define KILL_PIN      41  // optional
+
+		   #define SD_DETECT_PIN 49  // only needed if using onboard SD card
+
+		   #define DOGLCD_CS     25
+		   #define DOGLCD_A0     27
 
     #else
 
