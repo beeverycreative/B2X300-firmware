@@ -72,6 +72,16 @@
 //
 //
 //
+// If your helloBEEprusa has Trinamic TMC2208/2100 stepper drivers please uncomment the correct line
+//
+// -Trinamic TMC2208/2100 on the extruder
+// #define hBp_TMC2208ext
+//
+// -Trinamic TMC2208/2100 on all axis
+// #define hBp_TMC2208all
+//
+//
+//
 // If your helloBEEprusa has auto bed leveling please uncomment the following line.
 // #define hBp_Autolevel
 //
@@ -94,8 +104,20 @@
 //
 // Bowden with smaller PTFE tube, less 100mm than the original kit size
 // #define hBp_Bowden_500
+//
+//
+//
+//===========================================================================
+//===========================================================================
+//
+//DR - As trinamics use 16 microsteps like the A4988 we need to make this configuration
+#ifdef hBp_TMC2208ext
+	#define hBp_A4988ext
+#endif
 
- 
+#ifdef hBp_TMC2208all
+	#define hBp_A4988all
+#endif
 
 //===========================================================================
 //============================= DELTA Printer ===============================
@@ -537,6 +559,7 @@
 //=============================================================================
 // @section motion
 
+
 /**
  * Default Settings
  *
@@ -855,9 +878,17 @@
 // @section machine
 
 // Invert the stepper direction. Change (or reverse the motor connector) if an axis goes the wrong way.
-#define INVERT_X_DIR false
-#define INVERT_Y_DIR true
-#define INVERT_Z_DIR true
+
+// DR - Inverts the stepping direction for the trimamic
+#ifndef hBp_TMC2208all
+	#define INVERT_X_DIR false
+	#define INVERT_Y_DIR true
+	#define INVERT_Z_DIR true
+#else
+	#define INVERT_X_DIR true
+	#define INVERT_Y_DIR false
+	#define INVERT_Z_DIR false
+#endif
 
 // Enable this option for Toshiba stepper drivers
 //#define CONFIG_STEPPERS_TOSHIBA
@@ -865,11 +896,32 @@
 // @section extruder
 
 // For direct drive extruder v9 set to true, for geared extruder set to false.
-#define INVERT_E0_DIR false
-#define INVERT_E1_DIR true
-#define INVERT_E2_DIR false
-#define INVERT_E3_DIR false
-#define INVERT_E4_DIR false
+
+// DR - Inverts the stepping direction for the trinamics
+#ifndef hBp_TMC2208ext
+	#define INVERT_E0_DIR false
+	#define INVERT_E1_DIR true
+	#define INVERT_E2_DIR false
+	#define INVERT_E3_DIR false
+	#define INVERT_E4_DIR false
+#else
+	#ifdef hBp_TMC2208ext
+		#define INVERT_E0_DIR true
+		#define INVERT_E1_DIR false
+		#define INVERT_E2_DIR true
+		#define INVERT_E3_DIR true
+		#define INVERT_E4_DIR true
+	#endif
+	
+	#ifdef hBp_TMC2208all
+		#define INVERT_E0_DIR true
+		#define INVERT_E1_DIR false
+		#define INVERT_E2_DIR true
+		#define INVERT_E3_DIR true
+		#define INVERT_E4_DIR true
+	#endif
+
+#endif
 
 // @section homing
 
