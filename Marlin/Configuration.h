@@ -78,7 +78,7 @@
 // #define hBp_TMC2208ext
 //
 // -Trinamic TMC2208/2100 on all axis
-// #define hBp_TMC2208all
+ #define hBp_TMC2208all
 //
 //
 //
@@ -898,29 +898,19 @@
 // For direct drive extruder v9 set to true, for geared extruder set to false.
 
 // DR - Inverts the stepping direction for the trinamics
-#ifndef hBp_TMC2208ext
+#if ( ENABLED(hBp_TMC2208ext) || ENABLED(hBp_TMC2208all) )
+	#define INVERT_E0_DIR true
+	#define INVERT_E1_DIR false
+	#define INVERT_E2_DIR true
+	#define INVERT_E3_DIR true
+	#define INVERT_E4_DIR true
+	
+#else
 	#define INVERT_E0_DIR false
 	#define INVERT_E1_DIR true
 	#define INVERT_E2_DIR false
 	#define INVERT_E3_DIR false
 	#define INVERT_E4_DIR false
-#else
-	#ifdef hBp_TMC2208ext
-		#define INVERT_E0_DIR true
-		#define INVERT_E1_DIR false
-		#define INVERT_E2_DIR true
-		#define INVERT_E3_DIR true
-		#define INVERT_E4_DIR true
-	#endif
-	
-	#ifdef hBp_TMC2208all
-		#define INVERT_E0_DIR true
-		#define INVERT_E1_DIR false
-		#define INVERT_E2_DIR true
-		#define INVERT_E3_DIR true
-		#define INVERT_E4_DIR true
-	#endif
-
 #endif
 
 // @section homing
