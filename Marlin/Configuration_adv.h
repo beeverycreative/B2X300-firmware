@@ -619,10 +619,12 @@
  */
 #define LIN_ADVANCE
 
-#if ( ENABLED(LIN_ADVANCE) && ( DISABLED(hBp_TMC2208ext) && DISABLED(hBp_TMC2208all) ) )
-	#define LIN_ADVANCE_K 40
-#else
-	#define LIN_ADVANCE_K 0
+#if ENABLED(LIN_ADVANCE) 
+	#if ( DISABLED(hBp_TMC2208ext) && DISABLED(hBp_TMC2208all) ) 
+		#define LIN_ADVANCE_K 40
+	#else
+		#define LIN_ADVANCE_K 0
+	#endif
 
   /**
    * Some Slicers produce Gcode with randomly jumping extrusion widths occasionally.

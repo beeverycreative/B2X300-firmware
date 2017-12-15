@@ -78,7 +78,7 @@
 // #define hBp_TMC2208ext
 //
 // -Trinamic TMC2208/2100 on all axis
- #define hBp_TMC2208all
+// #define hBp_TMC2208all
 //
 //
 //
@@ -98,7 +98,7 @@
 //
 //
 // If your helloBEEprusa has bowden extruders please uncomment the following line.
-// #define hBp_Bowden
+//#define hBp_Bowden
 //
 //
 //
@@ -742,7 +742,7 @@
  #ifndef hBp_Autolevel
  #else
 #define Z_ENDSTOP_SERVO_NR 0   // Defaults to SERVO 0 connector.
-#define Z_SERVO_ANGLES {10,95}  // Z Servo Deploy and Stow angles
+#define Z_SERVO_ANGLES {10,75}  // Z Servo Deploy and Stow angles
  
  #endif
 
@@ -803,13 +803,13 @@
 		// direct drive
 		#define X_PROBE_OFFSET_FROM_EXTRUDER 18  // X offset: -left  +right  [of the nozzle]
 		#define Y_PROBE_OFFSET_FROM_EXTRUDER 34  // Y offset: -front +behind [the nozzle]
-		#define Z_PROBE_OFFSET_FROM_EXTRUDER -21.5   // Z offset: -below +above  [the nozzle]
+		#define Z_PROBE_OFFSET_FROM_EXTRUDER -9   // Z offset: -below +above  [the nozzle]
 	
 	#else
 		// bowden
 		#define X_PROBE_OFFSET_FROM_EXTRUDER 7  // X offset: -left  +right  [of the nozzle]
 		#define Y_PROBE_OFFSET_FROM_EXTRUDER 39  // Y offset: -front +behind [the nozzle]
-		#define Z_PROBE_OFFSET_FROM_EXTRUDER -21.5   // Z offset: -below +above  [the nozzle]
+		#define Z_PROBE_OFFSET_FROM_EXTRUDER -9   // Z offset: -below +above  [the nozzle]
 		
 	#endif
 #endif
@@ -846,7 +846,7 @@
  *     But: `M851 Z+1` with a CLEARANCE of 2  =>  2mm from bed to nozzle.
  */
 #define Z_CLEARANCE_DEPLOY_PROBE   1 // Z Clearance for Deploy/Stow
-#define Z_CLEARANCE_BETWEEN_PROBES  1 // Z Clearance between probe points
+#define Z_CLEARANCE_BETWEEN_PROBES  2 // Z Clearance between probe points
 
 // For M851 give a range for adjusting the Z probe offset
 #define Z_PROBE_OFFSET_RANGE_MIN -30
@@ -944,13 +944,13 @@
 #define Y_MIN_POS 0
 
 // hBp - Fixes probe offset problems
-#ifndef hBp_Autolevel
+//#ifndef hBp_Autolevel
 	#define Z_MIN_POS 0
 
-#else
-	#define Z_MIN_POS -11
+//#else
+	//#define Z_MIN_POS 0
 
-#endif
+//#endif
 
 #define Y_MAX_POS 195
 #define Z_MAX_POS 190
@@ -1796,7 +1796,7 @@
 // Delay (in milliseconds) before the next move will start, to give the servo time to reach its target angle.
 // 300ms is a good value but you can try less delay.
 // If the servo can't reach the requested position, increase it.
-#define SERVO_DELAY 300
+#define SERVO_DELAY 800
 
 // Servo deactivation
 //

@@ -3687,7 +3687,7 @@ inline void gcode_G4() {
      */
     destination[X_AXIS] = LOGICAL_X_POSITION(Z_SAFE_HOMING_X_POINT);
     destination[Y_AXIS] = LOGICAL_Y_POSITION(Z_SAFE_HOMING_Y_POINT);
-    destination[Z_AXIS] = current_position[Z_AXIS]; // Z is already at the right height
+    destination[Z_AXIS] = current_position[Z_AXIS] + 11; // Z is already at the right height
 
     if (position_is_reachable(
           destination
@@ -3712,6 +3712,10 @@ inline void gcode_G4() {
       #endif
 
       do_blocking_move_to_xy(destination[X_AXIS], destination[Y_AXIS]);
+	  
+	  // DR - Forces the Z axis to lift a bit
+	  do_blocking_move_to_z(destination[Z_AXIS]);
+	  
       HOMEAXIS(Z);
     }
     else {
