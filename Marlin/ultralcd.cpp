@@ -1245,15 +1245,15 @@ static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool u
 
 
   uint16_t changetemp = 0;
-  // heating
+  // heating to preheat temperature + 5
   if (pla_abs)
   {
-	  changetemp = lcd_preheat_hotend_temp[1];
+	  changetemp = lcd_preheat_hotend_temp[1] +5;
 	  HOTEND_LOOP() thermalManager.setTargetHotend(changetemp, extruder);
   }
   else 
   {
-	  changetemp = lcd_preheat_hotend_temp[0];
+	  changetemp = lcd_preheat_hotend_temp[0] +5;
     HOTEND_LOOP() thermalManager.setTargetHotend(changetemp, extruder);
   }
 
@@ -1264,10 +1264,11 @@ static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool u
   //Disables the timeout to status screen
   defer_return_to_status = true;
   
-  unsigned long next_update = millis() + 1000;
+  unsigned long next_update = millis() + 500;
   bool update = true;
-  uint16_t updatetemp = 0;
   
+  //This helps to speed up the temperature stabilization process without changing the PID 
+  changetemp -= 5;
   
   
   while (update){
@@ -1275,12 +1276,12 @@ static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool u
       
 	  update = false;
 	  
+	  
 	  // é necessario para mostrar updates no ecra?? e aquecer
 	  idle();
 	  
 	  HOTEND_LOOP() {
-		  updatetemp = thermalManager.degHotend(extruder);
-        if (abs(updatetemp - changetemp) > 10) {
+        if (abs(thermalManager.degHotend(extruder) - changetemp) > 10) {
           update = true;
           break;
         }
@@ -2463,6 +2464,8 @@ static void lcd_filament_change()
     manual_move_start_time = millis() + (move_menu_scale < 0.99 ? 0UL : 250UL); // delay for bigger moves
     manual_move_axis = (int8_t)axis;
   }
+  
+  #if HAS_ABL
 
     /**
    *
@@ -2630,6 +2633,8 @@ static void lcd_filament_change()
 		END_MENU();
 	   
     }
+	
+	#endif
   
   /**
    *
