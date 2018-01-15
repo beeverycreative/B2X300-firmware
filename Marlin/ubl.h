@@ -39,23 +39,6 @@
   #define UBL_OK false
   #define UBL_ERR true
 
-<<<<<<< HEAD
-  typedef struct {
-    int8_t x_index, y_index;
-    float distance; // When populated, the distance from the search location
-  } mesh_index_pair;
-
-  // ubl.cpp
-
-  void bit_clear(uint16_t bits[16], uint8_t x, uint8_t y);
-  void bit_set(uint16_t bits[16], uint8_t x, uint8_t y);
-  bool is_bit_set(uint16_t bits[16], uint8_t x, uint8_t y);
-
-  // ubl_motion.cpp
-
-  void debug_current_and_destination(const char * const title);
-  void ubl_line_to_destination(const float&, uint8_t);
-=======
   #define USE_NOZZLE_AS_REFERENCE 0
   #define USE_PROBE_AS_REFERENCE 1
 
@@ -66,27 +49,11 @@
   #else
     FORCE_INLINE void debug_current_and_destination(const char * const title) { UNUSED(title); }
   #endif
->>>>>>> upstream/1.1.x
 
   // ubl_G29.cpp
 
   enum MeshPointType { INVALID, REAL, SET_IN_BITMAP };
 
-<<<<<<< HEAD
-  void dump(char * const str, const float &f);
-  void probe_entire_mesh(const float&, const float&, const bool, const bool, const bool);
-  void manually_probe_remaining_mesh(const float&, const float&, const float&, const float&, const bool);
-  float measure_business_card_thickness(const float&);
-  mesh_index_pair find_closest_mesh_point_of_type(const MeshPointType, const float&, const float&, const bool, unsigned int[16], bool);
-  void shift_mesh_height();
-  void fine_tune_mesh(const float&, const float&, const bool);
-  bool g29_parameter_parsing();
-  void g29_what_command();
-  void g29_eeprom_dump();
-  void g29_compare_current_mesh_to_stored_mesh();
-
-=======
->>>>>>> upstream/1.1.x
   // External references
 
   char *ftostr43sign(const float&, char);
@@ -143,31 +110,6 @@
 
     public:
 
-<<<<<<< HEAD
-      void find_mean_mesh_height();
-      void shift_mesh_height();
-      void probe_entire_mesh(const float &lx, const float &ly, const bool do_ubl_mesh_map, const bool stow_probe, bool do_furthest);
-      void tilt_mesh_based_on_3pts(const float &z1, const float &z2, const float &z3);
-      void tilt_mesh_based_on_probed_grid(const bool do_ubl_mesh_map);
-      void manually_probe_remaining_mesh(const float &lx, const float &ly, const float &z_clearance, const float &card_thickness, const bool do_ubl_mesh_map);
-      void save_ubl_active_state_and_disable();
-      void restore_ubl_active_state_and_leave();
-      void g29_what_command();
-      void g29_eeprom_dump() ;
-      void g29_compare_current_mesh_to_stored_mesh();
-      void fine_tune_mesh(const float &lx, const float &ly, const bool do_ubl_mesh_map);
-      void smart_fill_mesh();
-      void display_map(const int);
-      void reset();
-      void invalidate();
-      void store_state();
-      void load_state();
-      void store_mesh(const int16_t);
-      void load_mesh(const int16_t);
-      bool sanity_check();
-
-      static ubl_state state;
-=======
       static void echo_name();
       static void report_state();
       static void save_ubl_active_state_and_disable();
@@ -183,7 +125,6 @@
       static void G29() _O0;                          // O0 for no optimization
       static void smart_fill_wlsf(const float &) _O2; // O2 gives smaller code than Os on A2560
       static int8_t storage_slot;
->>>>>>> upstream/1.1.x
 
       static float z_values[GRID_MAX_POINTS_X][GRID_MAX_POINTS_Y];
 
@@ -219,16 +160,10 @@
 
       unified_bed_leveling();
 
-<<<<<<< HEAD
-      FORCE_INLINE void set_z(const int8_t px, const int8_t py, const float &z) { z_values[px][py] = z; }
-        int8_t get_cell_index_x(const float &x) {
-        const int8_t cx = (x - (UBL_MESH_MIN_X)) * (1.0 / (MESH_X_DIST));
-=======
       FORCE_INLINE static void set_z(const int8_t px, const int8_t py, const float &z) { z_values[px][py] = z; }
 
       static int8_t get_cell_index_x(const float &x) {
         const int8_t cx = (x - (MESH_MIN_X)) * (1.0 / (MESH_X_DIST));
->>>>>>> upstream/1.1.x
         return constrain(cx, 0, (GRID_MAX_POINTS_X) - 1);   // -1 is appropriate if we want all movement to the X_MAX
       }                                                     // position. But with this defined this way, it is possible
                                                             // to extrapolate off of this point even further out. Probably
@@ -277,13 +212,6 @@
        */
       inline static float z_correction_for_x_on_horizontal_mesh_line(const float &rx0, const int x1_i, const int yi) {
         if (!WITHIN(x1_i, 0, GRID_MAX_POINTS_X - 1) || !WITHIN(yi, 0, GRID_MAX_POINTS_Y - 1)) {
-<<<<<<< HEAD
-          SERIAL_ECHOPAIR("? in z_correction_for_x_on_horizontal_mesh_line(lx0=", lx0);
-          SERIAL_ECHOPAIR(",x1_i=", x1_i);
-          SERIAL_ECHOPAIR(",yi=", yi);
-          SERIAL_CHAR(')');
-          SERIAL_EOL;
-=======
           #if ENABLED(DEBUG_LEVELING_FEATURE)
             if (DEBUGGING(LEVELING)) {
               serialprintPGM( !WITHIN(x1_i, 0, GRID_MAX_POINTS_X - 1) ? PSTR("x1_i") : PSTR("yi") );
@@ -294,7 +222,6 @@
               SERIAL_EOL();
             }
           #endif
->>>>>>> upstream/1.1.x
           return NAN;
         }
 
@@ -311,13 +238,6 @@
       //
       inline static float z_correction_for_y_on_vertical_mesh_line(const float &ry0, const int xi, const int y1_i) {
         if (!WITHIN(xi, 0, GRID_MAX_POINTS_X - 1) || !WITHIN(y1_i, 0, GRID_MAX_POINTS_Y - 1)) {
-<<<<<<< HEAD
-          SERIAL_ECHOPAIR("? in get_z_correction_along_vertical_mesh_line_at_specific_x(ly0=", ly0);
-          SERIAL_ECHOPAIR(", x1_i=", xi);
-          SERIAL_ECHOPAIR(", yi=", y1_i);
-          SERIAL_CHAR(')');
-          SERIAL_EOL;
-=======
           #if ENABLED(DEBUG_LEVELING_FEATURE)
             if (DEBUGGING(LEVELING)) {
               serialprintPGM( !WITHIN(xi, 0, GRID_MAX_POINTS_X - 1) ? PSTR("xi") : PSTR("y1_i") );
@@ -328,7 +248,6 @@
               SERIAL_EOL();
             }
           #endif
->>>>>>> upstream/1.1.x
           return NAN;
         }
 
@@ -399,32 +318,6 @@
         return z0;
       }
 
-<<<<<<< HEAD
-      /**
-       * This function sets the Z leveling fade factor based on the given Z height,
-       * only re-calculating when necessary.
-       *
-       *  Returns 1.0 if planner.z_fade_height is 0.0.
-       *  Returns 0.0 if Z is past the specified 'Fade Height'.
-       */
-      #if ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
-
-        FORCE_INLINE float fade_scaling_factor_for_z(const float &lz) {
-          if (planner.z_fade_height == 0.0) return 1.0;
-
-          static float fade_scaling_factor = 1.0;
-          const float rz = RAW_Z_POSITION(lz);
-          if (last_specified_z != rz) {
-            last_specified_z = rz;
-            fade_scaling_factor =
-              rz < planner.z_fade_height
-                ? 1.0 - (rz * planner.inverse_z_fade_height)
-                : 0.0;
-          }
-          return fade_scaling_factor;
-        }
-
-=======
       FORCE_INLINE static float mesh_index_to_xpos(const uint8_t i) {
         return i < GRID_MAX_POINTS_X ? pgm_read_float(&_mesh_index_to_xpos[i]) : MESH_MIN_X + i * (MESH_X_DIST);
       }
@@ -437,7 +330,6 @@
         static bool prepare_segmented_line_to(const float (&rtarget)[XYZE], const float &feedrate);
       #else
         static void line_to_destination_cartesian(const float &fr, const uint8_t e);
->>>>>>> upstream/1.1.x
       #endif
 
       #define _CMPZ(a,b) (z_values[a][b] == z_values[a][b+1])

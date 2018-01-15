@@ -119,7 +119,7 @@ extern volatile uint8_t buttons;  //an extended version of the last checked butt
     #define LCD_CLICKED ((buttons & B_MI) || (buttons & B_ST))
   #endif
 
-#endif //ULTIPANEL
+#endif // ULTIPANEL
 
 ////////////////////////////////////
 // Create LCD class instance and chipset-specific information
@@ -763,7 +763,7 @@ static void lcd_implementation_status_screen() {
         _draw_heater_status(-1, LCD_BEDTEMP_CHAR, blink);
       #endif
 
-    #endif  // HOTENDS > 1 || TEMP_SENSOR_BED != 0
+    #endif // HOTENDS > 1 || TEMP_SENSOR_BED != 0
 
   #endif // LCD_WIDTH >= 20
 

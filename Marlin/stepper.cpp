@@ -1423,7 +1423,7 @@ void Stepper::report_positions() {
     //delay(10);
   }
 
-#endif //HAS_DIGIPOTSS
+#endif // HAS_DIGIPOTSS
 
 #if HAS_MOTOR_CURRENT_PWM
 

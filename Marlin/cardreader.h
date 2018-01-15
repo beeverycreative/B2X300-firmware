@@ -185,7 +185,7 @@ private:
 
 extern CardReader card;
 
-#endif //SDSUPPORT
+#endif // SDSUPPORT
 
 #if ENABLED(SDSUPPORT)
   #define IS_SD_PRINTING (card.sdprinting)

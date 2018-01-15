@@ -792,7 +792,6 @@
   /**
    * Part Cooling fan multipliexer
    */
-
   #define HAS_FANMUX PIN_EXISTS(FANMUX0)
 
   /**
@@ -1080,8 +1079,6 @@
   #else
     #define MANUAL_PROBE_HEIGHT Z_HOMING_HEIGHT
   #endif
-
-  //Removed #is kinematic / probe max min
 
   // Stepper pulse duration, in cycles
   #define STEP_PULSE_CYCLES ((MINIMUM_STEPPER_PULSE) * CYCLES_PER_MICROSECOND)

@@ -76,4 +76,4 @@ void digipot_i2c_init() {
     digipot_i2c_set_current(i, pgm_read_float(&digipot_motor_current[i]));
 }
 
-#endif //DIGIPOT_I2C
+#endif // DIGIPOT_I2C

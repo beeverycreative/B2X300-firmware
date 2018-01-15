@@ -32,9 +32,6 @@
 
   uint8_t ubl_cnt = 0;
 
-<<<<<<< HEAD
-  static void serial_echo_xy(const uint16_t x, const uint16_t y) {
-=======
   void unified_bed_leveling::echo_name() { SERIAL_PROTOCOLPGM("Unified Bed Leveling"); }
 
   void unified_bed_leveling::report_state() {
@@ -46,7 +43,6 @@
   }
 
   static void serial_echo_xy(const int16_t x, const int16_t y) {
->>>>>>> upstream/1.1.x
     SERIAL_CHAR('(');
     SERIAL_ECHO(x);
     SERIAL_CHAR(',');
@@ -158,12 +154,7 @@
   // 2 : disply of the map data on a RepRap Graphical LCD Panel
 
   void unified_bed_leveling::display_map(const int map_type) {
-<<<<<<< HEAD
-    const bool map0 = map_type == 0;
-    constexpr uint8_t spaces = 11 * (GRID_MAX_POINTS_X - 2);
-=======
     constexpr uint8_t spaces = 8 * (GRID_MAX_POINTS_X - 2);
->>>>>>> upstream/1.1.x
 
     SERIAL_PROTOCOLPGM("\nBed Topography Report");
     if (map_type == 0) {
@@ -171,13 +162,6 @@
       serial_echo_xy(0, GRID_MAX_POINTS_Y - 1);
       SERIAL_ECHO_SP(spaces + 3);
       serial_echo_xy(GRID_MAX_POINTS_X - 1, GRID_MAX_POINTS_Y - 1);
-<<<<<<< HEAD
-      SERIAL_EOL;
-      serial_echo_xy(UBL_MESH_MIN_X, UBL_MESH_MAX_Y);
-      SERIAL_ECHO_SP(spaces - 3);
-      serial_echo_xy(UBL_MESH_MAX_X, UBL_MESH_MAX_Y);
-      SERIAL_EOL;
-=======
       SERIAL_EOL();
       serial_echo_xy(MESH_MIN_X, MESH_MAX_Y);
       SERIAL_ECHO_SP(spaces);
@@ -187,7 +171,6 @@
     else {
       SERIAL_PROTOCOLPGM(" for ");
       serialprintPGM(map_type == 1 ? PSTR("CSV:\n\n") : PSTR("LCD:\n\n"));
->>>>>>> upstream/1.1.x
     }
 
     const float current_xi = get_cell_index_x(current_position[X_AXIS] + (MESH_X_DIST) / 2.0),
@@ -228,19 +211,11 @@
       }
     }
 
-<<<<<<< HEAD
-    if (map0) {
-      serial_echo_xy(UBL_MESH_MIN_X, UBL_MESH_MIN_Y);
-      SERIAL_ECHO_SP(spaces + 1);
-      serial_echo_xy(UBL_MESH_MAX_X, UBL_MESH_MIN_Y);
-      SERIAL_EOL;
-=======
     if (map_type == 0) {
       serial_echo_xy(MESH_MIN_X, MESH_MIN_Y);
       SERIAL_ECHO_SP(spaces + 4);
       serial_echo_xy(MESH_MAX_X, MESH_MIN_Y);
       SERIAL_EOL();
->>>>>>> upstream/1.1.x
       serial_echo_xy(0, 0);
       SERIAL_ECHO_SP(spaces + 5);
       serial_echo_xy(GRID_MAX_POINTS_X - 1, 0);

@@ -203,7 +203,7 @@
   // Generic support for SH1106 OLED I2C LCDs
   //U8GLIB_SH1106_128X64 u8g(U8G_I2C_OPT_NONE | U8G_I2C_OPT_FAST);  // 8 stripes
   U8GLIB_SH1106_128X64_2X u8g(U8G_I2C_OPT_NONE | U8G_I2C_OPT_FAST); // 4 stripes
-#elif ENABLED(MINIPANEL) || ENABLED(MKS_MINI_12864)
+#elif ENABLED(MINIPANEL)
   // The MINIPanel display
   //U8GLIB_MINI12864 u8g(DOGLCD_CS, DOGLCD_A0);  // 8 stripes
   U8GLIB_MINI12864_2X u8g(DOGLCD_CS, DOGLCD_A0); // 4 stripes
@@ -346,11 +346,9 @@ static void lcd_implementation_init() {
     u8g.begin(); // re-initialize the display
   #endif
 
-  #if DISABLED(MINIPANEL) && DISABLED(MKS_MINI_12864)// setContrast not working for Mini Panel
+  #if DISABLED(MINIPANEL) // setContrast not working for Mini Panel
     u8g.setContrast(lcd_contrast);
   #endif
-  
-  
 
   #if ENABLED(LCD_SCREEN_ROT_90)
     u8g.setRot90();   // Rotate screen by 90°
@@ -1072,4 +1070,4 @@ static void lcd_implementation_status_screen() {
 
 #endif // ULTIPANEL
 
-#endif //__ULTRALCD_IMPL_DOGM_H
+#endif // __ULTRALCD_IMPL_DOGM_H

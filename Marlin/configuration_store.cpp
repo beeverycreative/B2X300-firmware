@@ -354,20 +354,6 @@ void MarlinSettings::postprocess() {
     EEPROM_WRITE(planner.min_travel_feedrate_mm_s);
     EEPROM_WRITE(planner.min_segment_time_us);
     EEPROM_WRITE(planner.max_jerk);
-    
-	//DR - 23/10/2017
-	//hBp - Copies the z probe offset to the home offset  - Verify it it is necessary
-	/*
-	#ifndef hBp_Autolevel
-	
-	#else
-    //copy zprobe_offset to home  offset
-    if(zprobe_zoffset < 0 )
-      home_offset[2] = -zprobe_zoffset;  
-  
-	#endif
-     */
-	 
     #if !HAS_HOME_OFFSET
       const float home_offset[XYZ] = { 0 };
     #endif
@@ -397,7 +383,7 @@ void MarlinSettings::postprocess() {
     #if ENABLED(MESH_BED_LEVELING)
       // Compile time test that sizeof(mbl.z_values) is as expected
       static_assert(
-        sizeof(mbl.z_values) == (GRID_MAX_POINTS_X) * (GRID_MAX_POINTS_Y) * sizeof(mbl.z_values[0][0]),
+        sizeof(mbl.z_values) == GRID_MAX_POINTS * sizeof(mbl.z_values[0][0]),
         "MBL Z array is the wrong size."
       );
       const uint8_t mesh_num_x = GRID_MAX_POINTS_X, mesh_num_y = GRID_MAX_POINTS_Y;
@@ -440,7 +426,7 @@ void MarlinSettings::postprocess() {
     #if ENABLED(AUTO_BED_LEVELING_BILINEAR)
       // Compile time test that sizeof(z_values) is as expected
       static_assert(
-        sizeof(z_values) == (GRID_MAX_POINTS_X) * (GRID_MAX_POINTS_Y) * sizeof(z_values[0][0]),
+        sizeof(z_values) == GRID_MAX_POINTS * sizeof(z_values[0][0]),
         "Bilinear Z array is the wrong size."
       );
       const uint8_t grid_max_x = GRID_MAX_POINTS_X, grid_max_y = GRID_MAX_POINTS_Y;
@@ -941,7 +927,7 @@ void MarlinSettings::postprocess() {
         uint8_t dummyui8;
         EEPROM_READ(dummyb);
         EEPROM_READ(dummyui8);
-      #endif //AUTO_BED_LEVELING_UBL
+      #endif // AUTO_BED_LEVELING_UBL
 
       //
       // DELTA Geometry or Dual Endstops offsets

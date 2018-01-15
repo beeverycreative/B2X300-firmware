@@ -73,8 +73,8 @@
    *
    *   B #  Bed         Set the Bed Temperature. If not specified, a default of 60 C. will be assumed.
    *
-   *   C    Current   When searching for Mesh Intersection points to draw, use the current nozzle location
-   *        as the base for any distance comparison.
+   *   C    Current     When searching for Mesh Intersection points to draw, use the current nozzle location
+   *                    as the base for any distance comparison.
    *
    *   D    Disable     Disable the Unified Bed Leveling System. In the normal case the user is invoking this
    *                    command to see how well a Mesh as been adjusted to match a print surface. In order to do
@@ -89,7 +89,7 @@
    *                    'correct' numbers, you can scale this number up or down a little bit to change the amount
    *                    of filament that is being extruded during the printing of the various lines on the bed.
    *
-   *   K    Keep-On   Keep the heaters turned on at the end of the command.
+   *   K    Keep-On     Keep the heaters turned on at the end of the command.
    *
    *   L #  Layer       Layer height. (Height of nozzle above bed)  If not specified .20mm will be used.
    *
@@ -109,10 +109,9 @@
    *   Q #  Multiplier  Retraction Multiplier. Normally not needed. Retraction defaults to 1.0mm and
    *                    un-retraction is at 1.2mm   These numbers will be scaled by the specified amount
    *
-   *   R #  Random    Randomize the order that the circles are drawn on the bed.  The search for the closest
-   *        undrawn cicle is still done.  But the distance to the location for each circle has a
-   *        random number of the size specified added to it.  Specifying R50 will give an interesting
-   *        deviation from the normal behaviour on a 10 x 10 Mesh.
+   *   R #  Repeat      Prints the number of patterns given as a parameter, starting at the current location.
+   *                    If a parameter isn't given, every point will be printed unless G26 is interrupted.
+   *                    This works the same way that the UBL G29 P4 R parameter works.
    *
    *                    NOTE:  If you do not have an LCD, you -must- specify R. This is to ensure that you are
    *                    aware that there's some risk associated with printing without the ability to abort in
@@ -128,7 +127,7 @@
    *
    *   X #  X Coord.    Specify the starting location of the drawing activity.
    *
-   *   Y #  Y coordinate  Specify the starting location of the drawing activity.
+   *   Y #  Y Coord.    Specify the starting location of the drawing activity.
    */
 
   // External references
@@ -669,7 +668,6 @@
       SERIAL_PROTOCOLLNPGM("?(R)epeat value not plausible; must be at least 1.");
       return;
     }
-    else
 
     g26_x_pos = parser.seenval('X') ? RAW_X_POSITION(parser.value_linear_units()) : current_position[X_AXIS];
     g26_y_pos = parser.seenval('Y') ? RAW_Y_POSITION(parser.value_linear_units()) : current_position[Y_AXIS];
@@ -679,10 +677,7 @@
     }
 
     /**
-     * We save the question of what to do with the Unified Bed Leveling System's Activation until the very
-     * end.  The reason is, if one of the parameters specified up above is incorrect, we don't want to
-     * alter the system's status.  We wait until we know everything is correct before altering the state
-     * of the system.
+     * Wait until all parameters are verified before altering the state!
      */
     set_bed_leveling_enabled(!parser.seen('D'));
 

@@ -131,7 +131,8 @@ class Temperature {
                    soft_pwm_amount_bed;
 
     #if ENABLED(FAN_SOFT_PWM)
-      static uint8_t fanSpeedSoftPwm[FAN_COUNT];
+      static uint8_t soft_pwm_amount_fan[FAN_COUNT],
+                     soft_pwm_count_fan[FAN_COUNT];
     #endif
 
     #if ENABLED(PIDTEMP)
@@ -258,23 +259,13 @@ class Temperature {
       static millis_t next_auto_fan_check_ms;
     #endif
 
-    static uint8_t soft_pwm[HOTENDS];
-
-    #if ENABLED(FAN_SOFT_PWM)
-      static uint8_t soft_pwm_fan[FAN_COUNT];
-    #endif
-
     #if ENABLED(FILAMENT_WIDTH_SENSOR)
       static uint16_t current_raw_filwidth; // Measured filament diameter - one extruder only
     #endif
 
     #if ENABLED(PROBING_HEATERS_OFF)
       static bool paused;
-<<<<<<< HEAD
-      static int16_t paused_hotend_temps[HOTENDS];
-=======
     #endif
->>>>>>> upstream/1.1.x
 
     #if HEATER_IDLE_HANDLER
       static millis_t heater_idle_timeout_ms[HOTENDS];
@@ -500,10 +491,6 @@ class Temperature {
     #endif // BABYSTEPPING
 
     #if ENABLED(PROBING_HEATERS_OFF)
-<<<<<<< HEAD
-      static void pause(bool p);
-      static bool ispaused();
-=======
       static void pause(const bool p);
       static bool is_paused() { return paused; }
     #endif
@@ -567,7 +554,6 @@ class Temperature {
           next_temp_report_ms = millis() + 1000UL * v;
         }
       #endif
->>>>>>> upstream/1.1.x
     #endif
 
   private:

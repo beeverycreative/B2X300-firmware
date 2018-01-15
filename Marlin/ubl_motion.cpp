@@ -26,19 +26,15 @@
   #include "Marlin.h"
   #include "ubl.h"
   #include "planner.h"
+  #include "stepper.h"
   #include <avr/io.h>
   #include <math.h>
 
-<<<<<<< HEAD
-  extern float destination[XYZE];
-  extern void set_current_to_destination();
-=======
   #if AVR_AT90USB1286_FAMILY  // Teensyduino & Printrboard IDE extensions have compile errors without this
     inline void set_current_from_destination() { COPY(current_position, destination); }
   #else
     extern void set_current_from_destination();
   #endif
->>>>>>> upstream/1.1.x
 
   #if !UBL_SEGMENTED
 
@@ -90,66 +86,8 @@
           planner.buffer_segment(end[X_AXIS], end[Y_AXIS], end[Z_AXIS], end[E_AXIS], feed_rate, extruder);
           set_current_from_destination();
 
-<<<<<<< HEAD
-    SERIAL_ECHOPGM("    current=( ");
-    SERIAL_ECHO_F(current_position[X_AXIS], 6);
-    SERIAL_ECHOPGM(", ");
-    SERIAL_ECHO_F(current_position[Y_AXIS], 6);
-    SERIAL_ECHOPGM(", ");
-    SERIAL_ECHO_F(current_position[Z_AXIS], 6);
-    SERIAL_ECHOPGM(", ");
-    SERIAL_ECHO_F(current_position[E_AXIS], 6);
-    SERIAL_ECHOPGM(" )   destination=( ");
-    debug_echo_axis(X_AXIS);
-    SERIAL_ECHOPGM(", ");
-    debug_echo_axis(Y_AXIS);
-    SERIAL_ECHOPGM(", ");
-    debug_echo_axis(Z_AXIS);
-    SERIAL_ECHOPGM(", ");
-    debug_echo_axis(E_AXIS);
-    SERIAL_ECHOPGM(" )   ");
-    SERIAL_ECHO(title);
-    SERIAL_EOL;
-
-  }
-
-  void ubl_line_to_destination(const float &feed_rate, uint8_t extruder) {
-    /**
-     * Much of the nozzle movement will be within the same cell. So we will do as little computation
-     * as possible to determine if this is the case. If this move is within the same cell, we will
-     * just do the required Z-Height correction, call the Planner's buffer_line() routine, and leave
-     */
-    const float start[XYZE] = {
-                  current_position[X_AXIS],
-                  current_position[Y_AXIS],
-                  current_position[Z_AXIS],
-                  current_position[E_AXIS]
-                },
-                end[XYZE] = {
-                  destination[X_AXIS],
-                  destination[Y_AXIS],
-                  destination[Z_AXIS],
-                  destination[E_AXIS]
-                };
-
-    const int cell_start_xi = ubl.get_cell_index_x(RAW_X_POSITION(start[X_AXIS])),
-              cell_start_yi = ubl.get_cell_index_y(RAW_Y_POSITION(start[Y_AXIS])),
-              cell_dest_xi  = ubl.get_cell_index_x(RAW_X_POSITION(end[X_AXIS])),
-              cell_dest_yi  = ubl.get_cell_index_y(RAW_Y_POSITION(end[Y_AXIS]));
-
-    if (ubl.g26_debug_flag) {
-      SERIAL_ECHOPAIR(" ubl_line_to_destination(xe=", end[X_AXIS]);
-      SERIAL_ECHOPAIR(", ye=", end[Y_AXIS]);
-      SERIAL_ECHOPAIR(", ze=", end[Z_AXIS]);
-      SERIAL_ECHOPAIR(", ee=", end[E_AXIS]);
-      SERIAL_CHAR(')');
-      SERIAL_EOL;
-      debug_current_and_destination(PSTR("Start of ubl_line_to_destination()"));
-    }
-=======
           if (g26_debug_flag)
             debug_current_and_destination(PSTR("out of bounds in ubl.line_to_destination_cartesian()"));
->>>>>>> upstream/1.1.x
 
           return;
         }
@@ -165,12 +103,7 @@
          * to create a 1-over number for us. That will allow us to do a floating point multiply instead of a floating point divide.
          */
 
-<<<<<<< HEAD
-        planner.buffer_line(end[X_AXIS], end[Y_AXIS], end[Z_AXIS] + ubl.state.z_offset, end[E_AXIS], feed_rate, extruder);
-        set_current_to_destination();
-=======
         const float xratio = (end[X_AXIS] - mesh_index_to_xpos(cell_dest_xi)) * (1.0 / (MESH_X_DIST));
->>>>>>> upstream/1.1.x
 
         float z1 = z_values[cell_dest_xi    ][cell_dest_yi    ] + xratio *
                   (z_values[cell_dest_xi + 1][cell_dest_yi    ] - z_values[cell_dest_xi][cell_dest_yi    ]),
@@ -232,11 +165,7 @@
        * component is larger. We use the biggest of the two to preserve precision.
        */
 
-<<<<<<< HEAD
-      planner.buffer_line(end[X_AXIS], end[Y_AXIS], end[Z_AXIS] + z0 + ubl.state.z_offset, end[E_AXIS], feed_rate, extruder);
-=======
       const bool use_x_dist = adx > ady;
->>>>>>> upstream/1.1.x
 
       float on_axis_distance = use_x_dist ? dx : dy,
             e_position = end[E_AXIS] - start[E_AXIS],
@@ -327,10 +256,6 @@
        *
        */
 
-<<<<<<< HEAD
-    int current_xi = cell_start_xi, 
-        current_yi = cell_start_yi;
-=======
       if (dyi == 0) {             // Check for a horizontal line
         current_xi += left_flag;  // Line is heading left, we just want to go to the left
                                   // edge of this cell for the first move.
@@ -373,28 +298,12 @@
             planner.buffer_segment(rx, ry, z_position + z0, e_position, feed_rate, extruder);
           } //else printf("FIRST MOVE PRUNED  ");
         }
->>>>>>> upstream/1.1.x
 
         if (g26_debug_flag)
           debug_current_and_destination(PSTR("horizontal move done in ubl.line_to_destination_cartesian()"));
 
-<<<<<<< HEAD
-    const bool inf_normalized_flag = isinf(e_normalized_dist),
-               inf_m_flag = isinf(m);
-    /**
-     * This block handles vertical lines. These are lines that stay within the same
-     * X Cell column. They do not need to be perfectly vertical. They just can
-     * not cross into another X Cell column.
-     */
-    if (dxi == 0) {       // Check for a vertical line
-      current_yi += down_flag;  // Line is heading down, we just want to go to the bottom
-      while (current_yi != cell_dest_yi + down_flag) {
-        current_yi += dyi;
-        const float next_mesh_line_y = LOGICAL_Y_POSITION(pgm_read_float(&ubl.mesh_index_to_ypos[current_yi]));
-=======
         if (current_position[X_AXIS] != end[X_AXIS] || current_position[Y_AXIS] != end[Y_AXIS])
           goto FINAL_MOVE;
->>>>>>> upstream/1.1.x
 
         set_current_from_destination();
         return;
@@ -415,18 +324,7 @@
       current_xi += left_flag;
       current_yi += down_flag;
 
-<<<<<<< HEAD
-        /**
-         * Without this check, it is possible for the algorithm to generate a zero length move in the case
-         * where the line is heading down and it is starting right on a Mesh Line boundary. For how often that
-         * happens, it might be best to remove the check and always 'schedule' the move because
-         * the planner.buffer_line() routine will filter it if that happens.
-         */
-        if (y != start[Y_AXIS]) {
-          if (!inf_normalized_flag) {
-=======
       while (xi_cnt > 0 || yi_cnt > 0) {
->>>>>>> upstream/1.1.x
 
         const float next_mesh_line_x = mesh_index_to_xpos(current_xi + dxi),
                     next_mesh_line_y = mesh_index_to_ypos(current_yi + dyi),
@@ -477,64 +375,6 @@
            */
           if (isnan(z0)) z0 = 0.0;
 
-<<<<<<< HEAD
-          planner.buffer_line(x, y, z_position + z0 + ubl.state.z_offset, e_position, feed_rate, extruder);
-        } //else printf("FIRST MOVE PRUNED  ");
-      }
-
-      if (ubl.g26_debug_flag)
-        debug_current_and_destination(PSTR("vertical move done in ubl_line_to_destination()"));
-
-      //
-      // Check if we are at the final destination. Usually, we won't be, but if it is on a Y Mesh Line, we are done.
-      //
-      if (current_position[X_AXIS] != end[X_AXIS] || current_position[Y_AXIS] != end[Y_AXIS])
-        goto FINAL_MOVE;
-
-      set_current_to_destination();
-      return;
-    }
-
-    /**
-     *
-     * This block handles horizontal lines. These are lines that stay within the same
-     * Y Cell row. They do not need to be perfectly horizontal. They just can
-     * not cross into another Y Cell row.
-     *
-     */
-
-    if (dyi == 0) {             // Check for a horizontal line
-      current_xi += left_flag;  // Line is heading left, we just want to go to the left
-                                // edge of this cell for the first move.
-      while (current_xi != cell_dest_xi + left_flag) {
-        current_xi += dxi;
-        const float next_mesh_line_x = LOGICAL_X_POSITION(pgm_read_float(&ubl.mesh_index_to_xpos[current_xi])),
-                    y = m * next_mesh_line_x + c;   // Calculate Y at the next X mesh line
-
-        float z0 = ubl.z_correction_for_y_on_vertical_mesh_line(y, current_xi, current_yi);
-
-        z0 *= ubl.fade_scaling_factor_for_z(end[Z_AXIS]);
-
-        /**
-         * If part of the Mesh is undefined, it will show up as NAN
-         * in z_values[][] and propagate through the
-         * calculations. If our correction is NAN, we throw it out
-         * because part of the Mesh is undefined and we don't have the
-         * information we need to complete the height correction.
-         */
-        if (isnan(z0)) z0 = 0.0;
-
-        const float x = LOGICAL_X_POSITION(pgm_read_float(&ubl.mesh_index_to_xpos[current_xi]));
-
-        /**
-         * Without this check, it is possible for the algorithm to generate a zero length move in the case
-         * where the line is heading left and it is starting right on a Mesh Line boundary. For how often
-         * that happens, it might be best to remove the check and always 'schedule' the move because
-         * the planner.buffer_line() routine will filter it if that happens.
-         */
-        if (x != start[X_AXIS]) {
-=======
->>>>>>> upstream/1.1.x
           if (!inf_normalized_flag) {
             on_axis_distance = use_x_dist ? next_mesh_line_x - start[X_AXIS] : ry - start[Y_AXIS];
             e_position = start[E_AXIS] + on_axis_distance * e_normalized_dist;
@@ -545,17 +385,12 @@
             z_position = end[Z_AXIS];
           }
 
-<<<<<<< HEAD
-          planner.buffer_line(x, y, z_position + z0 + ubl.state.z_offset, e_position, feed_rate, extruder);
-        } //else printf("FIRST MOVE PRUNED  ");
-=======
           planner.buffer_segment(next_mesh_line_x, ry, z_position + z0, e_position, feed_rate, extruder);
           current_xi += dxi;
           xi_cnt--;
         }
 
         if (xi_cnt < 0 || yi_cnt < 0) break; // we've gone too far, so exit the loop and move on to FINAL_MOVE
->>>>>>> upstream/1.1.x
       }
 
       if (g26_debug_flag)
@@ -585,44 +420,15 @@
         const float (&raw)[XYZE] = in_raw;
       #endif
 
-<<<<<<< HEAD
-      if (left_flag == (x > next_mesh_line_x)) { // Check if we hit the Y line first
-        //
-        // Yes!  Crossing a Y Mesh Line next
-        //
-        float z0 = ubl.z_correction_for_x_on_horizontal_mesh_line(x, current_xi - left_flag, current_yi + dyi);
-=======
       #if ENABLED(DELTA)  // apply delta inverse_kinematics
->>>>>>> upstream/1.1.x
 
         DELTA_IK(raw);
         planner.buffer_segment(delta[A_AXIS], delta[B_AXIS], delta[C_AXIS], in_raw[E_AXIS], fr, active_extruder);
 
       #elif IS_SCARA  // apply scara inverse_kinematics (should be changed to save raw->logical->raw)
 
-<<<<<<< HEAD
-        if (!inf_normalized_flag) {
-          on_axis_distance = use_x_dist ? x - start[X_AXIS] : next_mesh_line_y - start[Y_AXIS];
-          e_position = start[E_AXIS] + on_axis_distance * e_normalized_dist;
-          z_position = start[Z_AXIS] + on_axis_distance * z_normalized_dist;
-        }
-        else {
-          e_position = end[E_AXIS];
-          z_position = end[Z_AXIS];
-        }
-        planner.buffer_line(x, next_mesh_line_y, z_position + z0 + ubl.state.z_offset, e_position, feed_rate, extruder);
-        current_yi += dyi;
-        yi_cnt--;
-      }
-      else {
-        //
-        // Yes!  Crossing a X Mesh Line next
-        //
-        float z0 = ubl.z_correction_for_y_on_vertical_mesh_line(y, current_xi + dxi, current_yi - down_flag);
-=======
         inverse_kinematics(raw);  // this writes delta[ABC] from raw[XYZE]
                                   // should move the feedrate scaling to scara inverse_kinematics
->>>>>>> upstream/1.1.x
 
         const float adiff = FABS(delta[A_AXIS] - scara_oldA),
                     bdiff = FABS(delta[B_AXIS] - scara_oldB);
@@ -634,24 +440,6 @@
 
       #else // CARTESIAN
 
-<<<<<<< HEAD
-        planner.buffer_line(next_mesh_line_x, y, z_position + z0 + ubl.state.z_offset, e_position, feed_rate, extruder);
-        current_xi += dxi;
-        xi_cnt--;
-      }
-    }
-
-    if (ubl.g26_debug_flag)
-      debug_current_and_destination(PSTR("generic move done in ubl_line_to_destination()"));
-
-    if (current_position[X_AXIS] != end[X_AXIS] || current_position[Y_AXIS] != end[Y_AXIS])
-      goto FINAL_MOVE;
-
-    set_current_to_destination();
-  }
-
-#endif
-=======
         planner.buffer_segment(raw[X_AXIS], raw[Y_AXIS], raw[Z_AXIS], in_raw[E_AXIS], fr, active_extruder);
 
       #endif
@@ -835,4 +623,3 @@
   #endif // UBL_SEGMENTED
 
 #endif // AUTO_BED_LEVELING_UBL
->>>>>>> upstream/1.1.x
