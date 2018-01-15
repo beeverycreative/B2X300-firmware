@@ -185,35 +185,40 @@ uint16_t max_display_update_time = 0;
     void lcd_info_menu();
   #endif // LCD_INFO_MENU
 
-<<<<<<< HEAD
-  #if ENABLED(FILAMENT_CHANGE_FEATURE)
-    void lcd_filament_change_toocold_menu();
-    void lcd_filament_change_option_menu();
-    void lcd_filament_change_init_message();
-    void lcd_filament_change_unload_message();
-    void lcd_filament_change_insert_message();
-    void lcd_filament_change_load_message();
-    void lcd_filament_change_heat_nozzle();
-    void lcd_filament_change_extrude_message();
-    void lcd_filament_change_resume_message();
+  #if ENABLED(LED_CONTROL_MENU)
+    #include "leds.h"
+    void lcd_led_menu();
+  #endif
+
+  #if ENABLED(ADVANCED_PAUSE_FEATURE)
+    void lcd_advanced_pause_toocold_menu();
+    void lcd_advanced_pause_option_menu();
+    void lcd_advanced_pause_init_message();
+    void lcd_advanced_pause_unload_message();
+    void lcd_advanced_pause_insert_message();
+    void lcd_advanced_pause_load_message();
+    void lcd_advanced_pause_heat_nozzle();
+    void lcd_advanced_pause_extrude_message();
+    void lcd_advanced_pause_resume_message();
 	
-		static void lcd_filament_change();
-static void lcd_filament_change_move_to_position();
-static void lcd_filament_change_extruder_0();
-static void lcd_filament_change_extruder_1();
-static void lcd_filament_change_ext0_pla ();
-static void lcd_filament_change_ext0_abs ();
-static void lcd_filament_change_ext1_pla ();
-static void lcd_filament_change_ext1_abs ();
-static void lcd_filament_change_ext0_pla_unload ();
-static void lcd_filament_change_ext0_abs_unload ();
-static void lcd_filament_change_ext0_pla_load ();
-static void lcd_filament_change_ext0_abs_load ();
-static void lcd_filament_change_ext1_pla_unload ();
-static void lcd_filament_change_ext1_abs_unload ();
-static void lcd_filament_change_ext1_pla_load ();
-static void lcd_filament_change_ext1_abs_load ();
-static void lcd_filament_change_unload_unload (unsigned int extruder, unsigned int pla_abs, unsigned int unload_load);
+	// Manual filament change feature
+	static void lcd_filament_change();
+	static void lcd_filament_change_move_to_position();
+	static void lcd_filament_change_extruder_0();
+	static void lcd_filament_change_extruder_1();
+	static void lcd_filament_change_ext0_pla ();
+	static void lcd_filament_change_ext0_abs ();
+	static void lcd_filament_change_ext1_pla ();
+	static void lcd_filament_change_ext1_abs ();
+	static void lcd_filament_change_ext0_pla_unload ();
+	static void lcd_filament_change_ext0_abs_unload ();
+	static void lcd_filament_change_ext0_pla_load ();
+	static void lcd_filament_change_ext0_abs_load ();
+	static void lcd_filament_change_ext1_pla_unload ();
+	static void lcd_filament_change_ext1_abs_unload ();
+	static void lcd_filament_change_ext1_pla_load ();
+	static void lcd_filament_change_ext1_abs_load ();
+	static void lcd_filament_change_unload_unload (unsigned int extruder, unsigned int pla_abs, unsigned int unload_load);
 
   #endif
   
@@ -234,23 +239,6 @@ static void lcd_filament_change_unload_unload (unsigned int extruder, unsigned i
 	void _lcd_menu_z_offset();
 	void _lcd_reset_z_offset();
 		
-=======
-  #if ENABLED(LED_CONTROL_MENU)
-    #include "leds.h"
-    void lcd_led_menu();
-  #endif
-
-  #if ENABLED(ADVANCED_PAUSE_FEATURE)
-    void lcd_advanced_pause_toocold_menu();
-    void lcd_advanced_pause_option_menu();
-    void lcd_advanced_pause_init_message();
-    void lcd_advanced_pause_unload_message();
-    void lcd_advanced_pause_insert_message();
-    void lcd_advanced_pause_load_message();
-    void lcd_advanced_pause_heat_nozzle();
-    void lcd_advanced_pause_extrude_message();
-    void lcd_advanced_pause_resume_message();
->>>>>>> upstream/1.1.x
   #endif
 
   #if ENABLED(DAC_STEPPER_CURRENT)
@@ -705,14 +693,6 @@ void lcd_status_screen() {
             lcd_status_message[0] = '\0';
             expire_status_ms = 0;
           }
-<<<<<<< HEAD
-        #else
-          expire_status_ms = 0;
-        #endif //SDSUPPORT
-      }
-    #endif
-  #endif //LCD_PROGRESS_BAR
-=======
         }
         else {
           // Defer message expiration before bar appears
@@ -720,7 +700,6 @@ void lcd_status_screen() {
           expire_status_ms += LCD_UPDATE_INTERVAL;
         }
       }
->>>>>>> upstream/1.1.x
 
     #endif // PROGRESS_MSG_EXPIRE
 
@@ -766,13 +745,9 @@ void lcd_status_screen() {
 
     feedrate_percentage = constrain(feedrate_percentage, 10, 999);
 
-<<<<<<< HEAD
-  #endif //ULTIPANEL
-=======
   #endif // ULTIPANEL
 
   lcd_implementation_status_screen();
->>>>>>> upstream/1.1.x
 }
 
 void lcd_reset_status() { lcd_setstatusPGM(PSTR(""), -1); }
@@ -1031,10 +1006,6 @@ void kill_screen(const char* lcd_msg) {
     #if HAS_DEBUG_MENU
       MENU_ITEM(submenu, MSG_DEBUG_MENU, lcd_debug_menu);
     #endif
-<<<<<<< HEAD
-	
-	 #if ENABLED(SDSUPPORT)
-=======
 
     //
     // Set Case light on/off/brightness
@@ -1056,7 +1027,6 @@ void kill_screen(const char* lcd_msg) {
     MENU_ITEM(submenu, MSG_CONTROL, lcd_control_menu);
 
     #if ENABLED(SDSUPPORT)
->>>>>>> upstream/1.1.x
       if (card.cardOK) {
         if (card.isFileOpen()) {
           if (card.sdprinting)
@@ -1339,15 +1309,6 @@ void kill_screen(const char* lcd_msg) {
     #endif // HOTENDS > 1
   #endif // HAS_TEMP_HOTEND
 
-<<<<<<< HEAD
-  #if WATCH_THE_BED
-    void watch_temp_callback_bed() { thermalManager.start_watching_bed(); }
-  #endif
-  
-  ////////////////////////////////////////////////////////////////////////
-  //					Filament Change Feature							//
-  ////////////////////////////////////////////////////////////////////////
-=======
   void watch_temp_callback_bed() {
     #if WATCH_THE_BED
       thermalManager.start_watching_bed();
@@ -1355,14 +1316,10 @@ void kill_screen(const char* lcd_msg) {
   }
 
   #if ENABLED(ADVANCED_PAUSE_FEATURE)
->>>>>>> upstream/1.1.x
-
-    void lcd_enqueue_filament_change() {
-<<<<<<< HEAD
-		
-		lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_INIT);
-        enqueue_and_echo_commands_P(PSTR("M600"));
-    }
+  
+  ////////////////////////////////////////////////////////////////////////
+  //					Filament Change Feature							//
+  ////////////////////////////////////////////////////////////////////////
 	
 	void lcd_enqueue_filament_change_e0() {
 	
@@ -1729,7 +1686,7 @@ static void lcd_filament_change()
   END_MENU();
 }
 	
-=======
+void lcd_enqueue_filament_change() {
 
       #if ENABLED(PREVENT_COLD_EXTRUSION)
         if (!DEBUGGING(DRYRUN) && !thermalManager.allow_cold_extrude &&
@@ -1753,7 +1710,6 @@ static void lcd_filament_change()
     #else
       #define FAN_SPEED_1_SUFFIX ""
     #endif
->>>>>>> upstream/1.1.x
   #endif
 
   // Refresh the E factor after changing flow
@@ -2240,23 +2196,11 @@ static void lcd_filament_change()
     static uint8_t manual_probe_index;
 
     // LCD probed points are from defaults
-<<<<<<< HEAD
-    constexpr uint8_t total_probe_points =
-      #if ABL_GRID
-        (GRID_MAX_POINTS_X) * (GRID_MAX_POINTS_Y)
-      #elif ENABLED(AUTO_BED_LEVELING_3POINT)
-        int(3)
-      #elif ENABLED(AUTO_BED_LEVELING_UBL)
-        (GRID_MAX_POINTS_X) * (GRID_MAX_POINTS_Y)
-      #elif ENABLED(MESH_BED_LEVELING)
-        (GRID_MAX_POINTS_X) * (GRID_MAX_POINTS_Y)
-=======
     constexpr uint8_t total_probe_points = (
       #if ENABLED(AUTO_BED_LEVELING_3POINT)
         3
       #elif ABL_GRID || ENABLED(MESH_BED_LEVELING)
         GRID_MAX_POINTS
->>>>>>> upstream/1.1.x
       #endif
     ;
 
@@ -2284,7 +2228,6 @@ static void lcd_filament_change()
         lcd_completion_feedback();
         defer_return_to_status = false;
       }
-<<<<<<< HEAD
 
     #endif // MESH_BED_LEVELING
 
@@ -2309,12 +2252,8 @@ static void lcd_filament_change()
     }
 
     void _lcd_level_bed_done() {
-      if (lcdDrawUpdate) lcd_implementation_drawedit(PSTR(MSG_LEVEL_BED_DONE));
-      lcdDrawUpdate = LCDVIEW_KEEP_REDRAWING;
-=======
       if (lcdDrawUpdate) lcd_implementation_drawmenu_static(LCD_HEIGHT >= 4 ? 1 : 0, PSTR(MSG_LEVEL_BED_DONE));
       lcdDrawUpdate = LCDVIEW_CALL_REDRAW_NEXT;
->>>>>>> upstream/1.1.x
     }
 
     void _lcd_level_goto_next_point();
@@ -2370,42 +2309,6 @@ static void lcd_filament_change()
       }
     }
 
-<<<<<<< HEAD
-    #if ENABLED(MESH_BED_LEVELING) || ENABLED(PROBE_MANUALLY)
-
-      /**
-       * Step 5: Initiate a move to the next point
-       */
-      void _lcd_level_goto_next_point() {
-
-        // Set the menu to display ahead of blocking call
-        //lcd_goto_screen(_lcd_level_bed_moving);
-
-        #if ENABLED(MESH_BED_LEVELING)
-
-          int8_t px, py;
-          mbl.zigzag(manual_probe_index, px, py);
-
-          // Controls the loop until the move is done
-          _manual_probe_goto_xy(
-            LOGICAL_X_POSITION(mbl.index_to_xpos[px]),
-            LOGICAL_Y_POSITION(mbl.index_to_ypos[py])
-          );
-
-        #elif ENABLED(AUTO_BED_LEVELING_UBL)
-
-          // UBL may have its own methodology
-
-        #elif ENABLED(PROBE_MANUALLY)
-
-          // Just wait for the G29 move to complete
-          lcd_synchronize();
-
-        #endif
-
-        // After the blocking function returns, change menus
-        lcd_goto_screen(_lcd_level_bed_get_z);
-=======
     /**
      * Step 6: Display "Next point: 1 / 9" while waiting for move to finish
      */
@@ -2414,7 +2317,6 @@ static void lcd_filament_change()
         char msg[10];
         sprintf_P(msg, PSTR("%i / %u"), (int)(manual_probe_index + 1), total_probe_points);
         lcd_implementation_drawedit(PSTR(MSG_LEVEL_BED_NEXT_POINT), msg);
->>>>>>> upstream/1.1.x
       }
       lcdDrawUpdate = LCDVIEW_CALL_NO_REDRAW;
       if (!lcd_wait_for_move) lcd_goto_screen(_lcd_level_bed_get_z);
@@ -2455,27 +2357,14 @@ static void lcd_filament_change()
 	  
       //if (lcd_clicked) {
         manual_probe_index = 0;
-<<<<<<< HEAD
-        #if ENABLED(MESH_BED_LEVELING)
-          _lcd_level_goto_next_point();
-        #elif ENABLED(AUTO_BED_LEVELING_UBL)
-          // UBL click handling should go here
-        #elif ENABLED(PROBE_MANUALLY)
-          enqueue_and_echo_commands_P(PSTR("G29"));
-          _lcd_level_goto_next_point();
-        #endif
-      //}
-=======
         _lcd_level_goto_next_point();
       }
->>>>>>> upstream/1.1.x
     }
 
     /**
      * Step 3: Display "Homing XYZ" - Wait for homing to finish
      */
     void _lcd_level_bed_homing() {
-<<<<<<< HEAD
       if (lcdDrawUpdate) 
 	  {
 	  START_SCREEN();
@@ -2485,11 +2374,8 @@ static void lcd_filament_change()
 	  STATIC_ITEM("twice to continue");
       END_SCREEN();
 	  }
+	  lcdDrawUpdate = LCDVIEW_CALL_NO_REDRAW;
 	  
-=======
-      if (lcdDrawUpdate) lcd_implementation_drawedit(PSTR(MSG_LEVEL_BED_HOMING), NULL);
-      lcdDrawUpdate = LCDVIEW_CALL_NO_REDRAW;
->>>>>>> upstream/1.1.x
       if (axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS])
 	  {
 		//lcd_implementation_drawedit(PSTR(MSG_LEVEL_BED_WAITING));
@@ -2499,13 +2385,10 @@ static void lcd_filament_change()
 	    STATIC_ITEM("Press to continue");
         END_SCREEN();  
         lcd_goto_screen(_lcd_level_bed_homing_done);
-<<<<<<< HEAD
-		
+
 	  }
 	
-      lcdDrawUpdate = LCDVIEW_KEEP_REDRAWING;
-=======
->>>>>>> upstream/1.1.x
+
     }
 
     #if ENABLED(PROBE_MANUALLY)
@@ -2516,23 +2399,11 @@ static void lcd_filament_change()
      * Step 2: Continue Bed Leveling...
      */
     void _lcd_level_bed_continue() {
-<<<<<<< HEAD
-      #if ENABLED(LCD_BED_LEVELING)
-        defer_return_to_status = true;
-        axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
-        enqueue_and_echo_commands_P(PSTR("G28"));
-		lcd_goto_screen(_lcd_level_bed_homing);
-      #else
-        lcd_return_to_status();
-	//DR - Forces homing before autoleveling
-        enqueue_and_echo_commands_P(PSTR("G28\nG29"));
-      #endif
-=======
+
       defer_return_to_status = true;
       axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
       lcd_goto_screen(_lcd_level_bed_homing);
       enqueue_and_echo_commands_P(PSTR("G28"));
->>>>>>> upstream/1.1.x
     }
 
     static bool new_level_state;
@@ -2557,11 +2428,6 @@ static void lcd_filament_change()
      *    Load Settings       (Req: EEPROM_SETTINGS)
      *    Save Settings       (Req: EEPROM_SETTINGS)
      */
-<<<<<<< HEAD
-    void lcd_level_bed() {
-	  START_MENU();
-      MENU_BACK(MSG_LEVEL_BED_CANCEL);
-=======
     void lcd_bed_leveling() {
       START_MENU();
       MENU_BACK(MSG_PREPARE);
@@ -2593,7 +2459,6 @@ static void lcd_filament_change()
         MENU_ITEM_EDIT(float32, MSG_ZPROBE_ZOFFSET, &zprobe_zoffset, Z_PROBE_OFFSET_RANGE_MIN, Z_PROBE_OFFSET_RANGE_MAX);
       #endif
 
->>>>>>> upstream/1.1.x
       MENU_ITEM(submenu, MSG_LEVEL_BED, _lcd_level_bed_continue);
 
       #if ENABLED(LEVEL_BED_CORNERS)
@@ -2609,9 +2474,6 @@ static void lcd_filament_change()
       END_MENU();
     }
 
-<<<<<<< HEAD
-  #endif // LCD_BED_LEVELING || HAS_ABL
-=======
     void _lcd_goto_bed_leveling() {
       lcd_goto_screen(lcd_bed_leveling);
       #if ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
@@ -3154,7 +3016,6 @@ static void lcd_filament_change()
     }
 
   #endif // AUTO_BED_LEVELING_UBL
->>>>>>> upstream/1.1.x
 
   /**
    *
@@ -3197,11 +3058,6 @@ static void lcd_filament_change()
       #if ENABLED(PROBE_MANUALLY)
         if (!g29_in_progress)
       #endif
-<<<<<<< HEAD
-	      // only using manual mesh leveling so it isn't necessary
-          // MENU_ITEM(submenu, MSG_LEVEL_BED, lcd_level_bed); 
-		  MENU_ITEM(function, MSG_LEVEL_BED, _lcd_level_bed_continue); 
-=======
           MENU_ITEM(submenu, MSG_BED_LEVELING,
             #if ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
               _lcd_goto_bed_leveling
@@ -3212,7 +3068,6 @@ static void lcd_filament_change()
     #elif PLANNER_LEVELING && DISABLED(PROBE_MANUALLY)
       MENU_ITEM(gcode, MSG_BED_LEVELING, PSTR("G28\nG29"));
     #endif
->>>>>>> upstream/1.1.x
 
     #if ENABLED(LEVEL_BED_CORNERS) && DISABLED(LCD_BED_LEVELING)
       if (axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS])
@@ -3243,28 +3098,7 @@ static void lcd_filament_change()
         MENU_ITEM(function, MSG_FILAMENTCHANGE, lcd_enqueue_filament_change);
     #endif
 
-<<<<<<< HEAD
-      //
-      // Change filament
-      //
-      #if ENABLED(FILAMENT_CHANGE_FEATURE)
-	  
-        //if (!thermalManager.tooColdToExtrude(active_extruder))
-          //MENU_ITEM(function, MSG_FILAMENTCHANGE, lcd_enqueue_filament_change);
-	  
-		//DR
-		
-		
-		MENU_ITEM(submenu, MSG_FILAMENTCHANGE, lcd_filament_change);
-		
-		
-		
-		//MENU_ITEM(gcode,MSG_FILAMENTCHANGE, PSTR("M600"));
-		
-      #endif
-=======
     #if TEMP_SENSOR_0 != 0
->>>>>>> upstream/1.1.x
 
       //
       // Cooldown
@@ -4009,10 +3843,6 @@ static void lcd_filament_change()
       MENU_ITEM(submenu, MSG_INIT_EEPROM, lcd_init_eeprom_confirm);
     #endif
 
-<<<<<<< HEAD
-    MENU_ITEM(function, MSG_RESTORE_FAILSAFE, lcd_factory_settings);
-=======
->>>>>>> upstream/1.1.x
     END_MENU();
   }
 
@@ -5569,13 +5399,8 @@ void lcd_update() {
                   SERIAL_ECHOPAIR("  Multiplier: ", encoderMultiplier);
                   SERIAL_ECHOPAIR("  ENCODER_10X_STEPS_PER_SEC: ", ENCODER_10X_STEPS_PER_SEC);
                   SERIAL_ECHOPAIR("  ENCODER_100X_STEPS_PER_SEC: ", ENCODER_100X_STEPS_PER_SEC);
-<<<<<<< HEAD
-                  SERIAL_EOL;
-                #endif //ENCODER_RATE_MULTIPLIER_DEBUG
-=======
                   SERIAL_EOL();
                 #endif // ENCODER_RATE_MULTIPLIER_DEBUG
->>>>>>> upstream/1.1.x
               }
 
               lastEncoderMovementMillis = ms;
@@ -5911,18 +5736,12 @@ void lcd_reset_alert_level() { lcd_status_message_level = 0; }
           GET_SHIFT_BUTTON_STATES(buttons_reprapworld_keypad);
 
         #endif
-<<<<<<< HEAD
-      #else
-        GET_BUTTON_STATES(buttons);
-      #endif //!NEWPANEL
-=======
 
       #else // !NEWPANEL
 
         GET_SHIFT_BUTTON_STATES(buttons);
 
       #endif
->>>>>>> upstream/1.1.x
 
     } // next_button_update_ms
 

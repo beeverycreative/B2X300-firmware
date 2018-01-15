@@ -71,29 +71,11 @@
    *   the user can specify the X and Y position of interest with command parameters. This allows the user to
    *   focus on a particular area of the Mesh where attention is needed.
    *
-<<<<<<< HEAD
-   *   B #  Bed   Set the Bed Temperature.  If not specified, a default of 60 C. will be assumed.
-=======
    *   B #  Bed         Set the Bed Temperature. If not specified, a default of 60 C. will be assumed.
->>>>>>> upstream/1.1.x
    *
    *   C    Current   When searching for Mesh Intersection points to draw, use the current nozzle location
    *        as the base for any distance comparison.
    *
-<<<<<<< HEAD
-   *   D    Disable   Disable the Unified Bed Leveling System.  In the normal case the user is invoking this
-   *        command to see how well a Mesh as been adjusted to match a print surface.  In order to do
-   *        this the Unified Bed Leveling System is turned on by the G26 command.  The D parameter
-   *        alters the command's normal behaviour and disables the Unified Bed Leveling System even if
-   *        it is on.
-   *
-   *   H #  Hotend    Set the Nozzle Temperature.  If not specified, a default of 205 C. will be assumed.
-   *
-   *   F #  Filament  Used to specify the diameter of the filament being used.  If not specified
-   *        1.75mm filament is assumed.  If you are not getting acceptable results by using the
-   *        'correct' numbers, you can scale this number up or down a little bit to change the amount
-   *        of filament that is being extruded during the printing of the various lines on the bed.
-=======
    *   D    Disable     Disable the Unified Bed Leveling System. In the normal case the user is invoking this
    *                    command to see how well a Mesh as been adjusted to match a print surface. In order to do
    *                    this the Unified Bed Leveling System is turned on by the G26 command. The D parameter
@@ -106,31 +88,9 @@
    *                    1.75mm filament is assumed. If you are not getting acceptable results by using the
    *                    'correct' numbers, you can scale this number up or down a little bit to change the amount
    *                    of filament that is being extruded during the printing of the various lines on the bed.
->>>>>>> upstream/1.1.x
    *
    *   K    Keep-On   Keep the heaters turned on at the end of the command.
    *
-<<<<<<< HEAD
-   *   L #  Layer   Layer height.  (Height of nozzle above bed)  If not specified .20mm will be used.
-   *
-   *   Q #  Multiplier  Retraction Multiplier.  Normally not needed.  Retraction defaults to 1.0mm and
-   *        un-retraction is at 1.2mm   These numbers will be scaled by the specified amount
-   *
-   *   N #  Nozzle    Used to control the size of nozzle diameter.  If not specified, a .4mm nozzle is assumed.
-   *        'n' can be used instead if your host program does not appreciate you using 'N'.
-   *
-   *   O #  Ooooze    How much your nozzle will Ooooze filament while getting in position to print.  This
-   *        is over kill, but using this parameter will let you get the very first 'cicle' perfect
-   *        so you have a trophy to peel off of the bed and hang up to show how perfectly you have your
-   *        Mesh calibrated.  If not specified, a filament length of .3mm is assumed.
-   *
-   *   P #  Prime   Prime the nozzle with specified length of filament.  If this parameter is not
-   *        given, no prime action will take place.  If the parameter specifies an amount, that much
-   *        will be purged before continuing.  If no amount is specified the command will start
-   *        purging filament until the user provides an LCD Click and then it will continue with
-   *        printing the Mesh.  You can carefully remove the spent filament with a needle nose
-   *        pliers while holding the LCD Click wheel in a depressed state.
-=======
    *   L #  Layer       Layer height. (Height of nozzle above bed)  If not specified .20mm will be used.
    *
    *   O #  Ooooze      How much your nozzle will Ooooze filament while getting in position to print. This
@@ -148,16 +108,12 @@
    *
    *   Q #  Multiplier  Retraction Multiplier. Normally not needed. Retraction defaults to 1.0mm and
    *                    un-retraction is at 1.2mm   These numbers will be scaled by the specified amount
->>>>>>> upstream/1.1.x
    *
    *   R #  Random    Randomize the order that the circles are drawn on the bed.  The search for the closest
    *        undrawn cicle is still done.  But the distance to the location for each circle has a
    *        random number of the size specified added to it.  Specifying R50 will give an interesting
    *        deviation from the normal behaviour on a 10 x 10 Mesh.
    *
-<<<<<<< HEAD
-   *   X #  X coordinate  Specify the starting location of the drawing activity.
-=======
    *                    NOTE:  If you do not have an LCD, you -must- specify R. This is to ensure that you are
    *                    aware that there's some risk associated with printing without the ability to abort in
    *                    cases where mesh point Z value may be inaccurate. As above, if you do not include a
@@ -171,57 +127,21 @@
    *                    deviation from the normal behaviour on a 10 x 10 Mesh.
    *
    *   X #  X Coord.    Specify the starting location of the drawing activity.
->>>>>>> upstream/1.1.x
    *
    *   Y #  Y coordinate  Specify the starting location of the drawing activity.
    */
 
   // External references
 
-<<<<<<< HEAD
-  extern float feedrate;
-=======
->>>>>>> upstream/1.1.x
   extern Planner planner;
   #if ENABLED(ULTRA_LCD)
     extern char lcd_status_message[];
   #endif
-<<<<<<< HEAD
-  extern float destination[XYZE];
-  void set_destination_to_current();
-  void set_current_to_destination();
-  float code_value_float();
-  float code_value_linear_units();
-  float code_value_axis_units(const AxisEnum axis);
-  bool code_value_bool();
-  bool code_has_value();
-  void lcd_init();
-  void lcd_setstatuspgm(const char* const message, const uint8_t level);
-  bool prepare_move_to_destination_cartesian();
-  void line_to_destination();
-  void line_to_destination(float);
-  void sync_plan_position_e();
-  void chirp_at_user();
-
-  // Private functions
-
-  void un_retract_filament(float where[XYZE]);
-  void retract_filament(float where[XYZE]);
-  void look_for_lines_to_connect();
-  bool parse_G26_parameters();
-  void move_to(const float&, const float&, const float&, const float&) ;
-  void print_line_from_here_to_there(const float&, const float&, const float&, const float&, const float&, const float&);
-  bool turn_on_heaters();
-  bool prime_nozzle();
-
-  static uint16_t circle_flags[16], horizontal_mesh_line_flags[16], vertical_mesh_line_flags[16], continue_with_closest = 0;
-=======
   inline void sync_plan_position_e() { planner.set_e_position_mm(current_position[E_AXIS]); }
 
   // Private functions
 
   static uint16_t circle_flags[16], horizontal_mesh_line_flags[16], vertical_mesh_line_flags[16];
->>>>>>> upstream/1.1.x
   float g26_e_axis_feedrate = 0.020,
         random_deviation = 0.0;
 
@@ -241,9 +161,6 @@
 
   #if ENABLED(NEWPANEL)
 
-<<<<<<< HEAD
-  static bool keep_heaters_on = false;
-=======
     /**
      * If the LCD is clicked, cancel, wait for release, return true
      */
@@ -271,7 +188,6 @@
     prepare_move_to_destination();  // will ultimately call ubl.line_to_destination_cartesian or ubl.prepare_linear_move_to for UBL_SEGMENTED
     feedrate_mm_s = save_feedrate;  // restore global feed rate
   }
->>>>>>> upstream/1.1.x
 
   void move_to(const float &rx, const float &ry, const float &z, const float &e_delta) {
     float feed_value;
@@ -334,87 +250,22 @@
     #if ENABLED(NEWPANEL)
       float Total_Prime = 0.0;
 
-<<<<<<< HEAD
-        // Let's do a couple of quick sanity checks.  We can pull this code out later if we never see it catch a problem
-        #ifdef DELTA
-          if (HYPOT2(circle_x, circle_y) > sq(DELTA_PRINTABLE_RADIUS)) {
-            SERIAL_ERROR_START;
-            SERIAL_ERRORLNPGM("Attempt to print outside of DELTA_PRINTABLE_RADIUS.");
-            goto LEAVE;
-          }
-        #endif
-
-        // TODO: Change this to use `position_is_reachable`
-        if (!WITHIN(circle_x, X_MIN_POS, X_MAX_POS) || !WITHIN(circle_y, Y_MIN_POS, Y_MAX_POS)) {
-          SERIAL_ERROR_START;
-          SERIAL_ERRORLNPGM("Attempt to print off the bed.");
-          goto LEAVE;
-        }
-=======
       if (g26_prime_flag == -1) {  // The user wants to control how much filament gets purged
 
         lcd_external_control = true;
         lcd_setstatusPGM(PSTR("User-Controlled Prime"), 99);
         lcd_chirp();
->>>>>>> upstream/1.1.x
 
         set_destination_from_current();
 
         recover_filament(destination); // Make sure G26 doesn't think the filament is retracted().
 
-<<<<<<< HEAD
-        start_angle = 0.0;    // assume it is going to be a full circle
-        end_angle   = 360.0;
-        if (xi == 0) {       // Check for bottom edge
-          start_angle = -90.0;
-          end_angle   =  90.0;
-          if (yi == 0)        // it is an edge, check for the two left corners
-            start_angle = 0.0;
-          else if (yi == GRID_MAX_POINTS_Y - 1)
-            end_angle = 0.0;
-        }
-        else if (xi == GRID_MAX_POINTS_X - 1) { // Check for top edge
-          start_angle =  90.0;
-          end_angle   = 270.0;
-          if (yi == 0)                  // it is an edge, check for the two right corners
-            end_angle = 180.0;
-          else if (yi == GRID_MAX_POINTS_Y - 1)
-            start_angle = 180.0;
-        }
-        else if (yi == 0) {
-          start_angle =   0.0;         // only do the top   side of the cirlce
-          end_angle   = 180.0;
-        }
-        else if (yi == GRID_MAX_POINTS_Y - 1) {
-          start_angle = 180.0;         // only do the bottom side of the cirlce
-          end_angle   = 360.0;
-        }
-
-        for (tmp = start_angle; tmp < end_angle - 0.1; tmp += 30.0) {
-          int tmp_div_30 = tmp / 30.0;
-          if (tmp_div_30 < 0) tmp_div_30 += 360 / 30;
-          if (tmp_div_30 > 11) tmp_div_30 -= 360 / 30;
-
-          float x = circle_x + cos_table[tmp_div_30],    // for speed, these are now a lookup table entry
-                y = circle_y + sin_table[tmp_div_30],
-                xe = circle_x + cos_table[tmp_div_30 + 1],
-                ye = circle_y + sin_table[tmp_div_30 + 1];
-          #ifdef DELTA
-            if (HYPOT2(x, y) > sq(DELTA_PRINTABLE_RADIUS))   // Check to make sure this part of
-              continue;                                      // the 'circle' is on the bed.  If
-          #else                                              // not, we need to skip
-            x  = constrain(x, X_MIN_POS + 1, X_MAX_POS - 1); // This keeps us from bumping the endstops
-            y  = constrain(y, Y_MIN_POS + 1, Y_MAX_POS - 1);
-            xe = constrain(xe, X_MIN_POS + 1, X_MAX_POS - 1);
-            ye = constrain(ye, Y_MIN_POS + 1, Y_MAX_POS - 1);
-=======
         while (!is_lcd_clicked()) {
           lcd_chirp();
           destination[E_AXIS] += 0.25;
           #ifdef PREVENT_LENGTHY_EXTRUDE
             Total_Prime += 0.25;
             if (Total_Prime >= EXTRUDE_MAXLENGTH) return G26_ERR;
->>>>>>> upstream/1.1.x
           #endif
           G26_line_to_destination(planner.max_feedrate_mm_s[E_AXIS] / 15.0);
 
@@ -426,38 +277,7 @@
           idle();
         }
 
-<<<<<<< HEAD
-        //debug_current_and_destination(PSTR("Looking for lines to connect."));
-        look_for_lines_to_connect();
-        //debug_current_and_destination(PSTR("Done with line connect."));
-      }
-
-      //debug_current_and_destination(PSTR("Done with current circle."));
-
-    } while (location.x_index >= 0 && location.y_index >= 0);
-
-    LEAVE:
-    lcd_reset_alert_level();
-    lcd_setstatuspgm(PSTR("Leaving G26"));
-
-    retract_filament(destination);
-    destination[Z_AXIS] = Z_CLEARANCE_BETWEEN_PROBES;
-
-    //debug_current_and_destination(PSTR("ready to do Z-Raise."));
-    move_to(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], 0); // Raise the nozzle
-    //debug_current_and_destination(PSTR("done doing Z-Raise."));
-
-    destination[X_AXIS] = x_pos;                                               // Move back to the starting position
-    destination[Y_AXIS] = y_pos;
-    //destination[Z_AXIS] = Z_CLEARANCE_BETWEEN_PROBES;                        // Keep the nozzle where it is
-
-    move_to(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], 0); // Move back to the starting position
-    //debug_current_and_destination(PSTR("done doing X/Y move."));
-
-    ubl.has_control_of_lcd_panel = false;     // Give back control of the LCD Panel!
-=======
         wait_for_release();
->>>>>>> upstream/1.1.x
 
         strcpy_P(lcd_status_message, PSTR("Done Priming")); // We can't do lcd_setstatusPGM() without having it continue;
                                                             // So... We cheat to get a message up.
@@ -596,20 +416,6 @@
               sy = ey = constrain(_GET_MESH_Y(j), Y_MIN_POS + 1, Y_MAX_POS - 1);
               ex = constrain(ex, X_MIN_POS + 1, X_MAX_POS - 1);
 
-<<<<<<< HEAD
-              if (ubl.g26_debug_flag) {
-                SERIAL_ECHOPAIR(" Connecting with horizontal line (sx=", sx);
-                SERIAL_ECHOPAIR(", sy=", sy);
-                SERIAL_ECHOPAIR(") -> (ex=", ex);
-                SERIAL_ECHOPAIR(", ey=", ey);
-                SERIAL_CHAR(')');
-                SERIAL_EOL;
-                //debug_current_and_destination(PSTR("Connecting horizontal line."));
-              }
-
-              print_line_from_here_to_there(LOGICAL_X_POSITION(sx), LOGICAL_Y_POSITION(sy), layer_height, LOGICAL_X_POSITION(ex), LOGICAL_Y_POSITION(ey), layer_height);
-              bit_set(horizontal_mesh_line_flags, i, j);   // Mark it as done so we don't do it again
-=======
               if (position_is_reachable(sx, sy) && position_is_reachable(ex, ey)) {
 
                 if (g26_debug_flag) {
@@ -624,7 +430,6 @@
                 print_line_from_here_to_there(sx, sy, g26_layer_height, ex, ey, g26_layer_height);
               }
               bitmap_set(horizontal_mesh_line_flags, i, j);   // Mark it as done so we don't do it again, even if we skipped it
->>>>>>> upstream/1.1.x
             }
           }
 
@@ -644,19 +449,6 @@
                 sy = constrain(sy, Y_MIN_POS + 1, Y_MAX_POS - 1);
                 ey = constrain(ey, Y_MIN_POS + 1, Y_MAX_POS - 1);
 
-<<<<<<< HEAD
-                if (ubl.g26_debug_flag) {
-                  SERIAL_ECHOPAIR(" Connecting with vertical line (sx=", sx);
-                  SERIAL_ECHOPAIR(", sy=", sy);
-                  SERIAL_ECHOPAIR(") -> (ex=", ex);
-                  SERIAL_ECHOPAIR(", ey=", ey);
-                  SERIAL_CHAR(')');
-                  SERIAL_EOL;
-                  debug_current_and_destination(PSTR("Connecting vertical line."));
-                }
-                print_line_from_here_to_there(LOGICAL_X_POSITION(sx), LOGICAL_Y_POSITION(sy), layer_height, LOGICAL_X_POSITION(ex), LOGICAL_Y_POSITION(ey), layer_height);
-                bit_set(vertical_mesh_line_flags, i, j);   // Mark it as done so we don't do it again
-=======
                 if (position_is_reachable(sx, sy) && position_is_reachable(ex, ey)) {
 
                   if (g26_debug_flag) {
@@ -674,7 +466,6 @@
                   print_line_from_here_to_there(sx, sy, g26_layer_height, ex, ey, g26_layer_height);
                 }
                 bitmap_set(vertical_mesh_line_flags, i, j);   // Mark it as done so we don't do it again, even if skipped
->>>>>>> upstream/1.1.x
               }
             }
           }
@@ -718,13 +509,9 @@
       #endif
     #endif
 
-<<<<<<< HEAD
-      ubl_line_to_destination(feed_value, 0);
-=======
     // Start heating the nozzle and wait for it to reach temperature.
     thermalManager.setTargetHotend(g26_hotend_temp, 0);
     while (abs(thermalManager.degHotend(0) - g26_hotend_temp) > 3) {
->>>>>>> upstream/1.1.x
 
       #if ENABLED(NEWPANEL)
         if (is_lcd_clicked()) return exit_from_g26();
@@ -738,33 +525,10 @@
       idle();
     }
 
-<<<<<<< HEAD
-    // Check if X or Y is involved in the movement.
-    // Yes: a 'normal' movement. No: a retract() or un_retract()
-    feed_value = has_xy_component ? PLANNER_XY_FEEDRATE() / 10.0 : planner.max_feedrate_mm_s[E_AXIS] / 1.5;
-
-    if (ubl.g26_debug_flag) SERIAL_ECHOLNPAIR("in move_to() feed_value for XY:", feed_value);
-
-    destination[X_AXIS] = x;
-    destination[Y_AXIS] = y;
-    destination[E_AXIS] += e_delta;
-
-    //if (ubl.g26_debug_flag) debug_current_and_destination(PSTR(" in move_to() doing last move"));
-
-    ubl_line_to_destination(feed_value, 0);
-
-    //if (ubl.g26_debug_flag) debug_current_and_destination(PSTR(" in move_to() after last move"));
-
-    stepper.synchronize();
-    set_destination_to_current();
-
-  }
-=======
     #if ENABLED(ULTRA_LCD)
       lcd_reset_status();
       lcd_quick_feedback();
     #endif
->>>>>>> upstream/1.1.x
 
     return G26_OK;
   }
@@ -781,67 +545,6 @@
    * Used to interactively edit the mesh by placing the
    * nozzle in a problem area and doing a G29 P4 R command.
    */
-<<<<<<< HEAD
-  void print_line_from_here_to_there(const float &sx, const float &sy, const float &sz, const float &ex, const float &ey, const float &ez) {
-    const float dx_s = current_position[X_AXIS] - sx,   // find our distance from the start of the actual line segment
-                dy_s = current_position[Y_AXIS] - sy,
-                dist_start = HYPOT2(dx_s, dy_s),        // We don't need to do a sqrt(), we can compare the distance^2
-                                                        // to save computation time
-                dx_e = current_position[X_AXIS] - ex,   // find our distance from the end of the actual line segment
-                dy_e = current_position[Y_AXIS] - ey,
-                dist_end = HYPOT2(dx_e, dy_e),
-
-                line_length = HYPOT(ex - sx, ey - sy);
-
-    // If the end point of the line is closer to the nozzle, flip the direction,
-    // moving from the end to the start. On very small lines the optimization isn't worth it.
-    if (dist_end < dist_start && (SIZE_OF_INTERSECTION_CIRCLES) < abs(line_length)) {
-      //if (ubl.g26_debug_flag) SERIAL_ECHOLNPGM("  Reversing start and end of print_line_from_here_to_there()");
-      return print_line_from_here_to_there(ex, ey, ez, sx, sy, sz);
-    }
-
-    // Decide whether to retract.
-
-    if (dist_start > 2.0) {
-      retract_filament(destination);
-      //if (ubl.g26_debug_flag) SERIAL_ECHOLNPGM("  filament retracted.");
-    }
-    move_to(sx, sy, sz, 0.0); // Get to the starting point with no extrusion
-
-    const float e_pos_delta = line_length * g26_e_axis_feedrate * extrusion_multiplier;
-
-    un_retract_filament(destination);
-
-    //if (ubl.g26_debug_flag) {
-    //  SERIAL_ECHOLNPGM("  doing printing move.");
-    //  debug_current_and_destination(PSTR("doing final move_to() inside print_line_from_here_to_there()"));
-    //}
-    move_to(ex, ey, ez, e_pos_delta);  // Get to the ending point with an appropriate amount of extrusion
-  }
-
-  /**
-   * This function used to be inline code in G26. But there are so many
-   * parameters it made sense to turn them into static globals and get
-   * this code out of sight of the main routine.
-   */
-  bool parse_G26_parameters() {
-
-    extrusion_multiplier  = EXTRUSION_MULTIPLIER;
-    retraction_multiplier = RETRACTION_MULTIPLIER;
-    nozzle                = NOZZLE;
-    filament_diameter     = FILAMENT;
-    layer_height          = LAYER_HEIGHT;
-    prime_length          = PRIME_LENGTH;
-    bed_temp              = BED_TEMP;
-    hotend_temp           = HOTEND_TEMP;
-    ooze_amount           = OOZE_AMOUNT;
-    prime_flag            = 0;
-    keep_heaters_on       = false;
-
-    if (code_seen('B')) {
-      bed_temp = code_value_temp_abs();
-      if (!WITHIN(bed_temp, 15, 140)) {
-=======
   void gcode_G26() {
     SERIAL_ECHOLNPGM("G26 command started. Waiting for heater(s).");
     float tmp, start_angle, end_angle;
@@ -870,23 +573,14 @@
     if (parser.seenval('B')) {
       g26_bed_temp = parser.value_celsius();
       if (!WITHIN(g26_bed_temp, 15, 140)) {
->>>>>>> upstream/1.1.x
         SERIAL_PROTOCOLLNPGM("?Specified bed temperature not plausible.");
         return;
       }
     }
 
-<<<<<<< HEAD
-    if (code_seen('C')) continue_with_closest++;
-
-    if (code_seen('L')) {
-      layer_height = code_value_linear_units();
-      if (!WITHIN(layer_height, 0.0, 2.0)) {
-=======
     if (parser.seenval('L')) {
       g26_layer_height = parser.value_linear_units();
       if (!WITHIN(g26_layer_height, 0.0, 2.0)) {
->>>>>>> upstream/1.1.x
         SERIAL_PROTOCOLLNPGM("?Specified layer height not plausible.");
         return;
       }
@@ -906,30 +600,14 @@
       }
     }
 
-<<<<<<< HEAD
-    if (code_seen('N') || code_seen('n')) {
-      nozzle = code_value_float();
-      if (!WITHIN(nozzle, 0.1, 1.0)) {
-=======
     if (parser.seenval('S')) {
       g26_nozzle = parser.value_float();
       if (!WITHIN(g26_nozzle, 0.1, 1.0)) {
->>>>>>> upstream/1.1.x
         SERIAL_PROTOCOLLNPGM("?Specified nozzle size not plausible.");
         return;
       }
     }
 
-<<<<<<< HEAD
-    if (code_seen('K')) keep_heaters_on++;
-
-    if (code_seen('O') && code_has_value())
-      ooze_amount = code_value_linear_units();
-
-    if (code_seen('P')) {
-      if (!code_has_value())
-        prime_flag = -1;
-=======
     if (parser.seen('P')) {
       if (!parser.has_value()) {
         #if ENABLED(NEWPANEL)
@@ -939,7 +617,6 @@
           return;
         #endif
       }
->>>>>>> upstream/1.1.x
       else {
         g26_prime_flag++;
         g26_prime_length = parser.value_linear_units();
@@ -971,22 +648,6 @@
       }
     }
 
-<<<<<<< HEAD
-    if (code_seen('R')) {
-      randomSeed(millis());
-      random_deviation = code_has_value() ? code_value_float() : 50.0;
-    }
-
-    x_pos = current_position[X_AXIS];
-    y_pos = current_position[Y_AXIS];
-
-    if (code_seen('X')) {
-      x_pos = code_value_axis_units(X_AXIS);
-      if (!WITHIN(x_pos, X_MIN_POS, X_MAX_POS)) {
-        SERIAL_PROTOCOLLNPGM("?Specified X coordinate not plausible.");
-        return UBL_ERR;
-      }
-=======
     if (parser.seen('U')) {
       randomSeed(millis());
       // This setting will persist for the next G26
@@ -1007,24 +668,14 @@
     if (g26_repeats < 1) {
       SERIAL_PROTOCOLLNPGM("?(R)epeat value not plausible; must be at least 1.");
       return;
->>>>>>> upstream/1.1.x
     }
     else
 
-<<<<<<< HEAD
-    if (code_seen('Y')) {
-      y_pos = code_value_axis_units(Y_AXIS);
-      if (!WITHIN(y_pos, Y_MIN_POS, Y_MAX_POS)) {
-        SERIAL_PROTOCOLLNPGM("?Specified Y coordinate not plausible.");
-        return UBL_ERR;
-      }
-=======
     g26_x_pos = parser.seenval('X') ? RAW_X_POSITION(parser.value_linear_units()) : current_position[X_AXIS];
     g26_y_pos = parser.seenval('Y') ? RAW_Y_POSITION(parser.value_linear_units()) : current_position[Y_AXIS];
     if (!position_is_reachable(g26_x_pos, g26_y_pos)) {
       SERIAL_PROTOCOLLNPGM("?Specified X,Y coordinate out of bounds.");
       return;
->>>>>>> upstream/1.1.x
     }
 
     /**
@@ -1100,23 +751,6 @@
         xi = location.x_index;  // Just to shrink the next few lines and make them easier to understand
         yi = location.y_index;
 
-<<<<<<< HEAD
-      while (!ubl_lcd_clicked()) {
-        chirp_at_user();
-        destination[E_AXIS] += 0.25;
-        #ifdef PREVENT_LENGTHY_EXTRUDE
-          Total_Prime += 0.25;
-          if (Total_Prime >= EXTRUDE_MAXLENGTH) return UBL_ERR;
-        #endif
-        ubl_line_to_destination(planner.max_feedrate_mm_s[E_AXIS] / 15.0, 0);
-
-        stepper.synchronize();    // Without this synchronize, the purge is more consistent,
-                                  // but because the planner has a buffer, we won't be able
-                                  // to stop as quickly.  So we put up with the less smooth
-                                  // action to give the user a more responsive 'Stop'.
-        set_destination_to_current();
-        idle();
-=======
         if (g26_debug_flag) {
           SERIAL_ECHOPAIR("   Doing circle at: (xi=", xi);
           SERIAL_ECHOPAIR(", yi=", yi);
@@ -1191,7 +825,6 @@
         }
         if (look_for_lines_to_connect())
           goto LEAVE;
->>>>>>> upstream/1.1.x
       }
     } while (--g26_repeats && location.x_index >= 0 && location.y_index >= 0);
 
@@ -1220,16 +853,7 @@
       #if HAS_TEMP_BED
         thermalManager.setTargetBed(0);
       #endif
-<<<<<<< HEAD
-      set_destination_to_current();
-      destination[E_AXIS] += prime_length;
-      ubl_line_to_destination(planner.max_feedrate_mm_s[E_AXIS] / 15.0, 0);
-      stepper.synchronize();
-      set_destination_to_current();
-      retract_filament(destination);
-=======
       thermalManager.setTargetHotend(0, 0);
->>>>>>> upstream/1.1.x
     }
   }
 

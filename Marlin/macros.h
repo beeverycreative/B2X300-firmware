@@ -209,8 +209,6 @@
 #define RECIPROCAL(x) (NEAR_ZERO(x) ? 0.0 : 1.0 / (x))
 #define FIXFLOAT(f) (f + 0.00001)
 
-<<<<<<< HEAD
-=======
 //
 // Maths macros that can be overridden by HAL
 //
@@ -224,5 +222,4 @@
 #define FMOD(x, y)  fmod(x, y)
 #define HYPOT(x,y)  SQRT(HYPOT2(x,y))
 
->>>>>>> upstream/1.1.x
 #endif //__MACROS_H

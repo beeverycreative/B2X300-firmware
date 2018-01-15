@@ -125,14 +125,10 @@ class Temperature {
       static int16_t target_temperature_bed;
     #endif
 
-<<<<<<< HEAD
-    static uint8_t soft_pwm_bed;
-=======
     static volatile bool in_temp_isr;
 
     static uint8_t soft_pwm_amount[HOTENDS],
                    soft_pwm_amount_bed;
->>>>>>> upstream/1.1.x
 
     #if ENABLED(FAN_SOFT_PWM)
       static uint8_t fanSpeedSoftPwm[FAN_COUNT];

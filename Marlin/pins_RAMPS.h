@@ -443,9 +443,6 @@
 
       #define BEEPER_PIN        23
       #define LCD_BACKLIGHT_PIN 33
-<<<<<<< HEAD
-	  
-=======
 
       #define BTN_EN1           35
       #define BTN_EN2           37
@@ -479,7 +476,6 @@
       #define SD_DETECT_PIN     49
       #define KILL_PIN          64
 
->>>>>>> upstream/1.1.x
     #elif ENABLED(MINIPANEL)
 
       #define BEEPER_PIN        42
@@ -495,13 +491,13 @@
       //#define LCD_SCREEN_ROT_90
       //#define LCD_SCREEN_ROT_180
       //#define LCD_SCREEN_ROT_270
-<<<<<<< HEAD
-      // The encoder and click button
-      #define BTN_EN1 40
-      #define BTN_EN2 63
-      #define BTN_ENC 59
-      // not connected to a pin
-      #define SD_DETECT_PIN 49
+      #define BTN_EN1           40
+      #define BTN_EN2           63
+      #define BTN_ENC           59
+
+      #define SDSS              53
+      #define SD_DETECT_PIN     49
+      #define KILL_PIN          64
 	  
 	// Included MKS mini screen  
 	#elif ENABLED(MKS_MINI_12864)
@@ -522,16 +518,6 @@
 
 		   #define DOGLCD_CS     25
 		   #define DOGLCD_A0     27
-=======
-
-      #define BTN_EN1           40
-      #define BTN_EN2           63
-      #define BTN_ENC           59
-
-      #define SDSS              53
-      #define SD_DETECT_PIN     49
-      #define KILL_PIN          64
->>>>>>> upstream/1.1.x
 
     #else
 

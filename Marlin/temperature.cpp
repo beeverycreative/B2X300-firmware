@@ -69,16 +69,7 @@ int16_t Temperature::current_temperature_raw[HOTENDS] = { 0 },
   int16_t Temperature::target_temperature_bed = 0;
 #endif
 
-<<<<<<< HEAD
-uint8_t Temperature::soft_pwm_bed;
-
-#if ENABLED(FAN_SOFT_PWM)
-  uint8_t Temperature::fanSpeedSoftPwm[FAN_COUNT];
-#endif
-
-=======
 // Initialized by settings.load()
->>>>>>> upstream/1.1.x
 #if ENABLED(PIDTEMP)
   #if ENABLED(PID_PARAMS_PER_HOTEND) && HOTENDS > 1
     float Temperature::Kp[HOTENDS], Temperature::Ki[HOTENDS], Temperature::Kd[HOTENDS];

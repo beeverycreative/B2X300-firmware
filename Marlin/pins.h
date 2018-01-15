@@ -712,8 +712,4 @@
   #define SS_PIN   AVR_SS_PIN
 #endif
 
-<<<<<<< HEAD
-#endif //__PINS_H
-=======
 #endif // __PINS_H__
->>>>>>> upstream/1.1.x

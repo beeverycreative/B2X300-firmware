@@ -170,8 +170,6 @@
 #ifndef MSG_LEVEL_BED
   #define MSG_LEVEL_BED                       _UxGT("Level bed")
 #endif
-<<<<<<< HEAD
-=======
 #ifndef MSG_LEVEL_CORNERS
   #define MSG_LEVEL_CORNERS                   _UxGT("Level corners")
 #endif
@@ -429,8 +427,6 @@
 #ifndef MSG_LED_BRIGHTNESS
   #define MSG_LED_BRIGHTNESS                  _UxGT("Brightness")
 #endif
-
->>>>>>> upstream/1.1.x
 #ifndef MSG_MOVING
   #define MSG_MOVING                          _UxGT("Moving...")
 #endif
@@ -617,12 +613,9 @@
 #ifndef MSG_RESTORE_FAILSAFE
   #define MSG_RESTORE_FAILSAFE                _UxGT("Restore failsafe")
 #endif
-<<<<<<< HEAD
-=======
 #ifndef MSG_INIT_EEPROM
   #define MSG_INIT_EEPROM                     _UxGT("Initialize EEPROM")
 #endif
->>>>>>> upstream/1.1.x
 #ifndef MSG_REFRESH
   #define MSG_REFRESH                         _UxGT("Refresh")
 #endif

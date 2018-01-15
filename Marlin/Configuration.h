@@ -277,7 +277,6 @@
 // The offset has to be X=0, Y=0 for the extruder 0 hotend (default extruder).
 // For the other hotends it is their distance from the extruder 0 hotend.
 
-<<<<<<< HEAD
 
 //hBp - Checks if bowden to apply the correct offset
 #ifndef hBp_Bowden
@@ -290,10 +289,8 @@
 	#define HOTEND_OFFSET_Y {0.0, 0.00}  // (in mm) for each extruder, offset of the hotend on the Y axis
 #endif
 	
-=======
 // @section machine
 
->>>>>>> upstream/1.1.x
 /**
  * Select your power supply here. Use 0 if you haven't connected the PS_ON_PIN
  *
@@ -728,15 +725,9 @@
  * When changing speed and direction, if the difference is less than the
  * value set here, it may happen instantaneously.
  */
-<<<<<<< HEAD
 #define DEFAULT_XJERK                  5.0
 #define DEFAULT_YJERK                  5.0
 #define DEFAULT_ZJERK                  0.5
-=======
-#define DEFAULT_XJERK                 10.0
-#define DEFAULT_YJERK                 10.0
-#define DEFAULT_ZJERK                  0.3
->>>>>>> upstream/1.1.x
 #define DEFAULT_EJERK                  5.0
 
 //===========================================================================
@@ -888,16 +879,10 @@
 // Speed for the "accurate" probe of each point
 #define Z_PROBE_SPEED_SLOW (Z_PROBE_SPEED_FAST / 4)
 
-<<<<<<< HEAD
-// Use double touch for probing
-#define PROBE_DOUBLE_TOUCH
-
-=======
 // The number of probes to perform at each point.
 //   Set to 2 for a fast/slow probe, using the second probe result.
 //   Set to 3 or more for slow probes, averaging the results.
-//#define MULTIPLE_PROBING 2
->>>>>>> upstream/1.1.x
+#define MULTIPLE_PROBING 2
 
 /**
  * Z probes require clearance when deploying, stowing, and moving between
@@ -996,49 +981,31 @@
 
 // @section machine
 
-<<<<<<< HEAD
 // Travel limits after homing (units are in mm)
 
 // hBp - Sets the bed size
 #ifndef hBp_Extendedbed
 	//default bed
 	#define X_MIN_POS -48
-	#define X_MAX_POS 185
+	#define X_BED_SIZE 185
 	
 #else
 	//extended bed
 	#define X_MIN_POS 0
-	#define X_MAX_POS 300
+	#define X_BED_SIZE 300
 	
 #endif
 		
-#define Y_MIN_POS 0
-
-// hBp - Fixes probe offset problems
-//#ifndef hBp_Autolevel
-	#define Z_MIN_POS 0
-
-//#else
-	//#define Z_MIN_POS 0
-
-//#endif
-
-#define Y_MAX_POS 195
-#define Z_MAX_POS 190
-=======
 // The size of the print bed
-#define X_BED_SIZE 200
-#define Y_BED_SIZE 200
+#define  200
+#define Y_BED_SIZE 195
 
 // Travel limits (mm) after homing, corresponding to endstop positions.
-#define X_MIN_POS 0
 #define Y_MIN_POS 0
 #define Z_MIN_POS 0
 #define X_MAX_POS X_BED_SIZE
 #define Y_MAX_POS Y_BED_SIZE
-#define Z_MAX_POS 200
->>>>>>> upstream/1.1.x
-
+#define Z_MAX_POS 190
 /**
  * Software Endstops
  *
@@ -1225,15 +1192,8 @@
   //========================= Unified Bed Leveling ============================
   //===========================================================================
 
-<<<<<<< HEAD
-  #define UBL_MESH_INSET 35          // Mesh inset margin on print area
+  #define MESH_INSET 35          // Mesh inset margin on print area
   #define GRID_MAX_POINTS_X 3      // Don't use more than 15 points per axis, implementation limited.
-=======
-  //#define MESH_EDIT_GFX_OVERLAY   // Display a graphics overlay while editing the mesh
-
-  #define MESH_INSET 1              // Mesh inset margin on print area
-  #define GRID_MAX_POINTS_X 10      // Don't use more than 15 points per axis, implementation limited.
->>>>>>> upstream/1.1.x
   #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
 
   #define UBL_PROBE_PT_1_X 39       // Probing points for 3-Point leveling of the mesh
@@ -1398,20 +1358,10 @@
 // M500 - stores parameters in EEPROM
 // M501 - reads parameters from EEPROM (if you need reset them after you changed them temporarily).
 // M502 - reverts to the default "factory settings".  You still need to store them in EEPROM afterwards if you want to.
-<<<<<<< HEAD
-//define this to enable EEPROM support
-#define EEPROM_SETTINGS
-
-#if ENABLED(EEPROM_SETTINGS)
-  // To disable EEPROM Serial responses and decrease program space by ~1700 byte: comment this out:
-  #define EEPROM_CHITCHAT // Please keep turned on if you can.
-#endif
-=======
 //
-//#define EEPROM_SETTINGS // Enable for M500 and M501 commands
+#define EEPROM_SETTINGS // Enable for M500 and M501 commands
 //#define DISABLE_M503    // Saves ~2700 bytes of PROGMEM. Disable for release!
 #define EEPROM_CHITCHAT   // Give feedback on EEPROM commands. Disable to save PROGMEM.
->>>>>>> upstream/1.1.x
 
 //
 // Host Keepalive
@@ -2053,22 +2003,7 @@
  * Sponsored by TrinityLabs, Reworked by codexmas
  */
 
-<<<<<<< HEAD
-// Number of servos
-//
-// If you select a configuration below, this will receive a default value and does not need to be set manually
-// set it manually if you have more servos than extruders and wish to manually control some
-// leaving it undefined or defining as 0 will disable the servo subsystem
-// If unsure, leave commented / disabled
-//
 
-// hBp - Enabled if it has autoleveling
-#ifndef hBp_Autolevel
-	//does nothing
-#else
-	#define NUM_SERVOS 1 // Servo index starts with 0 for M280 command
-#endif
-=======
 /**
  * Number of servos
  *
@@ -2076,17 +2011,18 @@
  * Set this manually if there are extra servos needing manual control.
  * Leave undefined or set to 0 to entirely disable the servo subsystem.
  */
-//#define NUM_SERVOS 3 // Servo index starts with 0 for M280 command
->>>>>>> upstream/1.1.x
+// hBp - Enabled if it has autoleveling
+#ifndef hBp_Autolevel
+	//does nothing
+#else
+	#define NUM_SERVOS 1 // Servo index starts with 0 for M280 command
+#endif
 
 // Delay (in milliseconds) before the next move will start, to give the servo time to reach its target angle.
 // 300ms is a good value but you can try less delay.
 // If the servo can't reach the requested position, increase it.
-<<<<<<< HEAD
-#define SERVO_DELAY 800
-=======
+
 #define SERVO_DELAY { 300 }
->>>>>>> upstream/1.1.x
 
 // Servo deactivation
 //

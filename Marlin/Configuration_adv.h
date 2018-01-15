@@ -719,25 +719,6 @@
 
 // @section leveling
 
-<<<<<<< HEAD
-// Default mesh area is an area with an inset margin on the print area.
-// Below are the macros that are used to define the borders for the mesh area,
-// made available here for specialized needs, ie dual extruder setup.
-#if ENABLED(MESH_BED_LEVELING)
-  #define MESH_MIN_X (0 + (MESH_INSET/3))
-  #define MESH_MAX_X (X_MAX_POS - (MESH_INSET/3))
-  #define MESH_MIN_Y (Y_MIN_POS + (MESH_INSET))
-  #define MESH_MAX_Y (Y_MAX_POS - (MESH_INSET/3))
-#elif ENABLED(AUTO_BED_LEVELING_UBL)
-  #define UBL_MESH_MIN_X (0 + (UBL_MESH_INSET/3))
-  #define UBL_MESH_MAX_X (X_MAX_POS - (UBL_MESH_INSET/3))
-  #define UBL_MESH_MIN_Y (Y_MIN_POS + (UBL_MESH_INSET/3))
-  #define UBL_MESH_MAX_Y (Y_MAX_POS - (UBL_MESH_INSET))
-
-  // If this is defined, the currently active mesh will be saved in the
-  // current slot on M500.
-  #define UBL_SAVE_ACTIVE_ON_M500
-=======
 #if ENABLED(DELTA) && !defined(DELTA_PROBEABLE_RADIUS)
   #define DELTA_PROBEABLE_RADIUS DELTA_PRINTABLE_RADIUS
 #elif IS_SCARA && !defined(SCARA_PRINTABLE_RADIUS)
@@ -746,11 +727,10 @@
 
 #if ENABLED(MESH_BED_LEVELING) || ENABLED(AUTO_BED_LEVELING_UBL)
   // Override the mesh area if the automatic (max) area is too large
-  //#define MESH_MIN_X MESH_INSET
-  //#define MESH_MIN_Y MESH_INSET
-  //#define MESH_MAX_X X_BED_SIZE - (MESH_INSET)
-  //#define MESH_MAX_Y Y_BED_SIZE - (MESH_INSET)
->>>>>>> upstream/1.1.x
+  #define MESH_MIN_X (0 + (MESH_INSET/3))
+  #define MESH_MAX_X (X_MAX_POS - (MESH_INSET/3))
+  #define MESH_MIN_Y (Y_MIN_POS + (MESH_INSET))
+  #define MESH_MAX_Y (Y_MAX_POS - (MESH_INSET/3))
 #endif
 
 // @section extras
@@ -904,22 +884,11 @@
  * Requires NOZZLE_PARK_FEATURE.
  * This feature is required for the default FILAMENT_RUNOUT_SCRIPT.
  */
-<<<<<<< HEAD
-#define FILAMENT_CHANGE_FEATURE
-#if ENABLED(FILAMENT_CHANGE_FEATURE)
-  #define FILAMENT_CHANGE_X_POS 3             // X position of hotend
-  #define FILAMENT_CHANGE_Y_POS 3             // Y position of hotend
-  #define FILAMENT_CHANGE_Z_ADD 10            // Z addition of hotend (lift)
-  #define FILAMENT_CHANGE_XY_FEEDRATE 100     // X and Y axes feedrate in mm/s (also used for delta printers Z axis)
-  #define FILAMENT_CHANGE_Z_FEEDRATE 5        // Z axis feedrate in mm/s (not used for delta printers)
-  #define FILAMENT_CHANGE_RETRACT_FEEDRATE 60 // Initial retract feedrate in mm/s
-  #define FILAMENT_CHANGE_RETRACT_LENGTH 2    // Initial retract in mm
-=======
-//#define ADVANCED_PAUSE_FEATURE
+
+#define ADVANCED_PAUSE_FEATURE
 #if ENABLED(ADVANCED_PAUSE_FEATURE)
   #define PAUSE_PARK_RETRACT_FEEDRATE 60      // Initial retract feedrate in mm/s
   #define PAUSE_PARK_RETRACT_LENGTH 2         // Initial retract in mm
->>>>>>> upstream/1.1.x
                                               // It is a short retract used immediately after print interrupt before move to filament exchange position
   #define FILAMENT_CHANGE_UNLOAD_FEEDRATE 60  // Unload filament feedrate in mm/s - filament unloading can be fast
   
@@ -930,8 +899,8 @@
 	#define FILAMENT_CHANGE_UNLOAD_LENGTH 100   
 	#define FILAMENT_CHANGE_LOAD_FEEDRATE 6     
 	#define FILAMENT_CHANGE_LOAD_LENGTH 0       
-	#define FILAMENT_CHANGE_EXTRUDE_FEEDRATE 3  
-	#define FILAMENT_CHANGE_EXTRUDE_LENGTH 50   
+	#define ADVANCED_PAUSE_EXTRUDE_FEEDRATE 3  
+	#define ADVANCED_PAUSE_EXTRUDE_LENGTH 50   
 	
   #else
 	#define FILAMENT_CHANGE_UNLOAD_LENGTH 700   // Unload filament length from hotend in mm
@@ -946,29 +915,20 @@
 		#define FILAMENT_CHANGE_LOAD_LENGTH 560       // Load filament length over hotend in mm
                                               // Longer length for bowden printers to fast load filament into whole bowden tube over the hotend,
                                               // Short or zero length for printers without bowden where loading is not used
-<<<<<<< HEAD
   #else
 		#define FILAMENT_CHANGE_LOAD_LENGTH 460
 
   #endif
   
-	#define FILAMENT_CHANGE_EXTRUDE_FEEDRATE 4  // Extrude filament feedrate in mm/s - must be slower than load feedrate
-	#define FILAMENT_CHANGE_EXTRUDE_LENGTH 65   // Extrude filament length in mm after filament is loaded over the hotend,
+	#define ADVANCED_PAUSE_EXTRUDE_FEEDRATE 4  // Extrude filament feedrate in mm/s - must be slower than load feedrate
+	#define ADVANCED_PAUSE_EXTRUDE_LENGTH 65   // Extrude filament length in mm after filament is loaded over the hotend,
                                               // 0 to disable for manual extrusion
                                               // Filament can be extruded repeatedly from the filament exchange menu to fill the hotend,
                                               // or until outcoming filament color is not clear for filament color change
   #endif
   
   
-  #define FILAMENT_CHANGE_NOZZLE_TIMEOUT 45   // Turn off nozzle if user doesn't change filament within this time limit in seconds
-=======
-  #define ADVANCED_PAUSE_EXTRUDE_FEEDRATE 3   // Extrude filament feedrate in mm/s - must be slower than load feedrate
-  #define ADVANCED_PAUSE_EXTRUDE_LENGTH 50    // Extrude filament length in mm after filament is loaded over the hotend,
-                                              // 0 to disable for manual extrusion
-                                              // Filament can be extruded repeatedly from the filament exchange menu to fill the hotend,
-                                              // or until outcoming filament color is not clear for filament color change
   #define PAUSE_PARK_NOZZLE_TIMEOUT 45        // Turn off nozzle if user doesn't change filament within this time limit in seconds
->>>>>>> upstream/1.1.x
   #define FILAMENT_CHANGE_NUMBER_OF_ALERT_BEEPS 5 // Number of alert beeps before printer goes quiet
   #define PAUSE_PARK_NO_STEPPER_TIMEOUT       // Enable to have stepper motors hold position during filament change
                                               // even if it takes longer than DEFAULT_STEPPER_DEACTIVE_TIME.
@@ -1468,8 +1428,6 @@
  */
 //#define NO_WORKSPACE_OFFSETS
 
-<<<<<<< HEAD
-=======
 /**
  * Set the number of proportional font spaces required to fill up a typical character space.
  * This can help to better align the output of commands like `G29 O` Mesh Output.
@@ -1649,5 +1607,4 @@
                               // Default behaviour is limited to Z axis only.
 #endif
 
->>>>>>> upstream/1.1.x
 #endif // CONFIGURATION_ADV_H

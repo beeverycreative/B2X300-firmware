@@ -64,11 +64,8 @@
 #include "temperature.h"
 #include "ultralcd.h"
 #include "language.h"
-<<<<<<< HEAD
-=======
 #include "ubl.h"
 #include "gcode.h"
->>>>>>> upstream/1.1.x
 
 #include "Marlin.h"
 
@@ -516,9 +513,6 @@ void Planner::check_axes_activity() {
         KICKSTART_FAN(2);
       #endif
 
-<<<<<<< HEAD
-    #endif //FAN_KICKSTART_TIME
-=======
     #endif // FAN_KICKSTART_TIME > 0
 
     #ifdef FAN_MIN_PWM
@@ -526,7 +520,6 @@ void Planner::check_axes_activity() {
     #else
       #define CALC_FAN_SPEED(f) tail_fan_speed[f]
     #endif
->>>>>>> upstream/1.1.x
 
     #if ENABLED(FAN_SOFT_PWM)
       #if HAS_FAN0
@@ -573,40 +566,9 @@ void Planner::check_axes_activity() {
    * This is the reciprocal of the circular cross-section area.
    * Return 1.0 with volumetric off or a diameter of 0.0.
    */
-<<<<<<< HEAD
-  void Planner::apply_leveling(float &lx, float &ly, float &lz) {
-
-    #if HAS_ABL
-      if (!abl_enabled) return;
-    #endif
-
-    #if ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
-      static float z_fade_factor = 1.0, last_raw_lz = -999.0;
-      if (z_fade_height) {
-        const float raw_lz = RAW_Z_POSITION(lz);
-        if (raw_lz >= z_fade_height) return;
-        if (last_raw_lz != raw_lz) {
-          last_raw_lz = raw_lz;
-          z_fade_factor = 1.0 - raw_lz * inverse_z_fade_height;
-        }
-      }
-      else
-        z_fade_factor = 1.0;
-    #endif
-
-    #if ENABLED(MESH_BED_LEVELING)
-
-      if (mbl.active())
-        lz += mbl.get_z(RAW_X_POSITION(lx), RAW_Y_POSITION(ly)
-          #if ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
-            , z_fade_factor
-          #endif
-          );
-=======
   inline float calculate_volumetric_multiplier(const float &diameter) {
     return (parser.volumetric_enabled && diameter) ? 1.0 / CIRCLE_AREA(diameter * 0.5) : 1.0;
   }
->>>>>>> upstream/1.1.x
 
   /**
    * Convert the filament sizes into volumetric multipliers.
@@ -651,11 +613,6 @@ void Planner::check_axes_activity() {
       skew(rx, ry, rz);
     #endif
 
-<<<<<<< HEAD
-    #if HAS_ABL
-      if (!abl_enabled) return;
-    #endif
-=======
     if (!leveling_active) return;
 
     #if ABL_PLANAR
@@ -701,7 +658,6 @@ void Planner::check_axes_activity() {
   }
 
   void Planner::unapply_leveling(float raw[XYZ]) {
->>>>>>> upstream/1.1.x
 
     #if ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
       const float fade_scaling_factor = fade_scaling_factor_for_z(raw[Z_AXIS]);

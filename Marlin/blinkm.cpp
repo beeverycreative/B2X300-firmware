@@ -43,9 +43,4 @@ void blinkm_set_led_color(const LEDColor &color) {
   Wire.endTransmission();
 }
 
-<<<<<<< HEAD
-#endif //BLINKM
-
-=======
 #endif // BLINKM
->>>>>>> upstream/1.1.x

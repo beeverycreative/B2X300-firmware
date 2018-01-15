@@ -468,14 +468,8 @@ void MarlinSettings::postprocess() {
       const bool ubl_active = false;
       const int8_t storage_slot = -1;
       EEPROM_WRITE(ubl_active);
-<<<<<<< HEAD
-      EEPROM_WRITE(dummy);
-      EEPROM_WRITE(eeprom_slot);
-    #endif //AUTO_BED_LEVELING_UBL
-=======
       EEPROM_WRITE(storage_slot);
     #endif // AUTO_BED_LEVELING_UBL
->>>>>>> upstream/1.1.x
 
     // 11 floats for DELTA / [XYZ]_DUAL_ENDSTOPS
     #if ENABLED(DELTA)
@@ -1863,44 +1857,12 @@ void MarlinSettings::reset() {
           SERIAL_ECHOLNPGM(":");
         }
 
-<<<<<<< HEAD
-      if (!forReplay) {
-        SERIAL_ECHOPGM("\nUBL is ");
-        ubl.state.active ? SERIAL_CHAR('A') : SERIAL_ECHOPGM("Ina");
-        SERIAL_ECHOLNPAIR("ctive\n\nActive Mesh Slot: ", ubl.state.eeprom_storage_slot);
-
-        SERIAL_ECHOPGM("z_offset: ");
-        SERIAL_ECHO_F(ubl.state.z_offset, 6);
-        SERIAL_EOL;
-
-        SERIAL_ECHOPAIR("EEPROM can hold ", (int)((UBL_LAST_EEPROM_INDEX - ubl.eeprom_start) / sizeof(ubl.z_values)));
-        SERIAL_ECHOLNPGM(" meshes.\n");
-
-        SERIAL_ECHOLNPAIR("GRID_MAX_POINTS_X  ", GRID_MAX_POINTS_X);
-        SERIAL_ECHOLNPAIR("GRID_MAX_POINTS_Y  ", GRID_MAX_POINTS_Y);
-
-        SERIAL_ECHOPGM("UBL_MESH_MIN_X  " STRINGIFY(UBL_MESH_MIN_X));
-        SERIAL_ECHOLNPAIR("=", UBL_MESH_MIN_X );
-        SERIAL_ECHOPGM("UBL_MESH_MIN_Y  " STRINGIFY(UBL_MESH_MIN_Y));
-        SERIAL_ECHOLNPAIR("=", UBL_MESH_MIN_Y );
-
-        SERIAL_ECHOPGM("UBL_MESH_MAX_X  " STRINGIFY(UBL_MESH_MAX_X));
-        SERIAL_ECHOLNPAIR("=", UBL_MESH_MAX_X);
-        SERIAL_ECHOPGM("UBL_MESH_MAX_Y  " STRINGIFY(UBL_MESH_MAX_Y));
-        SERIAL_ECHOLNPAIR("=", UBL_MESH_MAX_Y);
-
-        SERIAL_ECHOLNPAIR("MESH_X_DIST  ", MESH_X_DIST);
-        SERIAL_ECHOLNPAIR("MESH_Y_DIST  ", MESH_Y_DIST);
-        SERIAL_EOL;
-      }
-=======
       #elif HAS_ABL
 
         if (!forReplay) {
           CONFIG_ECHO_START;
           SERIAL_ECHOLNPGM("Auto Bed Leveling:");
         }
->>>>>>> upstream/1.1.x
 
       #endif
 

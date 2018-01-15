@@ -489,9 +489,6 @@ void do_blocking_move_to_xy(const float &x, const float &y, const float &fr_mm_s
   bool axis_unhomed_error(const bool x=true, const bool y=true, const bool z=true);
 #endif
 
-<<<<<<< HEAD
-#endif //MARLIN_H
-=======
 /**
  * position_is_reachable family of functions
  */
@@ -543,4 +540,3 @@ void do_blocking_move_to_xy(const float &x, const float &y, const float &fr_mm_s
 #endif // CARTESIAN
 
 #endif // MARLIN_H
->>>>>>> upstream/1.1.x

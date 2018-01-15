@@ -792,14 +792,8 @@
   /**
    * Part Cooling fan multipliexer
    */
-<<<<<<< HEAD
-  #if ENABLED(PROBING_FANS_OFF) && FAN_COUNT == 0
-    #undef PROBING_FANS_OFF
-  #endif
-  #define QUIET_PROBING (ENABLED(PROBING_HEATERS_OFF) || ENABLED(PROBING_FANS_OFF))
-=======
+
   #define HAS_FANMUX PIN_EXISTS(FANMUX0)
->>>>>>> upstream/1.1.x
 
   /**
    * Servos and probes
@@ -940,13 +934,6 @@
   /**
    * Set granular options based on the specific type of leveling
    */
-<<<<<<< HEAD
-  #define ABL_PLANAR (ENABLED(AUTO_BED_LEVELING_LINEAR) || ENABLED(AUTO_BED_LEVELING_3POINT))
-  #define ABL_GRID   (ENABLED(AUTO_BED_LEVELING_LINEAR) || ENABLED(AUTO_BED_LEVELING_BILINEAR))
-  #define HAS_ABL    (ABL_PLANAR || ABL_GRID || ENABLED(AUTO_BED_LEVELING_UBL))
-  #define HAS_LEVELING          (HAS_ABL || ENABLED(MESH_BED_LEVELING))
-  #define PLANNER_LEVELING      (ABL_PLANAR || ABL_GRID || ENABLED(MESH_BED_LEVELING))
-=======
   #define UBL_SEGMENTED  (ENABLED(AUTO_BED_LEVELING_UBL) && (ENABLED(DELTA) || ENABLED(SEGMENT_LEVELED_MOVES)))
   #define ABL_PLANAR     (ENABLED(AUTO_BED_LEVELING_LINEAR) || ENABLED(AUTO_BED_LEVELING_3POINT))
   #define ABL_GRID       (ENABLED(AUTO_BED_LEVELING_LINEAR) || ENABLED(AUTO_BED_LEVELING_BILINEAR))
@@ -956,7 +943,6 @@
   #define HAS_AUTOLEVEL  (HAS_ABL && DISABLED(PROBE_MANUALLY))
   #define HAS_MESH       (ENABLED(AUTO_BED_LEVELING_BILINEAR) || ENABLED(AUTO_BED_LEVELING_UBL) || ENABLED(MESH_BED_LEVELING))
   #define PLANNER_LEVELING      (OLDSCHOOL_ABL || ENABLED(MESH_BED_LEVELING) || UBL_SEGMENTED || ENABLED(SKEW_CORRECTION))
->>>>>>> upstream/1.1.x
   #define HAS_PROBING_PROCEDURE (HAS_ABL || ENABLED(Z_MIN_PROBE_REPEATABILITY_TEST))
   #if HAS_PROBING_PROCEDURE
     #define PROBE_BED_WIDTH abs(RIGHT_PROBE_BED_POSITION - (LEFT_PROBE_BED_POSITION))
@@ -1095,23 +1081,8 @@
     #define MANUAL_PROBE_HEIGHT Z_HOMING_HEIGHT
   #endif
 
-<<<<<<< HEAD
-  #if IS_KINEMATIC
-    // Check for this in the code instead
-    #define MIN_PROBE_X X_MIN_POS
-    #define MAX_PROBE_X X_MAX_POS
-    #define MIN_PROBE_Y Y_MIN_POS
-    #define MAX_PROBE_Y Y_MAX_POS
-  #else
-    // Boundaries for probing based on set limits
-    #define MIN_PROBE_X (max(X_MIN_POS, X_MIN_POS + X_PROBE_OFFSET_FROM_EXTRUDER))
-    #define MAX_PROBE_X (min(X_MAX_POS, X_MAX_POS + X_PROBE_OFFSET_FROM_EXTRUDER))
-    #define MIN_PROBE_Y (max(Y_MIN_POS, Y_MIN_POS + Y_PROBE_OFFSET_FROM_EXTRUDER))
-    #define MAX_PROBE_Y (min(Y_MAX_POS, Y_MAX_POS + Y_PROBE_OFFSET_FROM_EXTRUDER))
-  #endif
+  //Removed #is kinematic / probe max min
 
-=======
->>>>>>> upstream/1.1.x
   // Stepper pulse duration, in cycles
   #define STEP_PULSE_CYCLES ((MINIMUM_STEPPER_PULSE) * CYCLES_PER_MICROSECOND)
 
@@ -1133,8 +1104,6 @@
     #define LCD_TIMEOUT_TO_STATUS 15000
   #endif
 
-<<<<<<< HEAD
-=======
   // Shorthand
   #define GRID_MAX_POINTS ((GRID_MAX_POINTS_X) * (GRID_MAX_POINTS_Y))
 
@@ -1181,5 +1150,4 @@
     #endif
   #endif
 
->>>>>>> upstream/1.1.x
 #endif // CONDITIONALS_POST_H

@@ -187,9 +187,6 @@ extern CardReader card;
 
 #endif //SDSUPPORT
 
-<<<<<<< HEAD
-#endif //__CARDREADER_H
-=======
 #if ENABLED(SDSUPPORT)
   #define IS_SD_PRINTING (card.sdprinting)
   #define IS_SD_FILE_OPEN (card.isFileOpen())
@@ -199,4 +196,3 @@ extern CardReader card;
 #endif
 
 #endif // _CARDREADER_H_
->>>>>>> upstream/1.1.x

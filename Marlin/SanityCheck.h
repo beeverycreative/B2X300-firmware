@@ -362,26 +362,11 @@ static_assert(X_MAX_LENGTH >= X_BED_SIZE && Y_MAX_LENGTH >= Y_BED_SIZE,
 /**
  * I2C Position Encoders
  */
-<<<<<<< HEAD
-#if ENABLED(DELTA)
-  #if DISABLED(USE_XMAX_PLUG) && DISABLED(USE_YMAX_PLUG) && DISABLED(USE_ZMAX_PLUG)
-    #error "You probably want to use Max Endstops for DELTA!"
-  #elif ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
-    #error "DELTA is incompatible with ENABLE_LEVELING_FADE_HEIGHT. Please disable it."
-  #endif
-  #if ABL_GRID
-    #if (GRID_MAX_POINTS_X & 1) == 0 || (GRID_MAX_POINTS_Y & 1) == 0
-      #error "DELTA requires GRID_MAX_POINTS_X and GRID_MAX_POINTS_Y to be odd numbers."
-    #elif GRID_MAX_POINTS_X < 3
-      #error "DELTA requires GRID_MAX_POINTS_X and GRID_MAX_POINTS_Y to be 3 or higher."
-    #endif
-=======
 #if ENABLED(I2C_POSITION_ENCODERS)
   #if DISABLED(BABYSTEPPING)
     #error "I2C_POSITION_ENCODERS requires BABYSTEPPING."
   #elif !WITHIN(I2CPE_ENCODER_CNT, 1, 5)
     #error "I2CPE_ENCODER_CNT must be between 1 and 5."
->>>>>>> upstream/1.1.x
   #endif
 #endif
 
@@ -625,13 +610,6 @@ static_assert(1 >= 0
 /**
  * Delta requirements
  */
-<<<<<<< HEAD
-#if ENABLED(AUTO_BED_LEVELING_UBL)
-  #if ENABLED(DELTA)
-    #error "AUTO_BED_LEVELING_UBL does not yet support DELTA printers."
-  #elif DISABLED(NEWPANEL)
-    #error "AUTO_BED_LEVELING_UBL requires an LCD controller."
-=======
 #if ENABLED(DELTA)
   #if HAS_BED_PROBE && ENABLED(Z_MIN_PROBE_ENDSTOP)
     #error "Delta probably shouldn't use Z_MIN_PROBE_ENDSTOP. Comment out this line to continue."
@@ -647,7 +625,6 @@ static_assert(1 >= 0
     #elif GRID_MAX_POINTS_X < 3
       #error "DELTA requires GRID_MAX_POINTS_X and GRID_MAX_POINTS_Y to be 3 or higher."
     #endif
->>>>>>> upstream/1.1.x
   #endif
 #endif
 
@@ -929,93 +906,11 @@ static_assert(1 >= 0
 /**
  * Make sure DISABLE_[XYZ] compatible with selected homing options
  */
-<<<<<<< HEAD
-#if HAS_ABL
-
-  #if ENABLED(USE_RAW_KINEMATICS)
-    #error "USE_RAW_KINEMATICS is not compatible with AUTO_BED_LEVELING"
-  #endif
-
-  /**
-   * Delta and SCARA have limited bed leveling options
-   */
-  #if DISABLED(AUTO_BED_LEVELING_BILINEAR)
-    #if ENABLED(DELTA)
-      #error "Only AUTO_BED_LEVELING_BILINEAR is supported for DELTA bed leveling."
-    #elif ENABLED(SCARA)
-      #error "Only AUTO_BED_LEVELING_BILINEAR is supported for SCARA bed leveling."
-    #endif
-  #endif
-
-  /**
-   * Check auto bed leveling sub-options, especially probe points
-   */
-  #if ABL_GRID
-    #ifndef DELTA_PROBEABLE_RADIUS
-      #if LEFT_PROBE_BED_POSITION > RIGHT_PROBE_BED_POSITION
-        #error "LEFT_PROBE_BED_POSITION must be less than RIGHT_PROBE_BED_POSITION."
-      #elif FRONT_PROBE_BED_POSITION > BACK_PROBE_BED_POSITION
-        #error "FRONT_PROBE_BED_POSITION must be less than BACK_PROBE_BED_POSITION."
-      #endif
-      #if LEFT_PROBE_BED_POSITION < MIN_PROBE_X
-        #error "The given LEFT_PROBE_BED_POSITION can't be reached by the Z probe."
-      #elif RIGHT_PROBE_BED_POSITION > MAX_PROBE_X
-        #error "The given RIGHT_PROBE_BED_POSITION can't be reached by the Z probe."
-      #elif FRONT_PROBE_BED_POSITION < MIN_PROBE_Y
-        #error "The given FRONT_PROBE_BED_POSITION can't be reached by the Z probe."
-      #elif BACK_PROBE_BED_POSITION > MAX_PROBE_Y
-        #error "The given BACK_PROBE_BED_POSITION can't be reached by the Z probe."
-      #endif
-    #endif
-  #elif ENABLED(AUTO_BED_LEVELING_UBL)
-    #if DISABLED(EEPROM_SETTINGS)
-      #error "AUTO_BED_LEVELING_UBL requires EEPROM_SETTINGS. Please update your configuration."
-    #elif !WITHIN(GRID_MAX_POINTS_X, 3, 15) || !WITHIN(GRID_MAX_POINTS_Y, 3, 15)
-      #error "GRID_MAX_POINTS_[XY] must be a whole number between 3 and 15."
-    #elif !WITHIN(UBL_PROBE_PT_1_X, MIN_PROBE_X, MAX_PROBE_X)
-      #error "The given UBL_PROBE_PT_1_X can't be reached by the Z probe."
-    #elif !WITHIN(UBL_PROBE_PT_2_X, MIN_PROBE_X, MAX_PROBE_X)
-      #error "The given UBL_PROBE_PT_2_X can't be reached by the Z probe."
-    #elif !WITHIN(UBL_PROBE_PT_3_X, MIN_PROBE_X, MAX_PROBE_X)
-      #error "The given UBL_PROBE_PT_3_X can't be reached by the Z probe."
-    #elif !WITHIN(UBL_PROBE_PT_1_Y, MIN_PROBE_Y, MAX_PROBE_Y)
-      #error "The given UBL_PROBE_PT_1_Y can't be reached by the Z probe."
-    #elif !WITHIN(UBL_PROBE_PT_2_Y, MIN_PROBE_Y, MAX_PROBE_Y)
-      #error "The given UBL_PROBE_PT_2_Y can't be reached by the Z probe."
-    #elif !WITHIN(UBL_PROBE_PT_3_Y, MIN_PROBE_Y, MAX_PROBE_Y)
-      #error "The given UBL_PROBE_PT_3_Y can't be reached by the Z probe."
-    #endif
-  #else // AUTO_BED_LEVELING_3POINT
-    #if !WITHIN(ABL_PROBE_PT_1_X, MIN_PROBE_X, MAX_PROBE_X)
-      #error "The given ABL_PROBE_PT_1_X can't be reached by the Z probe."
-    #elif !WITHIN(ABL_PROBE_PT_2_X, MIN_PROBE_X, MAX_PROBE_X)
-      #error "The given ABL_PROBE_PT_2_X can't be reached by the Z probe."
-    #elif !WITHIN(ABL_PROBE_PT_3_X, MIN_PROBE_X, MAX_PROBE_X)
-      #error "The given ABL_PROBE_PT_3_X can't be reached by the Z probe."
-    #elif !WITHIN(ABL_PROBE_PT_1_Y, MIN_PROBE_Y, MAX_PROBE_Y)
-      #error "The given ABL_PROBE_PT_1_Y can't be reached by the Z probe."
-    #elif !WITHIN(ABL_PROBE_PT_2_Y, MIN_PROBE_Y, MAX_PROBE_Y)
-      #error "The given ABL_PROBE_PT_2_Y can't be reached by the Z probe."
-    #elif !WITHIN(ABL_PROBE_PT_3_Y, MIN_PROBE_Y, MAX_PROBE_Y)
-      #error "The given ABL_PROBE_PT_3_Y can't be reached by the Z probe."
-    #endif
-  #endif // AUTO_BED_LEVELING_3POINT
-
-#endif // HAS_ABL
-
-/**
- * Advance Extrusion
- */
-#if ENABLED(ADVANCE) && ENABLED(LIN_ADVANCE)
-  #error "You can enable ADVANCE or LIN_ADVANCE, but not both."
-#endif
-=======
 #if ENABLED(DISABLE_X) || ENABLED(DISABLE_Y) || ENABLED(DISABLE_Z)
   #if ENABLED(HOME_AFTER_DEACTIVATE) || ENABLED(Z_SAFE_HOMING)
     #error "DISABLE_[XYZ] not compatible with HOME_AFTER_DEACTIVATE or Z_SAFE_HOMING."
   #endif
 #endif // DISABLE_[XYZ]
->>>>>>> upstream/1.1.x
 
 /**
  * Filament Width Sensor

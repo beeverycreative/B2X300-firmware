@@ -38,10 +38,10 @@
     #define LCD_CONTRAST_MIN 60
     #define LCD_CONTRAST_MAX 140
 
-<<<<<<< HEAD
-  #if ENABLED(MAKRPANEL) || ENABLED(MINIPANEL) || ENABLED(MKS_MINI_12864)
+	// DR Support for MKS mini
+  #if ENABLED(MKS_MINI_12864)
     #define DOGLCD
-=======
+	
   #elif ENABLED(MAKRPANEL)
 
     #define U8GLIB_ST7565_64128N
@@ -52,7 +52,6 @@
     #define REPRAPWORLD_KEYPAD_MOVE_STEP 10.0
     #define ADC_KEYPAD
     #define ADC_KEY_NUM 8
->>>>>>> upstream/1.1.x
     #define ULTIPANEL
 
     // this helps to implement ADC_KEYPAD menus
@@ -286,23 +285,12 @@
     #ifndef LCD_HEIGHT
       #define LCD_HEIGHT 4
     #endif
-<<<<<<< HEAD
-  #else //no panel but just LCD
-    #if ENABLED(ULTRA_LCD)
-      #ifndef LCD_WIDTH
-        #define LCD_WIDTH 16
-      #endif
-      #ifndef LCD_HEIGHT
-        #define LCD_HEIGHT 2
-      #endif
-=======
   #elif ENABLED(ULTRA_LCD)  // no panel but just LCD
     #ifndef LCD_WIDTH
       #define LCD_WIDTH 16
     #endif
     #ifndef LCD_HEIGHT
       #define LCD_HEIGHT 2
->>>>>>> upstream/1.1.x
     #endif
   #endif
 

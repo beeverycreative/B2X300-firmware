@@ -176,9 +176,6 @@
     #define LCD_CLICKED false
   #endif
 
-<<<<<<< HEAD
-#else //no LCD
-=======
   #if ENABLED(AUTO_BED_LEVELING_UBL) || ENABLED(G26_MESH_VALIDATION)
     bool is_lcd_clicked();
     void wait_for_release();
@@ -190,7 +187,6 @@
 
 #else // no LCD
 
->>>>>>> upstream/1.1.x
   inline void lcd_update() {}
   inline void lcd_init() {}
   inline bool lcd_hasstatus() { return false; }

@@ -155,15 +155,9 @@
 
 #if ENABLED(SAV_3DLCD)
   // For LCD SHIFT register LCD
-<<<<<<< HEAD
-  #define SR_DATA_PIN         EXT_AUX_SDA_D1
-  #define SR_CLK_PIN          EXT_AUX_SCL_D0
-#endif  // SAV_3DLCD
-=======
   #define SR_DATA_PIN      EXT_AUX_SDA_D1
   #define SR_CLK_PIN       EXT_AUX_SCL_D0
 #endif
->>>>>>> upstream/1.1.x
 
 #if ENABLED(SAV_3DLCD) || ENABLED(SAV_3DGLCD)
 
