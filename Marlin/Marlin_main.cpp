@@ -10060,8 +10060,6 @@ inline void gcode_M502() {
    */
    inline void gcode_M620() {
 
-    busy_doing_M600 = true;  // Stepper Motors can't timeout when this is set
-
     // Pause the print job timer
     const bool job_running = print_job_timer.isRunning();
 
@@ -10070,22 +10068,24 @@ inline void gcode_M502() {
     // Synchronize the steppers
     stepper.synchronize();
 
+/*
     // Save current position of all axes
     float lastpos[XYZE];
     COPY(lastpos, current_position);
     set_destination_to_current();
+*/
 	
 
 
 		// DR - 06/11/17 - Only retracts and unloads if not loading/unloading filament.
-	if (code_seen('S') ? code_value_bool() : 0)
+	if (parser.seen('S') ? parser.value_bool() : 0)
 	{
 		
-		lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_MOVING);
+		lcd_advanced_pause_show_message(FILAMENT_CHANGE_MESSAGE_MOVING);
 		idle();
 		
 		// Checks if the unload flag is enabled, to see if it should execute Load or Unload
-		if(code_seen('U') ? code_value_bool() : 0)
+		if(parser.seen('U') ? parser.value_bool() : 0)
 		{
 			// Unload filament
 			destination[E_AXIS] += -(FILAMENT_CHANGE_UNLOAD_LENGTH);
@@ -10101,7 +10101,7 @@ inline void gcode_M502() {
 				//Direct drive
 				
 				// Load filament
-				destination[E_AXIS] += code_seen('L') + FILAMENT_CHANGE_LOAD_LENGTH;
+				destination[E_AXIS] += FILAMENT_CHANGE_LOAD_LENGTH;
 
 				RUNPLAN(FILAMENT_CHANGE_LOAD_FEEDRATE);
 				stepper.synchronize();
@@ -10128,7 +10128,7 @@ inline void gcode_M502() {
 			// Extrude filament
 			do 
 			{
-			lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_MOVING);
+			lcd_advanced_pause_show_message(FILAMENT_CHANGE_MESSAGE_MOVING);
 			
 			// Extrude filament to get into hotend
 			destination[E_AXIS] += ADVANCED_PAUSE_EXTRUDE_LENGTH;
@@ -10138,27 +10138,25 @@ inline void gcode_M502() {
 			// Show "Extrude More" / "Resume" menu and wait for reply
 			KEEPALIVE_STATE(PAUSED_FOR_USER);
 			wait_for_user = false;
-			lcd_filament_change_show_message(ADVANCED_PAUSE_MESSAGE_OPTION);
-			while (filament_change_menu_response == FILAMENT_CHANGE_RESPONSE_WAIT_FOR) idle(true);
+			lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_OPTION);
+			while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
 			KEEPALIVE_STATE(IN_HANDLER);
 
 			// Keep looping if "Extrude More" was selected
-			} while (filament_change_menu_response == FILAMENT_CHANGE_RESPONSE_EXTRUDE_MORE);
+			} while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE);
 			
 		}
 
 	}
 
     // Show status screen
-    lcd_filament_change_show_message(ADVANCED_PAUSE_MESSAGE_STATUS);
+    lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_STATUS);
 
     // Resume the print job timer if it was running
     if (job_running) print_job_timer.start();
 	
 	// Force steppers to synchronize before finishing the command 
 	stepper.synchronize();
-
-    busy_doing_M600 = false;  // Allow Stepper Motors to be turned off during inactivity
    }
 
   /**
@@ -13549,15 +13547,12 @@ void prepare_move_to_destination() {
     if (dual_x_carriage_unpark()) return;
   #endif
 
-  if (
     #if UBL_SEGMENTED
       ubl.prepare_segmented_line_to(destination, MMS_SCALED(feedrate_mm_s))
     #elif IS_KINEMATIC
       prepare_kinematic_move_to(destination)
     #else
-      prepare_move_to_destination_cartesian()
-    #endif
-    if (prepare_move_to_destination_cartesian()) return;
+      if (prepare_move_to_destination_cartesian()) return;
   #endif
 
   set_current_from_destination();

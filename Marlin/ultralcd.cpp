@@ -157,7 +157,7 @@ uint16_t max_display_update_time = 0;
   typedef void (*menuAction_t)();
 
   #if HAS_POWER_SWITCH
-    extern bool powersupply;
+    extern bool powersupply_on;
   #endif
 
   ////////////////////////////////////////////
@@ -174,7 +174,7 @@ uint16_t max_display_update_time = 0;
   void lcd_control_temperature_preheat_material2_settings_menu();
   void lcd_control_motion_menu();
   void lcd_control_filament_menu();
-  
+ 
 
   #if ENABLED(LCD_INFO_MENU)
     #if ENABLED(PRINTCOUNTER)
@@ -373,7 +373,7 @@ uint16_t max_display_update_time = 0;
         _MENU_ITEM_PART_2(type, label, ## __VA_ARGS__); \
       }while(0)
 
-  #else  // !ENCODER_RATE_MULTIPLIER
+  #else // !ENCODER_RATE_MULTIPLIER
     #define ENCODER_RATE_MULTIPLY(F) NOOP
   #endif // !ENCODER_RATE_MULTIPLIER
 
@@ -383,10 +383,10 @@ uint16_t max_display_update_time = 0;
   #if ENABLED(ENCODER_RATE_MULTIPLIER)
     #define MENU_MULTIPLIER_ITEM_EDIT(type, label, ...) MENU_MULTIPLIER_ITEM(setting_edit_ ## type, label, PSTR(label), ## __VA_ARGS__)
     #define MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(type, label, ...) MENU_MULTIPLIER_ITEM(setting_edit_callback_ ## type, label, PSTR(label), ## __VA_ARGS__)
-  #else //!ENCODER_RATE_MULTIPLIER
+  #else // !ENCODER_RATE_MULTIPLIER
     #define MENU_MULTIPLIER_ITEM_EDIT(type, label, ...) MENU_ITEM(setting_edit_ ## type, label, PSTR(label), ## __VA_ARGS__)
     #define MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(type, label, ...) MENU_ITEM(setting_edit_callback_ ## type, label, PSTR(label), ## __VA_ARGS__)
-  #endif //!ENCODER_RATE_MULTIPLIER
+  #endif // !ENCODER_RATE_MULTIPLIER
 
   /**
    * START_SCREEN_OR_MENU generates init code for a screen or menu
@@ -1757,7 +1757,7 @@ void lcd_enqueue_filament_change() {
     //
     #if HOTENDS == 1
       MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_NOZZLE, &thermalManager.target_temperature[0], 0, HEATER_0_MAXTEMP - 15, watch_temp_callback_E0);
-    #else //HOTENDS > 1
+    #else // HOTENDS > 1
       MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_NOZZLE MSG_N1, &thermalManager.target_temperature[0], 0, HEATER_0_MAXTEMP - 15, watch_temp_callback_E0);
       MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_NOZZLE MSG_N2, &thermalManager.target_temperature[1], 0, HEATER_1_MAXTEMP - 15, watch_temp_callback_E1);
       #if HOTENDS > 2
@@ -2202,7 +2202,7 @@ void lcd_enqueue_filament_change() {
       #elif ABL_GRID || ENABLED(MESH_BED_LEVELING)
         GRID_MAX_POINTS
       #endif
-    ;
+    );
 
     bool lcd_wait_for_move;
 
@@ -2228,8 +2228,10 @@ void lcd_enqueue_filament_change() {
         lcd_completion_feedback();
         defer_return_to_status = false;
       }
+      if (lcdDrawUpdate) lcd_implementation_drawmenu_static(LCD_HEIGHT >= 4 ? 1 : 0, PSTR(MSG_LEVEL_BED_DONE));
+      lcdDrawUpdate = LCDVIEW_CALL_REDRAW_NEXT;
+    }
 
-    #endif // MESH_BED_LEVELING
 
     #if ENABLED(MESH_BED_LEVELING) || ENABLED(PROBE_MANUALLY)
       void _lcd_level_goto_next_point();
@@ -2251,10 +2253,7 @@ void lcd_enqueue_filament_change() {
       END_SCREEN();
     }
 
-    void _lcd_level_bed_done() {
-      if (lcdDrawUpdate) lcd_implementation_drawmenu_static(LCD_HEIGHT >= 4 ? 1 : 0, PSTR(MSG_LEVEL_BED_DONE));
-      lcdDrawUpdate = LCDVIEW_CALL_REDRAW_NEXT;
-    }
+      
 
     void _lcd_level_goto_next_point();
 
@@ -2355,7 +2354,7 @@ void lcd_enqueue_filament_change() {
 	  
 	  //lcd_implementation_drawedit(PSTR(MSG_LEVEL_BED_WAITING));
 	  
-      //if (lcd_clicked) {
+      if (lcd_clicked) {
         manual_probe_index = 0;
         _lcd_level_goto_next_point();
       }
@@ -3136,7 +3135,7 @@ void lcd_enqueue_filament_change() {
     // Switch power on/off
     //
     #if HAS_POWER_SWITCH
-      if (powersupply)
+      if (powersupply_on)
         MENU_ITEM(gcode, MSG_SWITCH_PS_OFF, PSTR("M81"));
       else
         MENU_ITEM(gcode, MSG_SWITCH_PS_ON, PSTR("M80"));
