@@ -1,4 +1,6 @@
----
+dist: trusty
+sudo: true
+  #
 language: c
   #
 notifications:
@@ -11,7 +13,7 @@ before_install:
   #
   # Publish the buildroot script folder
   - chmod +x ${TRAVIS_BUILD_DIR}/buildroot/bin/*
-  - ln -s ${TRAVIS_BUILD_DIR}/buildroot/bin/ ~/bin
+  - export PATH=${TRAVIS_BUILD_DIR}/buildroot/bin/:${PATH}
   #
   # Start fb X server
   - "/sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_1.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :1 -ac -screen 0 1280x1024x16"
@@ -50,6 +52,14 @@ install:
   - git clone https://github.com/teemuatlut/TMC2130Stepper.git
   - sudo mv TMC2130Stepper /usr/local/share/arduino/libraries/TMC2130Stepper
   #
+  # Install: TMC2208 Stepper Motor Controller library
+  - git clone https://github.com/teemuatlut/TMC2208Stepper.git
+  - sudo mv TMC2208Stepper /usr/local/share/arduino/libraries/TMC2208Stepper
+  #
+  # Install: Adafruit Neopixel library
+  - git clone https://github.com/adafruit/Adafruit_NeoPixel.git
+  - sudo mv Adafruit_NeoPixel /usr/local/share/arduino/libraries/Adafruit_NeoPixel
+  #
 before_script:
   #
   # Change current working directory to the build dir
@@ -71,16 +81,74 @@ script:
   #
   - build_marlin
   #
-  # Test heated bed temperature sensor
-  #
-  - opt_set TEMP_SENSOR_BED 1
-  - build_marlin
-  #
-  # Test 2 extruders on basic RAMPS 1.4
+  # Test 2 extruders (one MAX6675) and heated bed on basic RAMPS 1.4
+  # Test a "Fix Mounted" Probe with Safe Homing, some arc options,
+  # linear bed leveling, M48, leveling debug, and firmware retraction.
   #
   - opt_set MOTHERBOARD BOARD_RAMPS_14_EEB
   - opt_set EXTRUDERS 2
+  - opt_set TEMP_SENSOR_0 -2
   - opt_set TEMP_SENSOR_1 1
+  - opt_set TEMP_SENSOR_BED 1
+  - opt_enable PIDTEMPBED FIX_MOUNTED_PROBE Z_SAFE_HOMING ARC_P_CIRCLES CNC_WORKSPACE_PLANES CNC_COORDINATE_SYSTEMS
+  - opt_enable REPRAP_DISCOUNT_SMART_CONTROLLER SDSUPPORT EEPROM_SETTINGS
+  - opt_enable BLINKM PCA9632 RGB_LED NEOPIXEL_LED
+  - opt_enable AUTO_BED_LEVELING_LINEAR Z_MIN_PROBE_REPEATABILITY_TEST DEBUG_LEVELING_FEATURE SKEW_CORRECTION SKEW_CORRECTION_FOR_Z SKEW_CORRECTION_GCODE
+  - opt_enable_adv FWRETRACT MAX7219_DEBUG LED_CONTROL_MENU
+  - opt_set ABL_GRID_POINTS_X 16
+  - opt_set ABL_GRID_POINTS_Y 16
+  - opt_set_adv FANMUX0_PIN 53
+  - build_marlin
+  #
+  # Test a probeless build of AUTO_BED_LEVELING_UBL
+  #
+  - restore_configs
+  - opt_enable AUTO_BED_LEVELING_UBL DEBUG_LEVELING_FEATURE G26_MESH_EDITING ENABLE_LEVELING_FADE_HEIGHT EEPROM_SETTINGS EEPROM_CHITCHAT G3D_PANEL
+  - opt_enable_adv CUSTOM_USER_MENUS I2C_POSITION_ENCODERS BABYSTEPPING NANODLP_Z_SYNC
+  - build_marlin
+  #
+  # Add a Sled Z Probe, use UBL Cartesian moves
+  #
+  - opt_enable Z_PROBE_SLED SKEW_CORRECTION SKEW_CORRECTION_FOR_Z SKEW_CORRECTION_GCODE
+  - opt_disable SEGMENT_LEVELED_MOVES
+  - opt_enable_adv BABYSTEP_ZPROBE_OFFSET DOUBLECLICK_FOR_Z_BABYSTEPPING
+  - build_marlin
+  #
+  # Test a Servo Probe
+  # ...with AUTO_BED_LEVELING_3POINT, DEBUG_LEVELING_FEATURE, EEPROM_SETTINGS, EEPROM_CHITCHAT, EXTENDED_CAPABILITIES_REPORT, and AUTO_REPORT_TEMPERATURES
+  #
+  - restore_configs
+  - opt_enable NUM_SERVOS Z_ENDSTOP_SERVO_NR Z_SERVO_ANGLES DEACTIVATE_SERVOS_AFTER_MOVE
+  - opt_set NUM_SERVOS 1
+  - opt_enable AUTO_BED_LEVELING_3POINT DEBUG_LEVELING_FEATURE EEPROM_SETTINGS EEPROM_CHITCHAT
+  - opt_enable_adv NO_VOLUMETRICS EXTENDED_CAPABILITIES_REPORT AUTO_REPORT_TEMPERATURES AUTOTEMP G38_PROBE_TARGET
+  - build_marlin
+  #
+  # Test MESH_BED_LEVELING feature, with LCD
+  #
+  - restore_configs
+  - opt_enable MESH_BED_LEVELING G26_MESH_EDITING MESH_G28_REST_ORIGIN LCD_BED_LEVELING ULTIMAKERCONTROLLER
+  - build_marlin
+  #
+  # Test MINIRAMBO for PWM_MOTOR_CURRENT
+  #      PROBE_MANUALLY feature, with LCD support,
+  #      ULTIMAKERCONTROLLER, FILAMENT_LCD_DISPLAY, FILAMENT_WIDTH_SENSOR,
+  #      PRINTCOUNTER, NOZZLE_PARK_FEATURE, NOZZLE_CLEAN_FEATURE, PCA9632,
+  #      Z_DUAL_STEPPER_DRIVERS, Z_DUAL_ENDSTOPS, BEZIER_CURVE_SUPPORT, EXPERIMENTAL_I2CBUS,
+  #      ADVANCED_PAUSE_FEATURE, PARK_HEAD_ON_PAUSE, LCD_INFO_MENU,
+  #      EEPROM_SETTINGS, EEPROM_CHITCHAT, M100_FREE_MEMORY_WATCHER,
+  #      INCH_MODE_SUPPORT, TEMPERATURE_UNITS_SUPPORT
+  #
+  - restore_configs
+  - opt_set MOTHERBOARD BOARD_MINIRAMBO
+  - opt_enable PROBE_MANUALLY AUTO_BED_LEVELING_BILINEAR G26_MESH_EDITING LCD_BED_LEVELING ULTIMAKERCONTROLLER
+  - opt_enable EEPROM_SETTINGS EEPROM_CHITCHAT M100_FREE_MEMORY_WATCHER M100_FREE_MEMORY_DUMPER M100_FREE_MEMORY_CORRUPTOR INCH_MODE_SUPPORT TEMPERATURE_UNITS_SUPPORT
+  - opt_enable ULTIMAKERCONTROLLER SDSUPPORT
+  - opt_enable PRINTCOUNTER NOZZLE_PARK_FEATURE NOZZLE_CLEAN_FEATURE PCA9632 USE_XMAX_PLUG
+  - opt_enable_adv BEZIER_CURVE_SUPPORT EXPERIMENTAL_I2CBUS
+  - opt_enable_adv ADVANCED_PAUSE_FEATURE PARK_HEAD_ON_PAUSE LCD_INFO_MENU M114_DETAIL
+  - opt_set_adv PWM_MOTOR_CURRENT {1300,1300,1250}
+  - opt_set_adv I2C_SLAVE_ADDRESS 63
   - build_marlin
   #
   # Test 5 extruders on AZTEEG_X3_PRO (can use any board with >=5 extruders defined)
@@ -94,73 +162,6 @@ script:
   - opt_set TEMP_SENSOR_4 999
   - opt_set TEMP_SENSOR_BED 1
   - opt_enable_adv LIN_ADVANCE
-  - build_marlin
-  #
-  # Test PIDTEMPBED
-  #
-  - restore_configs
-  - opt_set TEMP_SENSOR_BED 1
-  - opt_enable PIDTEMPBED
-  - build_marlin
-  #
-  # Test MAX6675
-  #
-  - restore_configs
-  - opt_set TEMP_SENSOR_0 -2
-  - build_marlin
-  #
-  # Test a "Fix Mounted" Probe along with Safe Homing
-  #
-  - restore_configs
-  - opt_enable FIX_MOUNTED_PROBE Z_SAFE_HOMING
-  - build_marlin
-  #
-  # ...with AUTO_BED_LEVELING_LINEAR, Z_MIN_PROBE_REPEATABILITY_TEST, and DEBUG_LEVELING_FEATURE
-  #
-  - opt_enable AUTO_BED_LEVELING_LINEAR Z_MIN_PROBE_REPEATABILITY_TEST DEBUG_LEVELING_FEATURE
-  - opt_set ABL_GRID_POINTS_X 16
-  - opt_set ABL_GRID_POINTS_Y 16
-  - build_marlin
-  #
-  # Test a simple build of AUTO_BED_LEVELING_UBL
-  #
-  - restore_configs
-  - opt_enable AUTO_BED_LEVELING_UBL UBL_G26_MESH_EDITING ENABLE_LEVELING_FADE_HEIGHT FIX_MOUNTED_PROBE EEPROM_SETTINGS G3D_PANEL
-  - build_marlin
-  #
-  # Test a Sled Z Probe
-  # ...with AUTO_BED_LEVELING_LINEAR, DEBUG_LEVELING_FEATURE, EEPROM_SETTINGS, and EEPROM_CHITCHAT
-  #
-  - restore_configs
-  - opt_enable Z_PROBE_SLED AUTO_BED_LEVELING_LINEAR DEBUG_LEVELING_FEATURE EEPROM_SETTINGS EEPROM_CHITCHAT
-  - build_marlin
-  #
-  # Test a Servo Probe
-  # ...with AUTO_BED_LEVELING_3POINT, DEBUG_LEVELING_FEATURE, EEPROM_SETTINGS, EEPROM_CHITCHAT, EXTENDED_CAPABILITIES_REPORT, and AUTO_REPORT_TEMPERATURES
-  #
-  - restore_configs
-  - opt_enable NUM_SERVOS Z_ENDSTOP_SERVO_NR Z_SERVO_ANGLES DEACTIVATE_SERVOS_AFTER_MOVE
-  - opt_enable AUTO_BED_LEVELING_3POINT DEBUG_LEVELING_FEATURE EEPROM_SETTINGS EEPROM_CHITCHAT
-  - opt_enable_adv EXTENDED_CAPABILITIES_REPORT AUTO_REPORT_TEMPERATURES AUTOTEMP
-  - build_marlin
-  #
-  # Test MESH_BED_LEVELING feature, with LCD
-  #
-  - restore_configs
-  - opt_enable MESH_BED_LEVELING MESH_G28_REST_ORIGIN LCD_BED_LEVELING ULTIMAKERCONTROLLER
-  - build_marlin
-  #
-  # Test PROBE_MANUALLY feature, with LCD support
-  #
-  - restore_configs
-  - opt_enable PROBE_MANUALLY AUTO_BED_LEVELING_BILINEAR LCD_BED_LEVELING ULTIMAKERCONTROLLER
-  - build_marlin
-  #
-  # Test EEPROM_SETTINGS, EEPROM_CHITCHAT, M100_FREE_MEMORY_WATCHER,
-  #   INCH_MODE_SUPPORT, TEMPERATURE_UNITS_SUPPORT
-  #
-  - restore_configs
-  - opt_enable EEPROM_SETTINGS EEPROM_CHITCHAT M100_FREE_MEMORY_WATCHER M100_FREE_MEMORY_DUMPER M100_FREE_MEMORY_CORRUPTOR INCH_MODE_SUPPORT TEMPERATURE_UNITS_SUPPORT
   - build_marlin
   #
   # Mixing Extruder with 5 steppers
@@ -200,77 +201,31 @@ script:
   - opt_enable SWITCHING_EXTRUDER ULTIMAKERCONTROLLER
   - build_marlin
   #
-  # Test MINIRAMBO for PWM_MOTOR_CURRENT
-  #
-  - restore_configs
-  - opt_set MOTHERBOARD BOARD_MINIRAMBO
-  - build_marlin
-  #
-  # Test FILAMENT_CHANGE_FEATURE, PARK_HEAD_ON_PAUSE, and LCD_INFO_MENU
-  #
-  - restore_configs
-  - opt_enable ULTIMAKERCONTROLLER
-  - opt_enable_adv FILAMENT_CHANGE_FEATURE PARK_HEAD_ON_PAUSE LCD_INFO_MENU
-  - build_marlin
-  #
-  # Enable filament sensor
-  #
-  - restore_configs
-  - opt_enable FILAMENT_WIDTH_SENSOR
-  - build_marlin
-  #
-  # Enable filament sensor with LCD display
-  #
-  - opt_enable ULTIMAKERCONTROLLER FILAMENT_LCD_DISPLAY
-  - build_marlin
-  #
-  # Enable BEZIER_CURVE_SUPPORT, EXPERIMENTAL_I2CBUS, and I2C_SLAVE_ADDRESS
-  #
-  - restore_configs
-  - opt_enable_adv BEZIER_CURVE_SUPPORT EXPERIMENTAL_I2CBUS
-  - opt_set_adv I2C_SLAVE_ADDRESS 63
-  - build_marlin
-  #
   # Enable COREXY
   #
   - restore_configs
   - opt_enable COREXY
   - build_marlin
   #
-  # Enable COREYX (swapped)
+  # Test many less common options
   #
   - restore_configs
   - opt_enable COREYX
+  - opt_set_adv FAN_MIN_PWM 50
+  - opt_set_adv FAN_KICKSTART_TIME 100
+  - opt_set_adv XY_FREQUENCY_LIMIT  15
+  - opt_enable_adv SHOW_TEMP_ADC_VALUES HOME_Y_BEFORE_X EMERGENCY_PARSER FAN_KICKSTART_TIME
+  - opt_enable_adv ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED ADVANCED_OK
+  - opt_enable_adv VOLUMETRIC_DEFAULT_ON NO_WORKSPACE_OFFSETS ACTION_ON_KILL
+  - opt_enable_adv EXTRA_FAN_SPEED FWERETRACT Z_DUAL_STEPPER_DRIVERS Z_DUAL_ENDSTOPS
+  - opt_enable_adv MENU_ADDAUTOSTART SDCARD_SORT_ALPHA
+  - opt_enable REPRAP_DISCOUNT_SMART_CONTROLLER
+  - opt_enable FILAMENT_LCD_DISPLAY FILAMENT_WIDTH_SENSOR
+  - opt_enable ENDSTOP_INTERRUPTS_FEATURE FAN_SOFT_PWM SDSUPPORT
+  - opt_enable USE_XMAX_PLUG
   - build_marlin
   #
-  # Enable Z_DUAL_STEPPER_DRIVERS, Z_DUAL_ENDSTOPS
-  #
-  - restore_configs
-  - opt_enable_adv Z_DUAL_STEPPER_DRIVERS Z_DUAL_ENDSTOPS
-  - pins_set RAMPS X_MAX_PIN -1
-  - opt_set_adv Z2_MAX_PIN 2
-  - build_marlin
-  #
-  # Test PRINTCOUNTER
-  #
-  - restore_configs
-  - opt_enable PRINTCOUNTER
-  - build_marlin
-  #
-  # Test NOZZLE_PARK_FEATURE
-  #
-  - restore_configs
-  - opt_enable NOZZLE_PARK_FEATURE
-  - build_marlin
-  #
-  # Test NOZZLE_CLEAN_FEATURE
-  #
-  - restore_configs
-  - opt_enable NOZZLE_CLEAN_FEATURE
-  - build_marlin
-  #
-  #
-  ######## STANDARD LCD/PANELS ##############
+  ######## Other Standard LCD/Panels ##############
   #
   # ULTRA_LCD
   #
@@ -284,12 +239,6 @@ script:
   - opt_enable DOGLCD
   - build_marlin
   #
-  # ULTIMAKERCONTROLLER
-  #
-  - restore_configs
-  - opt_enable ULTIMAKERCONTROLLER
-  - build_marlin
-  #
   # MAKRPANEL
   # Needs to use Melzi and Sanguino hardware
   #
@@ -297,31 +246,29 @@ script:
   #- opt_enable MAKRPANEL
   #- build_marlin
   #
-  # REPRAP_DISCOUNT_SMART_CONTROLLER, SDSUPPORT, and BABYSTEPPING
+  # REPRAP_DISCOUNT_SMART_CONTROLLER, SDSUPPORT, BABYSTEPPING, RIGIDBOARD_V2, and DAC_MOTOR_CURRENT_DEFAULT
   #
   - restore_configs
-  - opt_enable REPRAP_DISCOUNT_SMART_CONTROLLER SDSUPPORT BABYSTEPPING
+  - opt_set MOTHERBOARD BOARD_RIGIDBOARD_V2
+  - opt_enable REPRAP_DISCOUNT_SMART_CONTROLLER SDSUPPORT BABYSTEPPING DAC_MOTOR_CURRENT_DEFAULT
   - build_marlin
   #
-  # G3D_PANEL
+  # G3D_PANEL with SDCARD_SORT_ALPHA and STATUS_MESSAGE_SCROLLING
   #
   - restore_configs
   - opt_enable G3D_PANEL SDSUPPORT
-  - build_marlin
-  #
-  # Add SDCARD_SORT_ALPHA, test G3D_PANEL again
-  #
-  - opt_enable_adv SDCARD_SORT_ALPHA
+  - opt_enable_adv SDCARD_SORT_ALPHA STATUS_MESSAGE_SCROLLING SCROLL_LONG_FILENAMES
   - opt_set_adv SDSORT_GCODE true
   - opt_set_adv SDSORT_USES_RAM true
   - opt_set_adv SDSORT_USES_STACK true
   - opt_set_adv SDSORT_CACHE_NAMES true
   - build_marlin
   #
-  # REPRAP_DISCOUNT_FULL_GRAPHIC_SMART_CONTROLLER
+  # REPRAP_DISCOUNT_FULL_GRAPHIC_SMART_CONTROLLER with SDCARD_SORT_ALPHA and STATUS_MESSAGE_SCROLLING
   #
   - restore_configs
   - opt_enable REPRAP_DISCOUNT_FULL_GRAPHIC_SMART_CONTROLLER SDSUPPORT
+  - opt_enable_adv SDCARD_SORT_ALPHA STATUS_MESSAGE_SCROLLING SCROLL_LONG_FILENAMES
   - build_marlin
   #
   # REPRAPWORLD_KEYPAD
@@ -371,21 +318,20 @@ script:
   ######## Example Configurations ##############
   #
   # BQ Hephestos 2
-  - restore_configs
-  - use_example_configs Hephestos_2
-  - build_marlin
+  #- restore_configs
+  #- use_example_configs Hephestos_2
+  #- build_marlin
   #
-  # Delta Config (generic)
-  - restore_configs
+  # Delta Config (generic) + ABL bilinear + PROBE_MANUALLY
   - use_example_configs delta/generic
-  - opt_enable REPRAP_DISCOUNT_SMART_CONTROLLER DELTA_CALIBRATION_MENU
+  - opt_enable REPRAP_DISCOUNT_SMART_CONTROLLER DELTA_CALIBRATION_MENU AUTO_BED_LEVELING_BILINEAR PROBE_MANUALLY
   - build_marlin
   #
-  # Delta Config (generic) + ABL + ALLEN_KEY
+  # Delta Config (generic) + UBL + ALLEN_KEY + OLED_PANEL_TINYBOY2 + EEPROM_SETTINGS
   #
   - use_example_configs delta/generic
   - opt_disable DISABLE_MIN_ENDSTOPS
-  - opt_enable AUTO_BED_LEVELING_BILINEAR Z_PROBE_ALLEN_KEY
+  - opt_enable AUTO_BED_LEVELING_UBL Z_PROBE_ALLEN_KEY EEPROM_SETTINGS EEPROM_CHITCHAT OLED_PANEL_TINYBOY2 MESH_EDIT_GFX_OVERLAY
   - build_marlin
   #
   # Delta Config (FLSUN AC because it's complex)
@@ -398,18 +344,19 @@ script:
   #- use_example_configs makibox
   #- build_marlin
   #
-  # SCARA Config
+  # SCARA with TMC2130
   #
   - use_example_configs SCARA
   - opt_enable AUTO_BED_LEVELING_BILINEAR FIX_MOUNTED_PROBE USE_ZMIN_PLUG EEPROM_SETTINGS EEPROM_CHITCHAT ULTIMAKERCONTROLLER
+  - opt_enable_adv HAVE_TMC2130 X_IS_TMC2130 Y_IS_TMC2130 Z_IS_TMC2130
+  - opt_enable_adv MONITOR_DRIVER_STATUS STEALTHCHOP HYBRID_THRESHOLD TMC_DEBUG SENSORLESS_HOMING
   - build_marlin
   #
-  # TMC2130 Config
+  # TMC2208 Config
   #
   - restore_configs
-  - opt_enable_adv HAVE_TMC2130 X_IS_TMC2130 Y_IS_TMC2130 Z_IS_TMC2130
-  - build_marlin
-  - opt_enable_adv AUTOMATIC_CURRENT_CONTROL STEALTHCHOP HYBRID_THRESHOLD SENSORLESS_HOMING
+  - opt_enable_adv HAVE_TMC2208 X_IS_TMC2208 Y_IS_TMC2208 Z_IS_TMC2208
+  - opt_enable_adv MONITOR_DRIVER_STATUS STEALTHCHOP HYBRID_THRESHOLD TMC_DEBUG
   - build_marlin
   #
   # tvrrug Config need to check board type for sanguino atmega644p

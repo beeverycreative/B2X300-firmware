@@ -24,15 +24,16 @@
  * Portuguese
  *
  * LCD Menu Messages
- * See also https://github.com/MarlinFirmware/Marlin/wiki/LCD-Language
+ * See also http://marlinfw.org/docs/development/lcd_language.html
  *
  */
 #ifndef LANGUAGE_PT_H
 #define LANGUAGE_PT_H
 
 #define DISPLAY_CHARSET_ISO10646_1
+#define NOT_EXTENDED_ISO10646_1_5X7
 
-#define WELCOME_MSG                         MACHINE_NAME " pronto."
+#define WELCOME_MSG                         MACHINE_NAME " pronta."
 #define MSG_SD_INSERTED                     "Cartao inserido"
 #define MSG_SD_REMOVED                      "Cartao removido"
 #define MSG_MAIN                            "Menu principal"
@@ -46,7 +47,6 @@
 #define MSG_LEVEL_BED_WAITING               "Click para iniciar"
 #define MSG_LEVEL_BED_NEXT_POINT            "Proximo ponto"
 #define MSG_LEVEL_BED_DONE                  "Pronto !"
-#define MSG_LEVEL_BED_CANCEL                "Cancelar"
 #define MSG_SET_HOME_OFFSETS                "Definir desvio"
 #define MSG_HOME_OFFSETS_APPLIED            "Offsets applied"
 #define MSG_SET_ORIGIN                      "Definir origem"
@@ -91,6 +91,7 @@
 #define MSG_PID_D                           "PID-D"
 #define MSG_PID_C                           "PID-C"
 #define MSG_ACC                             "Acc"
+#define MSG_JERK                            _UxGT("Jerk")
 #define MSG_VX_JERK                         "Vx-jerk"
 #define MSG_VY_JERK                         "Vy-jerk"
 #define MSG_VZ_JERK                         "Vz-jerk"
@@ -101,6 +102,7 @@
 #define MSG_AMAX                            "Amax "
 #define MSG_A_RETRACT                       "A-retraccao"
 #define MSG_A_TRAVEL                        "A-movimento"
+#define MSG_STEPS_PER_MM                    "Passo/mm"
 #define MSG_XSTEPS                          "X passo/mm"
 #define MSG_YSTEPS                          "Y passo/mm"
 #define MSG_ZSTEPS                          "Z passo/mm"
