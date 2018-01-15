@@ -1084,48 +1084,16 @@ void kill_screen(const char* lcd_msg) {
   #if WATCH_THE_BED
     void watch_temp_callback_bed() { thermalManager.start_watching_bed(); }
   #endif
+  
+  ////////////////////////////////////////////////////////////////////////
+  //					Filament Change Feature							//
+  ////////////////////////////////////////////////////////////////////////
 
   #if ENABLED(FILAMENT_CHANGE_FEATURE)
     void lcd_enqueue_filament_change() {
-		//DR
-		/*
-		START_MENU();
-      MENU_BACK(MSG_PREPARE);
-	  
-	  #if HOTENDS > 1
-        thermalManager.setTargetHotend(lcd_preheat_hotend_temp[1], 1);
-        #if HOTENDS > 2
-          thermalManager.setTargetHotend(lcd_preheat_hotend_temp[1], 2); 
-		  #endif
-        #endif // HOTENDS > 1
-		
-		START_MENU();
-        MENU_BACK(MSG_PREPARE);
-		MENU_ITEM(gcode, MSG_H1, PSTR("T0"));
-        MENU_ITEM(gcode, MSG_H2, PSTR("T1"));
-		
-		while (thermalManager.tooColdToExtrude(active_extruder)) {
-        lcd_save_previous_screen();
-        lcd_goto_screen(lcd_filament_change_toocold_menu);
-        return;
-      }
-	  */
 		
 		lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_INIT);
         enqueue_and_echo_commands_P(PSTR("M600"));
-		
-		
-		//thermalManager.disable_all_heaters();
-		
-		/*
-      if (!DEBUGGING(DRYRUN) && thermalManager.tooColdToExtrude(active_extruder)) {
-        lcd_save_previous_screen();
-        lcd_goto_screen(lcd_filament_change_toocold_menu);
-        return;
-      }
-      lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_INIT);
-      enqueue_and_echo_commands_P(PSTR("M600"));
-	  */
     }
 	
 	void lcd_enqueue_filament_change_e0() {
@@ -1188,23 +1156,6 @@ void kill_screen(const char* lcd_msg) {
 			u8g.print(thermalManager.degTargetHotend(active_extruder));
 	  #endif
 	  
-	  /*
-	  lcd.setCursor(3, 3);
-	  lcd.print("Nozzle: ");
-	  
-	  if((thermalManager.degHotend(active_extruder)) <100)
-	  lcd.print(" ");
-  
-	  lcd.print(thermalManager.degHotend(active_extruder));
-	  lcd.print("/");
-	  lcd.print(thermalManager.degTargetHotend(active_extruder));
-	  
-	  */
-	  
-	  //lcd_implementation_drawmenu_static(_lcdLineNr, PSTR(MSG_FILAMENT_CHANGE_NOZZLE), false, true); 
-      //lcd_implementation_drawmenu_(_lcdLineNr, thermalManager.degHotend(active_extruder), false, true); 
-	  //lcd_implementation_drawmenu_(_lcdLineNr, "/", false, true);
-	  //lcd_implementation_drawmenu_(_lcdLineNr, temp, false, true);
       END_SCREEN();
 	}
 	
@@ -1290,18 +1241,10 @@ static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool u
     // updates the lcd in each cycle
 	lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
     
-      next_update = millis() + 1500;
+      next_update = millis() + 500;
    }
   }
   
-  
-    //lcd.clear();
-    //lcd.setCursor(1, 1);
-	//lcd.print("Heating done!");
-	//lcd.setCursor(1, 2);
-    //lcd.print("Press to continue");
-	
-	//lcdDrawUpdate = 0;
 	
 	//show press to continue
 	lcd_goto_screen(lcd_filament_change_press);
@@ -1336,7 +1279,7 @@ static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool u
 	
 
 	
-  enqueue_and_echo_commands_P(PSTR("G92 E0"));
+  //enqueue_and_echo_commands_P(PSTR("G92 E0"));
 
 		//load
 	if (unload_load)
@@ -1350,24 +1293,6 @@ static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool u
   
   enqueue_and_echo_commands_P(PSTR("T0"));
   
-/*
-
-current_position[E_AXIS] +=500;
-manual_move_start_time = millis() ; // delay for bigger moves
-    manual_move_axis = (int8_t)E_AXIS;
-
-	//Waits 3s before continuing
-	for(long k = millis()+5000; k > millis();)
-	{
-		//drain_injected_commands_P();
-		//stepper.synchronize();
-		lcdDrawUpdate = 1;
-		idle(true);
-		//lcd_goto_screen(lcd_filament_change_moving);
-	}
-	
-	*/
-	
 	
 // update LCD and return
   lcdDrawUpdate = 2;
@@ -1393,8 +1318,7 @@ manual_move_start_time = millis() ; // delay for bigger moves
       menu_action_back(lcd_filament_change_ext0_pla);
   }
  
-  
-}
+  }
 
 static void lcd_filament_change_ext0_pla_unload ()
 {
@@ -1518,13 +1442,9 @@ static void lcd_filament_change_extruder_1()
 
 static void lcd_filament_change_move_to_position()
 {
-  //START_MENU();
-
   // homing and moving to Z = 20
   enqueue_and_echo_commands_P(PSTR("G28"));
   enqueue_and_echo_commands_P(PSTR("G1 X20 Z20 F3000"));
-
-  //END_MENU();
 }
 
 static void lcd_filament_change()
@@ -1533,9 +1453,6 @@ static void lcd_filament_change()
 
   // Go back to previous menu
   MENU_BACK(MSG_BACK);
-  
-  //enqueue_and_echo_commands_P(PSTR("G28"));
-  //enqueue_and_echo_commands_P(PSTR("G1 X20 Z20 F3000"));
 
   MENU_ITEM(submenu, _UxGT("Move to position"), lcd_filament_change_move_to_position);
   MENU_ITEM(submenu, _UxGT("Extruder 0"), lcd_filament_change_extruder_0);
