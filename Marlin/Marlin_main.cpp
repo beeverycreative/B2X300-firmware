@@ -3995,6 +3995,7 @@ inline void gcode_G4() {
       if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("<<< Z_SAFE_HOMING");
     #endif
   }
+  }
 
 #endif // Z_SAFE_HOMING
 
@@ -10053,7 +10054,6 @@ inline void gcode_M502() {
   /**
    * M620 Filament change feature
    *
-   *  L[distance] - Retract distance for removal (manual reload)
    *  S[boolean]  - If enabled it is set as load/unload mode
    *  U[boolean]  - If enabled unload filament
    *
@@ -10074,15 +10074,29 @@ inline void gcode_M502() {
     COPY(lastpos, current_position);
     set_destination_to_current();
 */
+
+	//Store the extruder position
+	float lastExtruderPos = current_position[E_AXIS];
+	
+	current_position[E_AXIS] = 0;
+	destination[E_AXIS] = 0;
+	
+	sync_plan_position_e();
 	
 
 
 		// DR - 06/11/17 - Only retracts and unloads if not loading/unloading filament.
 	if (parser.seen('S') ? parser.value_bool() : 0)
 	{
+		// Small movement to avoid errors in load and unload speed
+		destination[E_AXIS] += 1;
+
+		RUNPLAN(ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+		stepper.synchronize();
+		
 		
 		lcd_advanced_pause_show_message(FILAMENT_CHANGE_MESSAGE_MOVING);
-		idle();
+		//idle();
 		
 		// Checks if the unload flag is enabled, to see if it should execute Load or Unload
 		if(parser.seen('U') ? parser.value_bool() : 0)
@@ -10110,7 +10124,7 @@ inline void gcode_M502() {
 				//Bowden
 			
 				// Load filament slowly into PTFE tube
-				destination[E_AXIS] += (ADVANCED_PAUSE_EXTRUDE_LENGTH/2);
+				destination[E_AXIS] += 50;
 
 				RUNPLAN(ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
 				stepper.synchronize();
@@ -10138,7 +10152,7 @@ inline void gcode_M502() {
 			// Show "Extrude More" / "Resume" menu and wait for reply
 			KEEPALIVE_STATE(PAUSED_FOR_USER);
 			wait_for_user = false;
-			lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_OPTION);
+			lcd_advanced_pause_show_message(FILAMENT_CHANGE_MESSAGE_OPTION);
 			while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
 			KEEPALIVE_STATE(IN_HANDLER);
 
@@ -10148,6 +10162,17 @@ inline void gcode_M502() {
 		}
 
 	}
+	
+	// Force steppers to synchronize before finishing the command 
+	stepper.synchronize();
+	
+	// Restores the extruder position before load/unload
+	current_position[E_AXIS] = lastExtruderPos;
+	destination[E_AXIS] = lastExtruderPos;
+	sync_plan_position_e();
+	
+	// Force steppers to synchronize before finishing the command 
+	stepper.synchronize();
 
     // Show status screen
     lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_STATUS);
@@ -10155,8 +10180,6 @@ inline void gcode_M502() {
     // Resume the print job timer if it was running
     if (job_running) print_job_timer.start();
 	
-	// Force steppers to synchronize before finishing the command 
-	stepper.synchronize();
    }
 
   /**

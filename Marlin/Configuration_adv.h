@@ -353,7 +353,7 @@
 #define Y_HOME_BUMP_MM 5
 #define Z_HOME_BUMP_MM 2
 #define HOMING_BUMP_DIVISOR { 2, 2, 4 }  // Re-Bump Speed Divisor (Divides the Homing Feedrate)
-//#define QUICK_HOME                     // If homing includes X and Y, do a diagonal move initially
+#define QUICK_HOME                     // If homing includes X and Y, do a diagonal move initially
 
 // When G28 is called, this option will make Y home before X
 //#define HOME_Y_BEFORE_X
@@ -903,7 +903,7 @@
 	#define ADVANCED_PAUSE_EXTRUDE_LENGTH 50   
 	
   #else
-	#define FILAMENT_CHANGE_UNLOAD_LENGTH 700   // Unload filament length from hotend in mm
+	#define FILAMENT_CHANGE_UNLOAD_LENGTH 800   // Unload filament length from hotend in mm
                                               // Longer length for bowden printers to unload filament from whole bowden tube,
                                               // shorter length for printers without bowden to unload filament from extruder only,
                                               // 0 to disable unloading for manual unloading
@@ -921,7 +921,7 @@
   #endif
   
 	#define ADVANCED_PAUSE_EXTRUDE_FEEDRATE 4  // Extrude filament feedrate in mm/s - must be slower than load feedrate
-	#define ADVANCED_PAUSE_EXTRUDE_LENGTH 65   // Extrude filament length in mm after filament is loaded over the hotend,
+	#define ADVANCED_PAUSE_EXTRUDE_LENGTH 100   // Extrude filament length in mm after filament is loaded over the hotend,
                                               // 0 to disable for manual extrusion
                                               // Filament can be extruded repeatedly from the filament exchange menu to fill the hotend,
                                               // or until outcoming filament color is not clear for filament color change

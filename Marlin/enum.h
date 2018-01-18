@@ -140,6 +140,7 @@ enum EndstopEnum {
 	  
 	  //DR
 	  ,FILAMENT_CHANGE_MESSAGE_MOVING
+	  ,FILAMENT_CHANGE_MESSAGE_OPTION
     };
   #endif
 #endif
