@@ -10054,122 +10054,119 @@ inline void gcode_M502() {
   /**
    * M620 Filament change feature
    *
-   *  S[boolean]  - If enabled it is set as load/unload mode
    *  U[boolean]  - If enabled unload filament
    *
    */
    inline void gcode_M620() {
 
-    // Pause the print job timer
+    // Save and pause the print job timer
     const bool job_running = print_job_timer.isRunning();
-
     print_job_timer.pause();
-
-    // Synchronize the steppers
-    stepper.synchronize();
-
-/*
+	
     // Save current position of all axes
     float lastpos[XYZE];
     COPY(lastpos, current_position);
-    set_destination_to_current();
-*/
-
-	//Store the extruder position
-	float lastExtruderPos = current_position[E_AXIS];
+    set_destination_from_current();
 	
-	current_position[E_AXIS] = 0;
-	destination[E_AXIS] = 0;
+    // Synchronize the steppers
+    stepper.synchronize();
 	
-	sync_plan_position_e();
-	
+		// Set the planner to the current position to avoid erroneous movements
+	sync_plan_position();
 
+		
+	// Extrudes a small ammount to fluidify the tip of the filament
+	destination[E_AXIS] += 10;
 
-		// DR - 06/11/17 - Only retracts and unloads if not loading/unloading filament.
-	if (parser.seen('S') ? parser.value_bool() : 0)
+	RUNPLAN(ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+	stepper.synchronize();
+		
+		
+	lcd_advanced_pause_show_message(FILAMENT_CHANGE_MESSAGE_MOVING);
+	//idle();
+		
+	// Checks if the unload flag is enabled, to see if it should execute Load or Unload
+	if(parser.seen('U') ? parser.value_bool() : 0)
 	{
-		// Small movement to avoid errors in load and unload speed
-		destination[E_AXIS] += 1;
-
-		RUNPLAN(ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+			
+		// Unload filament
+		destination[E_AXIS] += -(FILAMENT_CHANGE_UNLOAD_LENGTH);
+			
+		RUNPLAN(FILAMENT_CHANGE_UNLOAD_FEEDRATE);
 		stepper.synchronize();
-		
-		
-		lcd_advanced_pause_show_message(FILAMENT_CHANGE_MESSAGE_MOVING);
-		//idle();
-		
-		// Checks if the unload flag is enabled, to see if it should execute Load or Unload
-		if(parser.seen('U') ? parser.value_bool() : 0)
-		{
-			// Unload filament
-			destination[E_AXIS] += -(FILAMENT_CHANGE_UNLOAD_LENGTH);
-			
-			RUNPLAN(FILAMENT_CHANGE_UNLOAD_FEEDRATE);
-			stepper.synchronize();
-		}
-		// When loading
-		else
-		{
-			//Checks if Bowden to apply the correct 3 phase load process
-			#ifndef hBp_Bowden
-				//Direct drive
-				
-				// Load filament
-				destination[E_AXIS] += FILAMENT_CHANGE_LOAD_LENGTH;
-
-				RUNPLAN(FILAMENT_CHANGE_LOAD_FEEDRATE);
-				stepper.synchronize();
-				
-			#else
-				//Bowden
-			
-				// Load filament slowly into PTFE tube
-				destination[E_AXIS] += 50;
-
-				RUNPLAN(ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
-				stepper.synchronize();
-				
-				// Load filament quickly into PTFE tube
-				destination[E_AXIS] += FILAMENT_CHANGE_LOAD_LENGTH;
-
-				RUNPLAN(FILAMENT_CHANGE_LOAD_FEEDRATE);
-				stepper.synchronize();
-				
-				
-			
-			#endif
-			
-			// Extrude filament
-			do 
-			{
-			lcd_advanced_pause_show_message(FILAMENT_CHANGE_MESSAGE_MOVING);
-			
-			// Extrude filament to get into hotend
-			destination[E_AXIS] += ADVANCED_PAUSE_EXTRUDE_LENGTH;
-			RUNPLAN(ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
-			stepper.synchronize();
-
-			// Show "Extrude More" / "Resume" menu and wait for reply
-			KEEPALIVE_STATE(PAUSED_FOR_USER);
-			wait_for_user = false;
-			lcd_advanced_pause_show_message(FILAMENT_CHANGE_MESSAGE_OPTION);
-			while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
-			KEEPALIVE_STATE(IN_HANDLER);
-
-			// Keep looping if "Extrude More" was selected
-			} while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE);
-			
-		}
-
 	}
 	
-	// Force steppers to synchronize before finishing the command 
-	stepper.synchronize();
+	// When loading
+	else
+	{
+		//Checks if Bowden to apply the correct 3 phase load process
+		#ifndef hBp_Bowden
+		
+			//Direct drive
+				
+			// Load filament
+			destination[E_AXIS] += FILAMENT_CHANGE_LOAD_LENGTH;
+			RUNPLAN(FILAMENT_CHANGE_LOAD_FEEDRATE);
+			stepper.synchronize();
+				
+		#else
+			
+	//Bowden
+			
+		// Load filament slowly into PTFE tube
+		destination[E_AXIS] += 50;
+		RUNPLAN(ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+		stepper.synchronize();
+				
+		// Load filament quickly into PTFE tube
+		destination[E_AXIS] += FILAMENT_CHANGE_LOAD_LENGTH;
+		RUNPLAN(FILAMENT_CHANGE_LOAD_FEEDRATE);
+		stepper.synchronize();
+
+	#endif
+			
+	// Extrude filament
+	do 
+	{
+		lcd_advanced_pause_show_message(FILAMENT_CHANGE_MESSAGE_MOVING);
+			
+		// Extrude filament to get into hotend
+		destination[E_AXIS] += ADVANCED_PAUSE_EXTRUDE_LENGTH;
+		RUNPLAN(ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+		stepper.synchronize();
+
+		// Show "Extrude More" / "Resume" menu and wait for reply
+		KEEPALIVE_STATE(PAUSED_FOR_USER);
+		wait_for_user = false;
+		lcd_advanced_pause_show_message(FILAMENT_CHANGE_MESSAGE_OPTION);
+		while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
+		KEEPALIVE_STATE(IN_HANDLER);
+
+		// Keep looping if "Extrude More" was selected
+	} while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE);
+			
+	}
 	
-	// Restores the extruder position before load/unload
-	current_position[E_AXIS] = lastExtruderPos;
-	destination[E_AXIS] = lastExtruderPos;
-	sync_plan_position_e();
+	// Waits for movements to finish
+	while (destination[E_AXIS] != current_position[E_AXIS])
+		idle(true);
+	
+	
+	// Set extruder to saved position
+		destination[E_AXIS] = current_position[E_AXIS] = lastpos[E_AXIS];
+		planner.set_e_position_mm(current_position[E_AXIS]);
+
+		#if IS_KINEMATIC
+		  // Move XYZ to starting position
+		  planner.buffer_line_kinematic(lastpos, FILAMENT_CHANGE_XY_FEEDRATE, active_extruder);
+		#else
+		  // Move XY to starting position, then Z
+		  destination[X_AXIS] = lastpos[X_AXIS];
+		  destination[Y_AXIS] = lastpos[Y_AXIS];
+		  RUNPLAN(175);
+		  destination[Z_AXIS] = lastpos[Z_AXIS];
+		  RUNPLAN(5);
+		#endif
 	
 	// Force steppers to synchronize before finishing the command 
 	stepper.synchronize();

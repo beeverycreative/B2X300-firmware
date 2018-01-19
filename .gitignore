@@ -148,3 +148,4 @@ cmake-build-*
 Marlin/Conditionals_LCD.h
 Marlin/enum.h
 Marlin/Conditionals_LCD.h
+Marlin/Configuration.h

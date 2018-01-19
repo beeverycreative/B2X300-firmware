@@ -1325,9 +1325,9 @@ void kill_screen(const char* lcd_msg) {
 	void lcd_filament_change_hotendStatus() {
 		START_SCREEN();
       STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_1);
+      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_1, true, true);
       #ifdef MSG_FILAMENT_CHANGE_HEATING_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_2);
+        STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_2, true, true);
         #define _FC_LINES_C 3
       #else
         #define _FC_LINES_C 2
@@ -1337,7 +1337,7 @@ void kill_screen(const char* lcd_msg) {
       #endif
 	  
 	  #ifndef DOGLCD
-			lcd.setCursor(3, 3);
+			lcd.setCursor(2, 3);
 			lcd.print("Nozzle: ");
 			  
 			if((thermalManager.degHotend(active_extruder)) <100)
@@ -1366,6 +1366,10 @@ void kill_screen(const char* lcd_msg) {
     }
 
     void lcd_filament_change_extrude_more() {
+      advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE;
+    }
+	
+	void lcd_filament_change_continue_to_load() {
       advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE;
     }
 	
@@ -1398,6 +1402,21 @@ void kill_screen(const char* lcd_msg) {
       END_MENU();
     }
 	
+	
+	
+	void lcd_filament_change_unload_menu() {
+      START_MENU();
+      #if LCD_HEIGHT > 2
+        STATIC_ITEM(MSG_FILAMENTCHANGE, true, false);
+      #endif
+      MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_RESUME, lcd_filament_change_resume_print);
+	  
+	  // TODO unload more
+      
+	  MENU_ITEM(function, _UxGT("Load filament"), lcd_filament_change_continue_to_load);
+      END_MENU();
+    }
+	
 
 static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool unload_load)
 {
@@ -1427,13 +1446,12 @@ static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool u
 	  changetemp = lcd_preheat_hotend_temp[0] +5;
       HOTEND_LOOP() thermalManager.setTargetHotend(changetemp, extruder);
   }
+  
+    //Disables the timeout to status screen
+  defer_return_to_status = true;
 
 	// Show "wait for heating"
-	//lcd_filament_change_show_message(FILAMENT_CHANGE_MESSAGE_WAIT_FOR_NOZZLES_TO_HEAT);
   lcd_goto_screen(lcd_filament_change_hotendStatus);
-  
-  //Disables the timeout to status screen
-  defer_return_to_status = true;
   
   unsigned long next_update = millis() + 200;
   bool update = true;
@@ -1449,7 +1467,7 @@ static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool u
 	  
 	  
 	  // é necessario para mostrar updates no ecra?? e aquecer
-	  idle();
+	  idle(true);
 	  
 	  HOTEND_LOOP() {
         if (abs(thermalManager.degHotend(extruder) - changetemp) > 10) {
@@ -1461,7 +1479,9 @@ static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool u
     // updates the lcd in each cycle
 	lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
     
-      next_update = millis() + 200;
+	// sets next screen update
+    next_update = millis() + 200;
+	
    }
   }
   
@@ -1477,27 +1497,24 @@ static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool u
 	while (wait_for_user ) {
 		if(next_update < millis())
 		{
-      #if HAS_BUZZER
-        buzzer.tone(100, 2000);
-      #endif
-      idle(true);
-		next_update = millis() + 1000;
+			#if HAS_BUZZER
+			buzzer.tone(100, 2000);
+			#endif
+			idle(true);
+			next_update = millis() + 1000;
 		}
 	  }
 	  
     KEEPALIVE_STATE(IN_HANDLER);
 	
 	//show "moving"
-	defer_return_to_status = true;
 	lcd_goto_screen(lcd_filament_change_moving);
 	
 	// update LCD and return
-    lcdDrawUpdate = 2;
+    lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
 	
 	for(long k = millis()+500; k > millis();)
 		idle(true);
-		
-	
 
 	
   //enqueue_and_echo_commands_P(PSTR("G92 E0"));
@@ -1508,7 +1525,53 @@ static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool u
 	
 		//unload
 	else
+		{
 		enqueue_and_echo_commands_P(PSTR("M620 S1 U1"));
+		
+		/* Disabled for now
+		
+		//Pause for click
+		//show press to continue
+		lcd_goto_screen(lcd_filament_change_press);
+  
+		//Beep while waiting for button press
+		KEEPALIVE_STATE(PAUSED_FOR_USER);
+		wait_for_user = true;    // LCD click or M108 will clear this
+		next_update = millis() + 100;
+	
+		while (wait_for_user ) 
+		{
+			if(next_update < millis())
+			{
+				#if HAS_BUZZER
+				buzzer.tone(100, 2000);
+				#endif
+				idle(true);
+				next_update = millis() + 1000;
+			}
+		}
+		
+		// Check if you want to load filament after unload
+		
+		// Sets the value so that the loop runs
+	    defer_return_to_status = true;
+        advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
+        lcd_goto_screen(lcd_filament_change_unload_menu);
+		advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
+		
+		
+		// loop while waiting to continue
+		KEEPALIVE_STATE(PAUSED_FOR_USER);
+		wait_for_user = false;
+		while(advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
+		KEEPALIVE_STATE(IN_HANDLER);
+		
+		if (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE)
+			enqueue_and_echo_commands_P(PSTR("M620 S1 U0"));
+		
+		*/
+		
+		}
 
   //enqueue_and_echo_commands_P(PSTR("G92 E0"));
   
