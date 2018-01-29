@@ -1079,7 +1079,7 @@ void kill_screen(const char* lcd_msg) {
 		  MENU_ITEM(function, MSG_LEVEL_BED, _lcd_level_bed_continue); 
 	  #endif
 	  #if HAS_ABL
-		  MENU_ITEM(gcode, MSG_LEVEL_BED, PSTR("G28\nG29")); 
+		  MENU_ITEM(gcode, MSG_LEVEL_BED, PSTR("T0\nG28\nG29")); 
 	  #endif
 		
 	  //DR - Calibrate Z_offset
@@ -2340,6 +2340,9 @@ void lcd_enqueue_filament_change() {
           #elif ENABLED(MESH_BED_LEVELING)
             enqueue_and_echo_commands_P(PSTR("G29 S2"));
           #endif
+		  
+		  //DR 29-01-18 Saves the leveling mesh
+		  enqueue_and_echo_commands_P(PSTR("M500"));
         }
         else
           _lcd_level_goto_next_point();

@@ -83,22 +83,22 @@
 //
 //
 // If your helloBEEprusa has auto bed leveling please uncomment the following line.
- #define hBp_Autolevel
+// #define hBp_Autolevel
 //
 //
 //
 // If your helloBEEprusa has the extended bed please uncomment the following line.
- #define hBp_Extendedbed
+// #define hBp_Extendedbed
 //
 //
 //
 // If your helloBEEprusa has trapezoidal Z threaded rods please uncomment the following line.
-#define hBp_Trapezoidal
+// #define hBp_Trapezoidal
 //
 //
 //
 // If your helloBEEprusa has bowden extruders please uncomment the following line.
- #define hBp_Bowden
+// #define hBp_Bowden
 //
 //
 //
@@ -1552,7 +1552,11 @@
  *
  * :['JAPANESE', 'WESTERN', 'CYRILLIC']
  */
-#define DISPLAY_CHARSET_HD44780 JAPANESE
+ 
+ //#define DISPLAY_CHARSET_HD44780 JAPANESE
+ 
+ //DEBUG
+#define DISPLAY_CHARSET_HD44780 WESTERN
 
 /**
  * LCD TYPE
