@@ -10076,7 +10076,7 @@ inline void gcode_M502() {
 
 		
 	// Extrudes a small ammount to fluidify the tip of the filament
-	destination[E_AXIS] += 10;
+	destination[E_AXIS] += 15;
 
 	RUNPLAN(ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
 	stepper.synchronize();
@@ -10147,10 +10147,15 @@ inline void gcode_M502() {
 			
 	}
 	
+	/* debug
 	// Waits for movements to finish
 	while (destination[E_AXIS] != current_position[E_AXIS])
+	{
+		RUNPLAN(ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
 		idle(true);
-	
+		stepper.synchronize();
+	}
+	*/
 	
 	// Set extruder to saved position
 		destination[E_AXIS] = current_position[E_AXIS] = lastpos[E_AXIS];
@@ -10168,7 +10173,8 @@ inline void gcode_M502() {
 		  RUNPLAN(5);
 		#endif
 	
-	// Force steppers to synchronize before finishing the command 
+	// Force steppers to synchronize before finishing the command
+	RUNPLAN(5);	
 	stepper.synchronize();
 
     // Show status screen

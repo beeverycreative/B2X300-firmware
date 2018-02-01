@@ -65,7 +65,7 @@
 // If your helloBEEprusa has Allegro A4988 stepper drivers please uncomment the correct line, delete the // before the #define.
 //
 // -Allegro A4988 on the Extruders and DRV8825 on the X, Y and Z axis
-// #define hBp_A4988ext
+ #define hBp_A4988ext
 //
 // -Allegro A4988 on all axis
 // #define hBp_A4988all
@@ -83,7 +83,7 @@
 //
 //
 // If your helloBEEprusa has auto bed leveling please uncomment the following line.
-// #define hBp_Autolevel
+ #define hBp_Autolevel
 //
 //
 //
@@ -93,17 +93,32 @@
 //
 //
 // If your helloBEEprusa has trapezoidal Z threaded rods please uncomment the following line.
-// #define hBp_Trapezoidal
+ #define hBp_Trapezoidal
 //
 //
 //
 // If your helloBEEprusa has bowden extruders please uncomment the following line.
-// #define hBp_Bowden
+ #define hBp_Bowden
 //
 //
 //
 // Bowden with smaller PTFE tube, less 100mm than the original kit size
 // #define hBp_Bowden_500
+//
+//
+//
+// Center pulled X carriage
+ #define hBp_ReverseX
+//
+//
+//
+// Center pulled Y carriage
+// #define hBp_ReverseY
+//
+//
+//
+// New spring loaded extruder, black plastic
+ #define hBp_ReverseE
 //
 //
 //
@@ -113,10 +128,15 @@
 //DR - As trinamics use 16 microsteps like the A4988 we need to make this configuration
 #ifdef hBp_TMC2208ext
 	#define hBp_A4988ext
+	#define hBp_ReverseE
 #endif
 
 #ifdef hBp_TMC2208all
 	#define hBp_A4988all
+	#define hBp_ReverseE
+	#define hBp_ReverseX
+	#define hBp_ReverseY
+	#define hBp_ReverseZ
 #endif
 
 //===========================================================================
@@ -626,7 +646,7 @@
  * following movement settings. If fewer factors are given than the
  * total number of extruders, the last value applies to the rest.
  */
-//#define DISTINCT_E_FACTORS
+#define DISTINCT_E_FACTORS
 
 /**
  * Default Axis Steps Per Unit (steps/mm)
@@ -932,15 +952,23 @@
 
 // Invert the stepper direction. Change (or reverse the motor connector) if an axis goes the wrong way.
 
-// DR - Inverts the stepping direction for the trimamic
-#ifndef hBp_TMC2208all
-	#define INVERT_X_DIR false
-	#define INVERT_Y_DIR true
-	#define INVERT_Z_DIR true
-#else
+// DR - Inverts the stepping direction for the trimamic or reversed pulled axis
+#ifdef hBp_ReverseX
 	#define INVERT_X_DIR true
+#else
+	#define INVERT_X_DIR false
+#endif
+
+#ifdef hBp_ReverseY
 	#define INVERT_Y_DIR false
+#else
+	#define INVERT_Y_DIR true
+#endif
+
+#ifdef hBp_ReverseZ
 	#define INVERT_Z_DIR false
+#else
+	#define INVERT_Z_DIR true
 #endif
 
 // Enable this option for Toshiba stepper drivers
@@ -950,14 +978,13 @@
 
 // For direct drive extruder v9 set to true, for geared extruder set to false.
 
-// DR - Inverts the stepping direction for the trinamics
-#if ( ENABLED(hBp_TMC2208ext) || ENABLED(hBp_TMC2208all) )
+// DR - Inverts the extruder stepping direction for the trinamics or the new extruder assembly
+#ifdef hBp_ReverseE
 	#define INVERT_E0_DIR true
 	#define INVERT_E1_DIR false
 	#define INVERT_E2_DIR true
 	#define INVERT_E3_DIR true
 	#define INVERT_E4_DIR true
-	
 #else
 	#define INVERT_E0_DIR false
 	#define INVERT_E1_DIR true

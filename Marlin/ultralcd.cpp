@@ -1325,9 +1325,9 @@ void kill_screen(const char* lcd_msg) {
 	void lcd_filament_change_hotendStatus() {
 		START_SCREEN();
       STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_1, true, true);
+      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_1 "  ", true, true);
       #ifdef MSG_FILAMENT_CHANGE_HEATING_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_2, true, true);
+        STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_2 "  ", true, true);
         #define _FC_LINES_C 3
       #else
         #define _FC_LINES_C 2

@@ -683,8 +683,14 @@
 #define LIN_ADVANCE
 
 #if ENABLED(LIN_ADVANCE) 
-	#if ( DISABLED(hBp_TMC2208ext) && DISABLED(hBp_TMC2208all) ) 
-		#define LIN_ADVANCE_K 40
+	#if ( DISABLED(hBp_TMC2208ext) && DISABLED(hBp_TMC2208all) )
+
+		#ifdef hBp_Bowden
+			#define LIN_ADVANCE_K 300
+		#else
+			#define LIN_ADVANCE_K 40
+		#endif
+		
 	#else
 		#define LIN_ADVANCE_K 0
 	#endif
