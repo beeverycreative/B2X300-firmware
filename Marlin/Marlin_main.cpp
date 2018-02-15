@@ -4300,6 +4300,13 @@ void home_all_axes() { gcode_G28(true); }
    */
   inline void gcode_G29() {
 
+	
+	//DR-Stores the extruder and changes to E0
+	uint8_t extruderNumber = active_extruder;
+	if (extruderNumber != 1)
+		tool_change(0);
+			
+	
     static int mbl_probe_index = -1;
     #if HAS_SOFTWARE_ENDSTOPS
       static bool enable_soft_endstops;
@@ -4444,6 +4451,10 @@ void home_all_axes() { gcode_G28(true); }
     }
 
     report_current_position();
+	
+	//DR-Restores to the previous extruder
+		tool_change(extruderNumber);
+	
   }
 
 #elif OLDSCHOOL_ABL
@@ -4535,6 +4546,12 @@ void home_all_axes() { gcode_G28(true); }
    *
    */
   inline void gcode_G29() {
+	  
+	  //DR-Stores the extruder and changes to E0
+	uint8_t extruderNumber = active_extruder;
+	if (extruderNumber != 0)
+		tool_change(0);
+	
 
     // G29 Q is also available if debugging
     #if ENABLED(DEBUG_LEVELING_FEATURE)
@@ -5360,6 +5377,10 @@ void home_all_axes() { gcode_G28(true); }
 
     if (planner.leveling_active)
       SYNC_PLAN_POSITION_KINEMATIC();
+  
+	// DR-Restores to the previous extruder
+	tool_change(extruderNumber);
+  
   }
 
 #endif // OLDSCHOOL_ABL

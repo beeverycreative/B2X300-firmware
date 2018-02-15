@@ -3413,10 +3413,7 @@ void lcd_enqueue_filament_change() {
 	  STATIC_ITEM(_UxGT("Nozzle height"), true, true);
 	  lcd_implementation_drawmenu_static(2, PSTR("Process completed"));
 	  lcd_implementation_drawmenu_static(3, PSTR("  Press to exit  "));
-      //STATIC_ITEM("Process completed", true, true);
-      //STATIC_ITEM("  Press to exit  ");
-	  //STATIC_ITEM("finish and press ");
-	  //STATIC_ITEM("   to continue   ");
+
       END_SCREEN();
 	  if (lcd_clicked) 
 		{
@@ -3433,8 +3430,7 @@ void lcd_enqueue_filament_change() {
 		{	
 			zprobe_zoffset = Z_PROBE_OFFSET_FROM_EXTRUDER;
 			lcd_completion_feedback(settings.save());
-			//lcd_store_settings();
-			//enqueue_and_echo_command(PSTR("M500"));
+
 			return _lcd_z_offset_completed(); 
 		}
 		
@@ -3451,18 +3447,11 @@ void lcd_enqueue_filament_change() {
   void _lcd_calibrate_z_offset() 
   {
 	  
-	  //const char* name = PSTR(_UxGT("Nozzle height"));
-	  //AxisEnum axis = Z_AXIS;
-	  
-	  
-	  
     if (lcd_clicked) 
 	{
 		zprobe_zoffset = (current_position[Z_AXIS] + zprobe_zoffset);
 		lcd_completion_feedback(settings.save());
-		//lcd_store_settings();
-		//enqueue_and_echo_command(PSTR("M500"));
-		//return _lcd_z_offset_completed(); 
+		
 		lcd_goto_screen(_lcd_z_offset_completed);
 	}
 	
@@ -3563,6 +3552,169 @@ void lcd_enqueue_filament_change() {
     }
 	
 	#endif
+	
+	
+
+    /**
+   *
+   * "Calibrate Extruder" submenu
+   *
+   *
+
+	void _lcd_screen_calibrate_extruder() { lcd_goto_screen(_lcd_calibrate_extruder);}
+	
+	void _lcd_screen_reset_calibrate_extruder() { lcd_goto_screen(_lcd_reset_calibrate_extruder);}
+   
+    void _lcd_calibrate_extruder_completed()
+	{
+		lcd_implementation_clear();
+		
+		START_SCREEN();
+	  STATIC_ITEM(_UxGT("Extruder Calibration"), true, true);
+	  lcd_implementation_drawmenu_static(2, PSTR("Calibration Saved"));
+	  lcd_implementation_drawmenu_static(3, PSTR("  Press to exit  "));
+      END_SCREEN();
+	  if (lcd_clicked) 
+		{
+			defer_return_to_status = false;
+			lcd_implementation_clear();
+			lcd_main_menu();
+		}
+	}
+	
+	void _lcd_reset_calibrate_extruder()
+    {
+
+		if (lcd_clicked) 
+		{	
+			planner.axis_steps_per_mm[E_AXIS + active_extruder] = DEFAULT_AXIS_STEPS_PER_UNIT[3+active_extruder];
+			lcd_completion_feedback(settings.save());
+
+			return _lcd_calibrate_extruder_completed(); 
+		}
+		
+		if (lcdDrawUpdate) 
+		{
+			START_SCREEN();
+			STATIC_ITEM(_UxGT("Extruder Calibration"), true, true);
+			lcd_implementation_drawmenu_static(2, PSTR("Calibration Saved"));
+			lcd_implementation_drawmenu_static(3, PSTR("  Press to exit  "));		
+			END_SCREEN();
+		}
+	}
+   
+  void _lcd_calibrate_extruder_store(float tempESteps) 
+  {  
+	  
+    if (lcd_clicked) 
+	{
+		planner.axis_steps_per_mm[E_AXIS + active_extruder] = tempESteps;
+		lcd_completion_feedback(settings.save());
+
+		return _lcd_calibrate_extruder_completed(); 
+	}
+	
+    ENCODER_DIRECTION_NORMAL();
+	
+    if (encoderPosition) {
+      refresh_cmd_timeout();
+
+      float min = DEFAULT_AXIS_STEPS_PER_UNIT[3+active_extruder] - 30,
+            max = DEFAULT_AXIS_STEPS_PER_UNIT[3+active_extruder] + 30;
+
+      // Get the new position
+      tempESteps -= float((int32_t)encoderPosition) * 0.05;
+
+
+      // Limit only when trying to move towards the limit
+      if ((int32_t)encoderPosition < 0) NOLESS(tempESteps, min);
+      if ((int32_t)encoderPosition > 0) NOMORE(tempESteps, max);
+
+      encoderPosition = 0;
+      lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+    }
+	
+    if (lcdDrawUpdate) 
+	{
+		START_SCREEN();
+		STATIC_ITEM(_UxGT("Extruder Calibration"), true, true);
+	  lcd_implementation_drawmenu_static(2, PSTR("Calibration Saved"));
+		lcd_implementation_drawedit(PSTR(_UxGT("E steps:")), ftostr41sign((tempESteps));
+		lcd_implementation_drawmenu_static(3,PSTR("Press to save"));
+		
+		END_SCREEN();
+	}
+  }
+  
+	void _lcd_z_offset_prepare_calibration()
+	{
+		do
+		{
+			START_SCREEN();
+			STATIC_ITEM(_UxGT("Nozzle height"), true, true);
+			lcd_implementation_drawedit(PSTR(_UxGT("Z height")), ftostr41sign((current_position[Z_AXIS] + zprobe_zoffset)));
+			lcd_implementation_drawmenu_static(3,PSTR("Press to save"));
+			END_SCREEN();
+		}
+		while (!(lcdDrawUpdate));
+		
+		current_position[Z_AXIS] -= 8;
+		manual_move_to_current(Z_AXIS);
+		
+		lcd_goto_screen(_lcd_calibrate_z_offset);
+	  
+	}
+  
+  void _lcd_z_offset_check_bed_homing() {
+      if (lcdDrawUpdate && !(axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS])) 
+	  {
+	  START_SCREEN();
+	  STATIC_ITEM(_UxGT("Nozzle height"), true, true);
+      STATIC_ITEM("Homing XYZ axis ", true, true);
+      STATIC_ITEM("Allow movement to");
+	  STATIC_ITEM("finish and press!");
+	  //STATIC_ITEM("finish and press ");
+	  //STATIC_ITEM("   to continue   ");
+      END_SCREEN();
+	  }
+	  
+	  
+      if  (axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS])
+	  {
+		lcd_goto_screen( _lcd_z_offset_prepare_calibration);
+	  }
+    }
+	
+	void _lcd_z_offset_start_bed_homing()
+	{
+		defer_return_to_status = true;
+        axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
+        enqueue_and_echo_commands_P(PSTR("G28"));
+		lcd_goto_screen(_lcd_z_offset_check_bed_homing);
+		
+	}
+  
+  void _lcd_menu_z_offset()
+    {
+		START_MENU();
+		if (LCD_HEIGHT >= 4) 
+		{
+			STATIC_ITEM(_UxGT("Nozzle height"), true, true);
+		}
+		  
+		MENU_BACK(_UxGT("Main"));
+		MENU_ITEM(submenu, _UxGT("Calibrate"), _lcd_z_offset_start_bed_homing);
+		MENU_ITEM(submenu, _UxGT("Reset"), _lcd_reset_z_offset);
+		  
+		END_MENU();
+	   
+    }
+	
+	#endif
+	
+	*/
+	
+	
   
   /**
    *

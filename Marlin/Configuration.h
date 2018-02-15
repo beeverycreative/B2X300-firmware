@@ -65,7 +65,7 @@
 // If your helloBEEprusa has Allegro A4988 stepper drivers please uncomment the correct line, delete the // before the #define.
 //
 // -Allegro A4988 on the Extruders and DRV8825 on the X, Y and Z axis
- #define hBp_A4988ext
+// #define hBp_A4988ext
 //
 // -Allegro A4988 on all axis
 // #define hBp_A4988all
@@ -83,7 +83,7 @@
 //
 //
 // If your helloBEEprusa has auto bed leveling please uncomment the following line.
- #define hBp_Autolevel
+// #define hBp_Autolevel
 //
 //
 //
@@ -93,12 +93,12 @@
 //
 //
 // If your helloBEEprusa has trapezoidal Z threaded rods please uncomment the following line.
- #define hBp_Trapezoidal
+// #define hBp_Trapezoidal
 //
 //
 //
 // If your helloBEEprusa has bowden extruders please uncomment the following line.
- #define hBp_Bowden
+// #define hBp_Bowden
 //
 //
 //
@@ -107,8 +107,13 @@
 //
 //
 //
+// helloBEEprusa X, debug only
+// #define hBp_X
+//
+//
+//
 // Center pulled X carriage
- #define hBp_ReverseX
+// #define hBp_ReverseX
 //
 //
 //
@@ -118,7 +123,7 @@
 //
 //
 // New spring loaded extruder, black plastic
- #define hBp_ReverseE
+// #define hBp_ReverseE
 //
 //
 //
@@ -137,6 +142,17 @@
 	#define hBp_ReverseX
 	#define hBp_ReverseY
 	#define hBp_ReverseZ
+#endif
+
+#ifdef hBp_X
+	#define hBp_A4988all
+	#define hBp_ReverseE
+	#define hBp_ReverseX
+	#define hBp_ReverseY
+	#define hBp_Trapezoidal
+	#define hBp_Extendedbed
+	#define hBp_Autolevel
+	#define hBp_Bowden
 #endif
 
 //===========================================================================
@@ -1019,19 +1035,30 @@
 #else
 	//extended bed
 	#define X_MIN_POS 0
-	#define X_BED_SIZE 300
+	#define X_BED_SIZE 350
 	
 #endif
 		
 // The size of the print bed
-#define Y_BED_SIZE 195
+#ifdef hBp_X
+	#define Y_BED_SIZE 224
+#else
+	#define Y_BED_SIZE 195
+#endif
 
 // Travel limits (mm) after homing, corresponding to endstop positions.
 #define Y_MIN_POS 0
 #define Z_MIN_POS 0
 #define X_MAX_POS X_BED_SIZE
 #define Y_MAX_POS Y_BED_SIZE
-#define Z_MAX_POS 190
+
+#ifdef hBp_X
+	#define Z_MAX_POS 350
+#else
+	#define Z_MAX_POS 190
+#endif
+
+
 /**
  * Software Endstops
  *
@@ -1653,7 +1680,10 @@
 //
 //  Set this option if CLOCKWISE causes values to DECREASE
 //
+// this if makes sure the encoder works correctly
+#ifndef hBp_X
 #define REVERSE_ENCODER_DIRECTION
+#endif
 
 //
 // This option reverses the encoder direction for navigating LCD menus.
@@ -1743,7 +1773,10 @@
 //
 // Note: Usually sold with a white PCB.
 //
-#define REPRAP_DISCOUNT_SMART_CONTROLLER
+// Check if using normal LCD or old version
+#ifndef hBp_X
+	#define REPRAP_DISCOUNT_SMART_CONTROLLER
+#endif
 
 //
 // GADGETS3D G3D LCD/SD Controller
@@ -1763,7 +1796,10 @@
 // MKS MINI 12864
 // controller and SD support - http://reprap.org/wiki/MKS_MINI_12864
 //
-//#define MKS_MINI_12864
+// Check if using normal LCD or old version
+#ifdef hBp_X
+	#define MKS_MINI_12864
+#endif
 
 //
 // MakerLab Mini Panel with graphic
