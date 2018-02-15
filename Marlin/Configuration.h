@@ -829,7 +829,7 @@
  #ifndef hBp_Autolevel
  #else
 #define Z_ENDSTOP_SERVO_NR 0   // Defaults to SERVO 0 connector.
-#define Z_SERVO_ANGLES {10,75}  // Z Servo Deploy and Stow angles
+#define Z_SERVO_ANGLES {10,85}  // Z Servo Deploy and Stow angles
  
  #endif
 

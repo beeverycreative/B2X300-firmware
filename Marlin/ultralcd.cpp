@@ -846,7 +846,10 @@ void kill_screen(const char* lcd_msg) {
         for (uint8_t i = 0; i < FAN_COUNT; i++) fanSpeeds[i] = 0;
       #endif
       wait_for_heatup = false;
-      lcd_setstatusPGM(PSTR(MSG_PRINT_ABORTED), -1);
+	  //DR - forces the disabling of stepper motors
+	  enqueue_and_echo_command(PSTR("M84"));
+      
+	  lcd_setstatusPGM(PSTR(MSG_PRINT_ABORTED), -1);
       lcd_return_to_status();
     }
 
