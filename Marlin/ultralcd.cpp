@@ -1339,11 +1339,12 @@ void kill_screen(const char* lcd_msg) {
         STATIC_ITEM(" ");
       #endif
 	  
+	  
 	  #ifndef DOGLCD
 			lcd.setCursor(2, 3);
 			lcd.print("Nozzle: ");
 			  
-			if((thermalManager.degHotend(active_extruder)) <100)
+			if(round(thermalManager.degHotend(active_extruder)) <100)
 			lcd.print(" ");
 		  
 			lcd.print(round(thermalManager.degHotend(active_extruder)));
@@ -1353,7 +1354,7 @@ void kill_screen(const char* lcd_msg) {
 		  u8g.setPrintPos(24, 48);
 			u8g.print("Nozzle: ");
 			  
-			if((thermalManager.degHotend(active_extruder)) <100)
+			if(round(thermalManager.degHotend(active_extruder)) <100)
 			u8g.print(" ");
 		  
 			u8g.print(round(thermalManager.degHotend(active_extruder)));
