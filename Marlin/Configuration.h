@@ -155,6 +155,9 @@
 	#define hBp_Bowden
 #endif
 
+// Sets the screen as MKS_MINI_12864 regardless of the options
+// #define hBp_MKS_MINI_12864
+
 //===========================================================================
 //============================= DELTA Printer ===============================
 //===========================================================================
@@ -458,7 +461,7 @@
   //#define PID_DEBUG // Sends debug data to the serial port.
   //#define PID_OPENLOOP 1 // Puts PID in open loop. M104/M140 sets the output power from 0 to PID_MAX
   //#define SLOW_PWM_HEATERS // PWM with very low frequency (roughly 0.125Hz=8s) and minimum state time of approximately 1s useful for heaters driven by a relay
-  //#define PID_PARAMS_PER_HOTEND // Uses separate PID parameters for each extruder (useful for mismatched extruders)
+  #define PID_PARAMS_PER_HOTEND // Uses separate PID parameters for each extruder (useful for mismatched extruders)
                                   // Set/get with gcode: M301 E[extruder number, 0-2]
   #define PID_FUNCTIONAL_RANGE 10 // If the temperature difference between the target temperature and the actual temperature
                                   // is more than PID_FUNCTIONAL_RANGE then the PID will be shut off and the heater will be set to min/max.
@@ -642,7 +645,7 @@
 
 // Enable this feature if all enabled endstop pins are interrupt-capable.
 // This will remove the need to poll the interrupt pins, saving many CPU cycles.
-#define ENDSTOP_INTERRUPTS_FEATURE
+//#define ENDSTOP_INTERRUPTS_FEATURE
 
 //=============================================================================
 //============================== Movement Settings ============================
@@ -729,7 +732,7 @@
 	#ifndef hBp_Trapezoidal
 		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 2, 60 }
 	#else
-		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 5, 60 }
+		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 6, 60 }
 	#endif
 
 #endif
@@ -740,7 +743,11 @@
  * Override with M201
  *                                      X, Y, Z, E0 [, E1[, E2[, E3[, E4]]]]
  */
-#define DEFAULT_MAX_ACCELERATION      { 1000, 1000, 10, 10000 }
+#ifdef hBp_Trapezoidal
+	#define DEFAULT_MAX_ACCELERATION      { 3000, 3000, 300, 10000 }
+#else
+	#define DEFAULT_MAX_ACCELERATION      { 3000, 3000, 10, 10000 }
+#endif
 
 /**
  * Default Acceleration (change/s) change = mm/s
@@ -752,7 +759,7 @@
  */
 #define DEFAULT_ACCELERATION          1000    // X, Y, Z and E acceleration for printing moves
 #define DEFAULT_RETRACT_ACCELERATION  2000    // E acceleration for retracts
-#define DEFAULT_TRAVEL_ACCELERATION   2000    // X, Y, Z acceleration for travel (non printing) moves
+#define DEFAULT_TRAVEL_ACCELERATION   3000    // X, Y, Z acceleration for travel (non printing) moves
 
 /**
  * Default Jerk (mm/s)
@@ -905,7 +912,7 @@
 
 
 // X and Y axis travel speed (mm/m) between probes
-#define XY_PROBE_SPEED 8000
+#define XY_PROBE_SPEED 14000
 
 // Speed for the first approach when double-probing (MULTIPLE_PROBING == 2)
 #define Z_PROBE_SPEED_FAST HOMING_FEEDRATE_Z
@@ -914,7 +921,7 @@
 //DR - 17-10-17 13h50 Activated probe double touch and reduced the second probing speed
 
 // Speed for the "accurate" probe of each point
-#define Z_PROBE_SPEED_SLOW (Z_PROBE_SPEED_FAST / 4)
+#define Z_PROBE_SPEED_SLOW Z_PROBE_SPEED_FAST *0.25
 
 // The number of probes to perform at each point.
 //   Set to 2 for a fast/slow probe, using the second probe result.
@@ -943,7 +950,7 @@
 #define Z_PROBE_OFFSET_RANGE_MAX -3
 
 // Enable the M48 repeatability test to test probe accuracy
-//#define Z_MIN_PROBE_REPEATABILITY_TEST
+#define Z_MIN_PROBE_REPEATABILITY_TEST
 
 // For Inverting Stepper Enable Pins (Active Low) use 0, Non Inverting (Active High) use 1
 // :{ 0:'Low', 1:'High' }
@@ -1036,7 +1043,7 @@
 #else
 	//extended bed
 	#define X_MIN_POS 0
-	#define X_BED_SIZE 350
+	#define X_BED_SIZE 330
 	
 #endif
 		
@@ -1093,9 +1100,9 @@
  * For other boards you may need to define FIL_RUNOUT_PIN.
  * By default the firmware assumes HIGH = has filament, LOW = ran out
  */
-//#define FILAMENT_RUNOUT_SENSOR
+#define FILAMENT_RUNOUT_SENSOR
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)
-  #define FIL_RUNOUT_INVERTING false // set to true to invert the logic of the sensor.
+  #define FIL_RUNOUT_INVERTING true // set to true to invert the logic of the sensor.
   #define ENDSTOPPULLUP_FIL_RUNOUT // Uncomment to use internal pullup for filament runout pins if the sensor is defined.
   #define FILAMENT_RUNOUT_SCRIPT "M600"
 #endif
@@ -1194,7 +1201,7 @@
 	#define GRID_MAX_POINTS_X 3
   #endif
   
-  #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
+  #define GRID_MAX_POINTS_Y 3
 
   //DR - 17-10-17 13h00 The probing place is closer to the edge of the bed
   //DR - 31-10-17 15h Different probing positions depending on the bed X size
@@ -1344,8 +1351,8 @@
 #endif
 
 // Homing speeds (mm/m)
-#define HOMING_FEEDRATE_XY (50*60)
-#define HOMING_FEEDRATE_Z  (4*60)
+#define HOMING_FEEDRATE_XY (80*60)
+#define HOMING_FEEDRATE_Z  (8*60)
 
 // @section calibrate
 
@@ -1420,7 +1427,7 @@
 //
 #define EEPROM_SETTINGS // Enable for M500 and M501 commands
 //#define DISABLE_M503    // Saves ~2700 bytes of PROGMEM. Disable for release!
-#define EEPROM_CHITCHAT   // Give feedback on EEPROM commands. Disable to save PROGMEM.
+//#define EEPROM_CHITCHAT   // Give feedback on EEPROM commands. Disable to save PROGMEM.
 
 //
 // Host Keepalive
@@ -1687,8 +1694,8 @@
 //  Set this option if CLOCKWISE causes values to DECREASE
 //
 // this if makes sure the encoder works correctly
-#ifndef hBp_X
-#define REVERSE_ENCODER_DIRECTION
+#if (DISABLED(hBp_X) && DISABLED(hBp_MKS_MINI_12864))
+	#define REVERSE_ENCODER_DIRECTION
 #endif
 
 //
@@ -1780,7 +1787,7 @@
 // Note: Usually sold with a white PCB.
 //
 // Check if using normal LCD or old version
-#ifndef hBp_X
+#if (DISABLED(hBp_X) && DISABLED(hBp_MKS_MINI_12864))
 	#define REPRAP_DISCOUNT_SMART_CONTROLLER
 #endif
 
@@ -1803,7 +1810,7 @@
 // controller and SD support - http://reprap.org/wiki/MKS_MINI_12864
 //
 // Check if using normal LCD or old version
-#ifdef hBp_X
+#if ( ENABLED(hBp_X) || ENABLED(hBp_MKS_MINI_12864))
 	#define MKS_MINI_12864
 #endif
 

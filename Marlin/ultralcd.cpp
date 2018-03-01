@@ -852,6 +852,8 @@ void kill_screen(const char* lcd_msg) {
       wait_for_heatup = false;
 	  lcd_setstatusPGM(PSTR(MSG_PRINT_ABORTED), -1);
       lcd_return_to_status();
+	  //DR - forces the disabling of stepper motors
+	  stepper.finish_and_disable();
     }
 
   #endif // SDSUPPORT
@@ -1083,7 +1085,7 @@ void kill_screen(const char* lcd_msg) {
 		  MENU_ITEM(function, MSG_LEVEL_BED, _lcd_level_bed_continue); 
 	  #endif
 	  #if HAS_ABL
-		  MENU_ITEM(gcode, MSG_LEVEL_BED, PSTR("T0\nG28\nG29")); 
+		  MENU_ITEM(gcode, MSG_LEVEL_BED, PSTR("T0\nG28\nG29\nG1 X160 Y200 F11000\nM500\nG4 P200\n M300 S4000 P200\nG4 P500\n M300 S4000 P200")); 
 	  #endif
 		
 	  //DR - Calibrate Z_offset

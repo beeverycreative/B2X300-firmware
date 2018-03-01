@@ -252,7 +252,10 @@
 #endif
 
 // define digital pin 4 for the filament runout sensor. Use the RAMPS 1.4 digital input 4 on the servos connector
-#define FIL_RUNOUT_PIN      4
+//#define FIL_RUNOUT_PIN      4
+// DR - Changed the input to X+ plug port D2
+#define FIL_RUNOUT_PIN      2
+
 
 #ifndef PS_ON_PIN
   #define PS_ON_PIN        12
