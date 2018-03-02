@@ -3134,7 +3134,8 @@ void lcd_enqueue_filament_change() {
             #endif
           );
     #elif PLANNER_LEVELING && DISABLED(PROBE_MANUALLY)
-      MENU_ITEM(gcode, MSG_BED_LEVELING, PSTR("G28\nG29"));
+      //DR - Unnecessary as the bed leveling is already on the main menu
+	  //MENU_ITEM(gcode, MSG_BED_LEVELING, PSTR("G28\nG29"));
     #endif
 
     #if ENABLED(LEVEL_BED_CORNERS) && DISABLED(LCD_BED_LEVELING)
