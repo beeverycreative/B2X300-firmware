@@ -113,7 +113,7 @@
 //
 //
 // Center pulled X carriage
-// #define hBp_ReverseX
+ #define hBp_ReverseX
 //
 //
 //
@@ -1041,9 +1041,18 @@
 	#define X_BED_SIZE 185
 	
 #else
-	//extended bed
 	#define X_MIN_POS 0
-	#define X_BED_SIZE 330
+
+	#ifdef hBp_X
+		//extended bed with more margin
+		#define X_BED_SIZE 330
+	
+	#else
+		//extended bed
+	#define X_BED_SIZE 300
+		
+	#endif
+	
 	
 #endif
 		
@@ -1100,7 +1109,7 @@
  * For other boards you may need to define FIL_RUNOUT_PIN.
  * By default the firmware assumes HIGH = has filament, LOW = ran out
  */
-#define FILAMENT_RUNOUT_SENSOR
+//#define FILAMENT_RUNOUT_SENSOR
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)
   #define FIL_RUNOUT_INVERTING true // set to true to invert the logic of the sensor.
   #define ENDSTOPPULLUP_FIL_RUNOUT // Uncomment to use internal pullup for filament runout pins if the sensor is defined.
