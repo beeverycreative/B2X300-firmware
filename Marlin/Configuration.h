@@ -155,6 +155,8 @@
 	#define hBp_Bowden
 #endif
 
+#define SERIAL_DEBUG
+
 // Sets the screen as MKS_MINI_12864 regardless of the options
 // #define hBp_MKS_MINI_12864
 
@@ -950,7 +952,7 @@
 #define Z_PROBE_OFFSET_RANGE_MAX -3
 
 // Enable the M48 repeatability test to test probe accuracy
-#define Z_MIN_PROBE_REPEATABILITY_TEST
+//#define Z_MIN_PROBE_REPEATABILITY_TEST
 
 // For Inverting Stepper Enable Pins (Active Low) use 0, Non Inverting (Active High) use 1
 // :{ 0:'Low', 1:'High' }

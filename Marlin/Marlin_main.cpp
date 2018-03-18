@@ -238,6 +238,13 @@
  * M928 - Start SD logging: "M928 filename.gco". Stop with M29. (Requires SDSUPPORT)
  * M999 - Restart after being stopped by error
  *
+ * ************************** BEEVC codes **************************************
+ * M700 - Stops print and saves current position to EEPROM
+ * M701 - Store current position to EEPROM
+ * M710 - Loads position and restores print
+ * M711 - Loads current position from EEPROM
+ *
+ *
  * "T" Codes
  *
  * T0-T3 - Select an extruder (tool) by index: "T<n> F<units/min>"
@@ -6932,6 +6939,12 @@ inline void gcode_M31() {
       const bool call_procedure = parser.boolval('P');
 
       card.openFile(parser.string_arg, true, call_procedure);
+	  
+	  // DEBUG ONLY - TO REMOVE
+	  SERIAL_ECHOPGM(" string: \"");
+      SERIAL_ECHO(parser.string_arg);
+      SERIAL_CHAR('"');
+	  //
 
       if (parser.seenval('S')) card.setIndex(parser.value_long());
 
@@ -11239,6 +11252,401 @@ inline void gcode_M999() {
   FlushSerialRequestResend();
 }
 
+
+/**
+ * ********************** BEEVC CODES ********************************
+ *
+ * M700 - Stops print and saves current position to EEPROM
+ * M701 - Store current position to EEPROM
+ * M710 - Loads position and restores print
+ * M711 - Loads current position from EEPROM
+ *
+ */
+ 
+ // Necessary to write to eeprom
+ inline void EEPROM_write(int &pos, const uint8_t *value, uint16_t size) {
+	bool eeprom_error = false;
+	
+    while (size--) {
+      uint8_t * const p = (uint8_t * const)pos;
+      uint8_t v = *value;
+      // EEPROM has only ~100,000 write cycles,
+      // so only write bytes that have changed!
+      if (v != eeprom_read_byte(p)) {
+        eeprom_write_byte(p, v);
+        if (eeprom_read_byte(p) != v) {
+          SERIAL_ECHO_START();
+          SERIAL_ECHOLNPGM(MSG_ERR_EEPROM_WRITE);
+          eeprom_error = true;
+          return;
+        }
+      }
+      pos++;
+      value++;
+    };
+  }
+  inline void EEPROM_read(int &pos, uint8_t* value, uint16_t size) {
+    do {
+      uint8_t c = eeprom_read_byte((unsigned char*)pos);
+      *value = c;
+      pos++;
+      value++;
+    } while (--size);
+  }
+ 
+ /**
+  * M701: Store current position to EEPROM
+  *
+  * Stores the required print information to the EEPROM, using the first 100 bytes of EEPROM which are empty by default
+  * Stores the following values to the EEPROM:
+  *  - Feedrate								??
+  *  - Current Z height				float			current_position[Z_AXIS]
+  *  - Extrusion ammount			float			current_position[E_AXIS]
+  *  - Part cooling fan speed		int_8_t			fanSpeeds[p] , in this case 0 because you only have one fan
+  *  - Extruder's temperatures		int16_t			thermalManager.target_temperature[HOTENDS]
+  *  - Hot bed temperature			int16_t			thermalManager.target_temperature_bed
+  *  - SD card position				uint_32_t		file.curPosition();
+  *
+  *
+ */
+ 
+ inline void gcode_M701() 
+{
+	
+	
+	// Sets the eeprom index to the begining
+	int eeprom_index = 0 ;
+	
+	
+	//Stores Z height
+	EEPROM_write(eeprom_index, (uint8_t*)&current_position[Z_AXIS], sizeof(current_position[Z_AXIS]));
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("Saved Z height: ", current_position[Z_AXIS]);
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
+	
+	
+	//Stores extrusion ammount
+	EEPROM_write(eeprom_index, (uint8_t*)&current_position[E_AXIS], sizeof(current_position[E_AXIS]));
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("Saved E ammount: ", current_position[E_AXIS]);
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
+	
+	//Stores part cooling fan speed
+	EEPROM_write(eeprom_index, (uint8_t*)&fanSpeeds[0], sizeof(fanSpeeds[0]));
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("Saved fan speed: ", fanSpeeds[0]);
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
+	
+	//Stores extruder temps
+	// E0
+	EEPROM_write(eeprom_index, (uint8_t*)&thermalManager.target_temperature[0], sizeof(thermalManager.target_temperature[0]));
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("Saved E0 temp: ", thermalManager.target_temperature[0]);
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
+	// E1
+	EEPROM_write(eeprom_index, (uint8_t*)&thermalManager.target_temperature[1], sizeof(thermalManager.target_temperature[1]));
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("Saved E1 temp: ", thermalManager.target_temperature[1]);
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
+	
+	//Stores hot bed temp
+	EEPROM_write(eeprom_index, (uint8_t*)&thermalManager.target_temperature_bed, sizeof(thermalManager.target_temperature_bed));
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("Saved bed temp: ", thermalManager.target_temperature_bed);
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
+	
+	//Stores SD card position
+	if (card.isFileOpen())
+	{
+		uint32_t tempSdpos = card.getpos();
+	
+	
+		EEPROM_write(eeprom_index, (uint8_t*)&tempSdpos, sizeof(tempSdpos));
+		#ifdef SERIAL_DEBUG
+			SERIAL_ECHOPAIR("Saved SD card position: ", tempSdpos);
+			SERIAL_ECHOPAIR(" at position ", eeprom_index);
+			SERIAL_ECHOLNPGM(" ");
+		#endif
+		
+		
+		//Saves the file name
+		eeprom_index++; //incremented by one to allow the root folder sign
+		EEPROM_write(eeprom_index, (uint8_t*)card.filename , FILENAME_LENGTH);
+		
+		
+		
+		//Checks if on root or not
+		char root = *card.getWorkDirName();
+		if(root == '/')
+		{
+			eeprom_index -= FILENAME_LENGTH+1;
+			EEPROM_write(eeprom_index, (uint8_t*)&root , 1);
+				
+		}
+		else
+		{
+			char null = ' ';
+			eeprom_index -= FILENAME_LENGTH+1;
+			EEPROM_write(eeprom_index, (uint8_t*)&null , 1);
+		}
+		
+		#ifdef SERIAL_DEBUG
+		SERIAL_ECHO("Saved SD file name: ");
+		
+		char filename[FILENAME_LENGTH+1] ;
+		
+		eeprom_index--; //decremented by one to allow reading of the full name
+		
+		EEPROM_read(eeprom_index, (uint8_t*)&filename , FILENAME_LENGTH+1);
+		for (char* i = &filename[0]; i < &filename[0]+ FILENAME_LENGTH; i++)
+			   SERIAL_PROTOCOLCHAR(*i);
+			
+			SERIAL_ECHOLNPGM(" ");
+			SERIAL_ECHOPAIR(" at position ", eeprom_index);
+			SERIAL_ECHOLNPGM(" ");
+		
+		/*
+		for (int i = 0; i < FILENAME_LENGTH; i++)
+			SERIAL_PROTOCOLCHAR(card.filename[i]);
+			SERIAL_ECHOPAIR(" at position ", eeprom_index);
+			SERIAL_ECHOLNPGM(" ");
+		
+		#endif
+		
+		#ifdef SERIAL_DEBUG
+			SERIAL_ECHO("Root file?  ");
+			
+			if(root == '/')
+				SERIAL_ECHOLNPGM("Yes");
+			else
+				SERIAL_ECHOLNPGM("No");
+			
+		*/
+		#endif
+		   
+		
+	}
+	else
+	{
+		#ifdef SERIAL_DEBUG
+			SERIAL_ECHOLNPGM("No file opened !");
+		#endif
+	}
+	
+	
+}
+/**
+  * M700: Stops print and saves current position to EEPROM
+  *
+  * Emergency stop then stores variables
+  *
+  *
+ */
+ 
+ inline void gcode_M700() 
+{
+	stepper.quick_stop();
+	disable_all_steppers();
+	
+	//disables interrupts to stop the execution of steps and all other internal processes to execute as fast as possible
+	cli();
+	
+	
+	// Disables heating by forcing the mosfets OFF
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("Start time: ", millis());
+		SERIAL_ECHOLNPGM("! ");
+		SERIAL_ECHOLNPGM("Forced disabling of heating elements !");
+	#endif 
+	WRITE_HEATER_BED(LOW);
+	WRITE_HEATER_0(LOW);
+	WRITE_HEATER_1(LOW);
+	
+	
+	// Disables all stepper motors
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOLNPGM("Stopping stepper drivers !");
+	#endif 
+	stepper.quick_stop();
+	disable_all_steppers();
+	
+	
+	// Saves the variables to EEPROM
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOLNPGM("Saving variables !");
+	#endif 
+	gcode_M701();
+	
+	// Disables heating properly
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOLNPGM("Disabling heating elements properly !");
+	#endif 
+	
+	thermalManager.disable_all_heaters();
+	
+	
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("End time: ", millis());
+		SERIAL_ECHOLNPGM("! ");
+	#endif 
+	
+	
+	//Restores the interrupts now that the necessary data has been stored
+	//sei();
+	
+	kill(PSTR(MSG_KILLED));
+	
+}
+
+/**
+  * M711 - Loads current position from EEPROM
+  *
+  * Emergency stop then stores variables
+  *
+  *
+ */
+
+inline void gcode_M711() {
+	
+  // Sets the eeprom index to the begining
+	int eeprom_index = 0 ;
+	
+	
+	//Loads Z height
+	EEPROM_read(eeprom_index, (uint8_t*)&current_position[Z_AXIS], sizeof(current_position[Z_AXIS]));
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("Loaded Z height: ", current_position[Z_AXIS]);
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
+	
+	
+	//Stores extrusion ammount
+	EEPROM_read(eeprom_index, (uint8_t*)&current_position[E_AXIS], sizeof(current_position[E_AXIS]));
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("Loaded E ammount: ", current_position[E_AXIS]);
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
+	
+	//Stores part cooling fan speed
+	EEPROM_read(eeprom_index, (uint8_t*)&fanSpeeds[0], sizeof(fanSpeeds[0]));
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("Loaded fan speed: ", fanSpeeds[0]);
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
+	
+	//Stores extruder temps
+	// E0
+	EEPROM_read(eeprom_index, (uint8_t*)&thermalManager.target_temperature[0], sizeof(thermalManager.target_temperature[0]));
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("Loaded E0 temp: ", thermalManager.target_temperature[0]);
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
+	// E1
+	EEPROM_read(eeprom_index, (uint8_t*)&thermalManager.target_temperature[1], sizeof(thermalManager.target_temperature[1]));
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("Loaded E1 temp: ", thermalManager.target_temperature[1]);
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
+	
+	//Stores hot bed temp
+	EEPROM_read(eeprom_index, (uint8_t*)&thermalManager.target_temperature_bed, sizeof(thermalManager.target_temperature_bed));
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("Loaded bed temp: ", thermalManager.target_temperature_bed);
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
+	
+	//Loads SD card position
+	
+		uint32_t tempSdpos = 0;
+	
+	
+		EEPROM_read(eeprom_index, (uint8_t*)&tempSdpos, sizeof(tempSdpos));
+		#ifdef SERIAL_DEBUG
+			SERIAL_ECHOPAIR("Loaded SD card position: ", tempSdpos);
+			SERIAL_ECHOPAIR(" at position ", eeprom_index);
+			SERIAL_ECHOLNPGM(" ");
+		#endif
+		
+		char filename[FILENAME_LENGTH] ;
+		
+		EEPROM_read(eeprom_index, (uint8_t*)&filename , FILENAME_LENGTH);
+		#ifdef SERIAL_DEBUG
+			SERIAL_ECHO("Saved SD file name: ");
+			
+			for (char* i = &filename[0]; i < &filename[0]+ FILENAME_LENGTH; i++)
+			   SERIAL_PROTOCOLCHAR(*i);
+			
+			SERIAL_ECHOPAIR(" at position ", eeprom_index);
+			SERIAL_ECHOLNPGM(" ");
+		#endif
+	
+}
+
+/**
+  * M710 - Loads position and restores print
+  *
+  * Emergency stop then stores variables
+  *
+  *
+ */
+
+inline void gcode_M710() 
+{
+	//Loads most variables from EEPROM to the respective spots
+	gcode_M711();
+	
+	//Load the file at the desired position
+	char restoreFile[FILENAME_LENGTH+2];
+	
+	int eeprom_index = 20; //The index of the name
+	EEPROM_read(eeprom_index, (uint8_t*)&restoreFile , FILENAME_LENGTH+1);
+	
+	restoreFile[FILENAME_LENGTH+1] = '\0';
+	
+	uint32_t tempSdpos = 0;
+	eeprom_index = 16; //The index of the name
+	EEPROM_read(eeprom_index, (uint8_t*)&tempSdpos, sizeof(tempSdpos));
+		 
+	card.openFile(&restoreFile[0], true);
+	card.setIndex((long) &tempSdpos);
+	
+	
+	//Homes X Y not moving the Z axis
+	 HOMEAXIS(X);
+	 HOMEAXIS(Y);
+	
+	//Waits for thermal stability
+	
+	/* Not working for now
+	while(thermalManager.isHeatingHotend(0) || thermalManager.isHeatingHotend(1) || thermalManager.degTargetBed() > thermalManager.degBed())
+		LCD_MESSAGEPGM(MSG_HEATING);
+	*/
+	
+	//Continues the print
+	
+	card.startFileprint();
+	
+	
+}
+
 #if ENABLED(SWITCHING_EXTRUDER)
   #if EXTRUDERS > 3
     #define REQ_ANGLES 4
@@ -12642,6 +13050,23 @@ void process_parsed_command() {
       case 999: // M999: Restart after being Stopped
         gcode_M999();
         break;
+		
+		//*************************** BEEVC codes **************************************
+		case 700:  //Stops print and saves current position to EEPROM
+			gcode_M700();
+			break;
+		
+		case 701:  //Store current position to EEPROM
+			gcode_M701();
+			break;
+		
+		case 710:  //Loads position and restores print
+			gcode_M710();
+			break;
+		
+		case 711:  //Loads current position from EEPROM
+			gcode_M711();
+			break;
     }
     break;
 
