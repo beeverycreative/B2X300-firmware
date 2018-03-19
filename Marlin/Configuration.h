@@ -156,6 +156,7 @@
 #endif
 
 #define SERIAL_DEBUG
+#define hBp_Restore
 
 // Sets the screen as MKS_MINI_12864 regardless of the options
 // #define hBp_MKS_MINI_12864

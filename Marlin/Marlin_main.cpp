@@ -11459,6 +11459,7 @@ inline void gcode_M999() {
 {
 	stepper.quick_stop();
 	disable_all_steppers();
+	clear_command_queue();
 	
 	//disables interrupts to stop the execution of steps and all other internal processes to execute as fast as possible
 	cli();
@@ -11640,8 +11641,15 @@ inline void gcode_M710()
 		LCD_MESSAGEPGM(MSG_HEATING);
 	*/
 	
-	//Continues the print
+	//Sets the stored extruder ammount to 0 because printer has already been restored
+	float temp = 0;
+	int eeprom_index_recover = 4;
 	
+	EEPROM_write(eeprom_index, (uint8_t*)&current_position[E_AXIS], sizeof(current_position[E_AXIS]));
+	EEPROM_write(eeprom_index_recover, (uint8_t*)&temp, sizeof(current_position[E_AXIS]));
+	
+	
+	//Continues the print
 	card.startFileprint();
 	
 	
@@ -15173,6 +15181,12 @@ void setup() {
     delay(1000);
     WRITE(LCD_PINS_RS, HIGH);
   #endif
+  
+  //DR - Power recovery feature
+  // This sets the trigger pin as a input with pullup and sets an interrupt on it
+  pinMode(2, INPUT_PULLUP);           // set pin 2 to input pullup
+  attachInterrupt(digitalPinToInterrupt(2), gcode_M700, FALLING );
+  
 }
 
 /**
