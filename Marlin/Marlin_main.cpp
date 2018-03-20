@@ -11710,10 +11710,10 @@ inline void gcode_M710()
 		//lower Z by a set ammount
 		float def1[] = DEFAULT_AXIS_STEPS_PER_UNIT , def2[] = DEFAULT_MAX_FEEDRATE;
 		long steps = def1[2] * (hBp_Restore_LiftZ / 1000);
-		long usStep = round(500000/(def2[2]*1.5*steps));
+		long usStep = round(1000000/(def2[2]*1.5*steps));
 			
 		// Enable the Z stepper - Active low
-		PORTK &= (1 << 0);
+		PORTK &= ~(1 << 0);
 		
 		// Sets direction of Z axis, up when LOW, down when HIGH
 		PORTL |= (1 << 1);
@@ -11727,6 +11727,7 @@ inline void gcode_M710()
 			delayMicroseconds(usStep);
 		}  
 	#endif
+	
 	
 	
 	//Sets the stored extruder ammount to 0 because printer has already been restored
@@ -15506,7 +15507,7 @@ ISR (PCINT0_vect)
 			//lower Z by a set ammount
 			float def1[] = DEFAULT_AXIS_STEPS_PER_UNIT , def2[] = DEFAULT_MAX_FEEDRATE;
 			long steps = def1[2] * (hBp_Restore_LiftZ / 1000);
-			long usStep = round(500000/(def2[2]*1.5*steps));
+			long usStep = round(1000000/(def2[2]*1.5*steps));
 				
 			// Enable the Z stepper - Active low
 			PORTK &= ~(1 << 0);
