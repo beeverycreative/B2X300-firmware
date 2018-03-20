@@ -155,8 +155,9 @@
 	#define hBp_Bowden
 #endif
 
-#define SERIAL_DEBUG
+//#define SERIAL_DEBUG
 #define hBp_Restore
+//#define hBp_Restore_LiftZ 1000
 
 // Sets the screen as MKS_MINI_12864 regardless of the options
 // #define hBp_MKS_MINI_12864
