@@ -146,7 +146,6 @@
 
 #ifdef hBp_X
 	#define hBp_A4988all
-	#define hBp_ReverseE
 	#define hBp_ReverseX
 	#define hBp_ReverseY
 	#define hBp_Trapezoidal
