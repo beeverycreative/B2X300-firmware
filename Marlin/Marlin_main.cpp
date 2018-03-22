@@ -15507,7 +15507,7 @@ ISR (PCINT0_vect)
 			//lower Z by a set ammount
 			float def1[] = DEFAULT_AXIS_STEPS_PER_UNIT , def2[] = DEFAULT_MAX_FEEDRATE;
 			long steps = def1[2] * (hBp_Restore_LiftZ / 1000);
-			long usStep = round(1000000/(def2[2]*1.5*steps));
+			long usStep = round(1000000/(def2[2]*steps));
 				
 			// Enable the Z stepper - Active low
 			PORTK &= ~(1 << 0);
