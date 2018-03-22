@@ -152,9 +152,10 @@
 	#define hBp_Extendedbed
 	#define hBp_Autolevel
 	#define hBp_Bowden
+	#define hBp_MKS_MINI_12864
 #endif
 
-// Sets the screen as MKS_MINI_12864 regardless of the options
+// Sets the screen as MKS_MINI_12864 regardless of the other options
 // #define hBp_MKS_MINI_12864
 
 //===========================================================================
@@ -949,7 +950,7 @@
 #define Z_PROBE_OFFSET_RANGE_MAX -3
 
 // Enable the M48 repeatability test to test probe accuracy
-#define Z_MIN_PROBE_REPEATABILITY_TEST
+//#define Z_MIN_PROBE_REPEATABILITY_TEST
 
 // For Inverting Stepper Enable Pins (Active Low) use 0, Non Inverting (Active High) use 1
 // :{ 0:'Low', 1:'High' }
@@ -1686,6 +1687,15 @@
 //
 //#define ENCODER_STEPS_PER_MENU_ITEM 5
 
+
+// Improved encoder responsiveness
+#ifdef hBp_MKS_MINI_12864
+
+	#define ENCODER_STEPS_PER_MENU_ITEM 1
+	#define ENCODER_PULSES_PER_STEP 4
+
+#endif
+
 /**
  * Encoder Direction Options
  *
@@ -1818,7 +1828,7 @@
 // controller and SD support - http://reprap.org/wiki/MKS_MINI_12864
 //
 // Check if using normal LCD or old version
-#if ( ENABLED(hBp_X) || ENABLED(hBp_MKS_MINI_12864))
+#ifdef hBp_MKS_MINI_12864
 	#define MKS_MINI_12864
 #endif
 
