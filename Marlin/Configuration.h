@@ -723,14 +723,14 @@
 
 #ifndef hBp_Bowden
 	#ifndef hBp_Trapezoidal
-		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 2, 20 }
+		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 3, 20 }
 	#else
-		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 5, 20 }
+		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 6, 20 }
 	#endif
 
 #else
 	#ifndef hBp_Trapezoidal
-		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 2, 60 }
+		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 3, 60 }
 	#else
 		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 6, 60 }
 	#endif
@@ -743,11 +743,8 @@
  * Override with M201
  *                                      X, Y, Z, E0 [, E1[, E2[, E3[, E4]]]]
  */
-#ifdef hBp_Trapezoidal
 	#define DEFAULT_MAX_ACCELERATION      { 3000, 3000, 300, 10000 }
-#else
-	#define DEFAULT_MAX_ACCELERATION      { 3000, 3000, 10, 10000 }
-#endif
+
 
 /**
  * Default Acceleration (change/s) change = mm/s
