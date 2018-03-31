@@ -236,6 +236,15 @@ uint16_t max_display_update_time = 0;
 	
 	#endif
 	
+	////////////   Power recovery feature    //////////////
+	#ifdef hBp_Restore
+	
+		void recover_print();
+			
+	#endif
+	///////////////////////////////////////////////////////
+		
+	
 #if HAS_ABL
 	
 	//Calibrate Z offset
@@ -1028,35 +1037,16 @@ void kill_screen(const char* lcd_msg) {
         MENU_ITEM_EDIT_CALLBACK(bool, MSG_CASE_LIGHT, (bool*)&case_light_on, update_case_light);
     #endif
 	
-	//DR - Power Recovery Feature
+	////////////   Power recovery feature    //////////////
 	// This shows an option to recover the print from the menu
 	#ifdef hBp_Restore
-	/*
-		inline void EEPROM_read(int &pos, uint8_t* value, uint16_t size) 
-		{
-			do 
-			{
-			  uint8_t c = eeprom_read_byte((unsigned char*)pos);
-			  *value = c;
-			  pos++;
-			  value++;
-			} while (--size);
-		}
 	
-		float temp = 0;
-		EEPROM_read(4,(uint8_t*)&temp,sizeof(current_position[E_AXIS]))
-		
-		if(temp != 0)
-		{
-			
-			MENU_ITEM(gcode, _UxGT("Restore print"), PSTR("M710"));
-		}
-		
-		*/
-		
-	MENU_ITEM(gcode, _UxGT("Restore print"), PSTR("M710"));
+		if (toRecover)
+			MENU_ITEM(function, _UxGT("Restore print"), recover_print);
 	
 	#endif
+	
+	///////////////////////////////////////////////////////
 
 
     #if ENABLED(SDSUPPORT)
@@ -1351,6 +1341,20 @@ void kill_screen(const char* lcd_msg) {
       thermalManager.start_watching_bed();
     #endif
   }
+  
+	////////////   Power recovery feature    //////////////
+	#ifdef hBp_Restore
+	
+		void recover_print()
+		{
+			enqueue_and_echo_commands_P(PSTR("M710"));
+			toRecover = false;
+			lcd_return_to_status();
+		}
+			
+	#endif
+	///////////////////////////////////////////////////////
+  
 
   #if ENABLED(ADVANCED_PAUSE_FEATURE)
   

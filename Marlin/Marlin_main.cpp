@@ -720,6 +720,12 @@ XYZ_CONSTS_FROM_CONFIG(float, max_length,     MAX_LENGTH);
 XYZ_CONSTS_FROM_CONFIG(float, home_bump_mm,   HOME_BUMP_MM);
 XYZ_CONSTS_FROM_CONFIG(signed char, home_dir, HOME_DIR);
 
+////////////   Power recovery feature    //////////////
+#ifdef hBp_Restore
+	bool toRecover = false;
+#endif
+///////////////////////////////////////////////////////
+
 /**
  * ***************************************************************************
  * ******************************** FUNCTIONS ********************************
@@ -771,6 +777,44 @@ void report_current_position_detail();
   #define DEBUG_POS(SUFFIX,VAR) do { \
     print_xyz(PSTR("  " STRINGIFY(VAR) "="), PSTR(" : " SUFFIX "\n"), VAR); }while(0)
 #endif
+
+////////////   Power recovery feature    //////////////
+#ifdef hBp_Restore
+	
+	 // Necessary to write to eeprom
+ inline void EEPROM_write(int &pos, const uint8_t *value, uint16_t size) {
+	bool eeprom_error = false;
+	
+    while (size--) {
+      uint8_t * const p = (uint8_t * const)pos;
+      uint8_t v = *value;
+      // EEPROM has only ~100,000 write cycles,
+      // so only write bytes that have changed!
+      if (v != eeprom_read_byte(p)) {
+        eeprom_write_byte(p, v);
+        if (eeprom_read_byte(p) != v) {
+          SERIAL_ECHO_START();
+          SERIAL_ECHOLNPGM(MSG_ERR_EEPROM_WRITE);
+          eeprom_error = true;
+          return;
+        }
+      }
+      pos++;
+      value++;
+    };
+  }
+  inline void EEPROM_read(int &pos, uint8_t* value, uint16_t size) {
+    do {
+      uint8_t c = eeprom_read_byte((unsigned char*)pos);
+      *value = c;
+      pos++;
+      value++;
+    } while (--size);
+  }
+	
+#endif
+
+///////////////////////////////////////////////////////
 
 /**
  * sync_plan_position
@@ -6989,6 +7033,25 @@ inline void gcode_M31() {
     }
   #endif // SDCARD_SORT_ALPHA && SDSORT_GCODE
 
+  #if ENABLED(hBp_Restore) && ENABLED(SERIAL_DEBUG)
+    /**
+     * M35: List absolute filename with all folders
+     */
+    inline void gcode_M35() 
+	{
+		char tempFilename[60] = "";		//initialized at zero
+		
+		card.getAbsFilename(&tempFilename[0]);
+		
+		SERIAL_PROTOCOLLNPAIR("Absolute Filename:\n", tempFilename);
+		SERIAL_PROTOCOLLNPGM("");
+		
+		SERIAL_PROTOCOLLNPAIR("Filename size:\n", strlen (tempFilename));
+		SERIAL_PROTOCOLLNPGM("");
+		
+	}
+  #endif // only enabled for power recovery debuging
+  
   /**
    * M928: Start SD Write
    */
@@ -11263,37 +11326,6 @@ inline void gcode_M999() {
  *
  */
  
- // Necessary to write to eeprom
- inline void EEPROM_write(int &pos, const uint8_t *value, uint16_t size) {
-	bool eeprom_error = false;
-	
-    while (size--) {
-      uint8_t * const p = (uint8_t * const)pos;
-      uint8_t v = *value;
-      // EEPROM has only ~100,000 write cycles,
-      // so only write bytes that have changed!
-      if (v != eeprom_read_byte(p)) {
-        eeprom_write_byte(p, v);
-        if (eeprom_read_byte(p) != v) {
-          SERIAL_ECHO_START();
-          SERIAL_ECHOLNPGM(MSG_ERR_EEPROM_WRITE);
-          eeprom_error = true;
-          return;
-        }
-      }
-      pos++;
-      value++;
-    };
-  }
-  inline void EEPROM_read(int &pos, uint8_t* value, uint16_t size) {
-    do {
-      uint8_t c = eeprom_read_byte((unsigned char*)pos);
-      *value = c;
-      pos++;
-      value++;
-    } while (--size);
-  }
- 
  /**
   * M701: Store current position to EEPROM
   *
@@ -11709,7 +11741,7 @@ inline void gcode_M710()
 		
 		//lower Z by a set ammount
 		float def1[] = DEFAULT_AXIS_STEPS_PER_UNIT , def2[] = DEFAULT_MAX_FEEDRATE;
-		long steps = def1[2] * (hBp_Restore_LiftZ / 1000);
+		long steps = def1[2] * ((float)hBp_Restore_LiftZ / 1000);
 		long usStep = round(1000000/(def2[2]*1.5*steps));
 			
 		// Enable the Z stepper - Active low
@@ -11730,17 +11762,17 @@ inline void gcode_M710()
 	
 	
 	
-	//Sets the stored extruder ammount to 0 because printer has already been restored
+	//Sets the stored Z height to 0 because printer has already been restored
 	float temp = 0;
-	int eeprom_index_recover = 4;
+	int eeprom_index_recover = 0;
 	
-	EEPROM_write(eeprom_index, (uint8_t*)&current_position[E_AXIS], sizeof(current_position[E_AXIS]));
-	EEPROM_write(eeprom_index_recover, (uint8_t*)&temp, sizeof(current_position[E_AXIS]));
+	EEPROM_write(eeprom_index_recover, (uint8_t*)&temp, sizeof(current_position[Z_AXIS]));
 	
 	
 	//Continues the print
 	card.startFileprint();
 	
+	toRecover = false;
 	
 }
 
@@ -12513,6 +12545,11 @@ void process_parsed_command() {
         #if ENABLED(SDCARD_SORT_ALPHA) && ENABLED(SDSORT_GCODE)
           case 34: // M34: Set SD card sorting options
             gcode_M34(); break;
+        #endif // SDCARD_SORT_ALPHA && SDSORT_GCODE
+		
+		#if ENABLED(hBp_Restore) && ENABLED(SERIAL_DEBUG)
+          case 35: // M35: List absolute filename with all folders
+            gcode_M35(); break;
         #endif // SDCARD_SORT_ALPHA && SDSORT_GCODE
 
         case 928: // M928: Start SD write
@@ -15271,35 +15308,45 @@ void setup() {
     WRITE(LCD_PINS_RS, HIGH);
   #endif
   
-  //DR - Power recovery feature
-  // Using external interrupt
-  // This sets the trigger pin as a input with pullup and sets an interrupt on it
-  //pinMode(2, INPUT_PULLUP);           // set pin 2 to input pullup
-  //attachInterrupt(digitalPinToInterrupt(2), gcode_M700, FALLING );
+  ////////////   Power recovery feature    //////////////
+		// Using external interrupt
+		// This sets the trigger pin as a input with pullup and sets an interrupt on it
+		//pinMode(2, INPUT_PULLUP);           // set pin 2 to input pullup
+		//attachInterrupt(digitalPinToInterrupt(2), gcode_M700, FALLING );
 
-  // Using pin change interrupt
-  pinMode(11, INPUT_PULLUP);           		// set pin 11 to input pullup
-  (_SFR_BYTE(PCICR) |= _BV(PCIE0));			// Enables interrupts on PCI0
-  (_SFR_BYTE(PCMSK0) |= _BV(PCINT5));		// Sets the interrupt to trigger on PCINT_5 (port D11)
+		// Using pin change interrupt
+		pinMode(11, INPUT_PULLUP);           		// set pin 11 to input pullup
+		(_SFR_BYTE(PCICR) |= _BV(PCIE0));			// Enables interrupts on PCI0
+		(_SFR_BYTE(PCMSK0) |= _BV(PCINT5));		// Sets the interrupt to trigger on PCINT_5 (port D11)
 
-  
-  bool toRecover = 0;
-  
-  //Sets the toRecover flag if at the last store has SDcard position and some extrusion
-  
-  //EEPROM_read(eeprom_index, (uint8_t*)&tempSdpos, sizeof(tempSdpos));
-  //EEPROM_read(eeprom_index, (uint8_t*)&current_position[E_AXIS], sizeof(current_position[E_AXIS]));
-  //if 
-  
-  DDRL |= (1 << 5); 	// Makes sure port 1 is output
-	PORTL &= ~(1 << 5);	// Sets the output high
+	  
+		// Check if there is a print to be recovered
+		float tempZ = 0;
+		int eeprom_index = 0;
+		//Loads Z height
+		EEPROM_read(eeprom_index, (uint8_t*)&tempZ, sizeof(current_position[Z_AXIS]));
+		
+		//Sets the toRecover flag if at the last store it had a Z height, the Z heigh is reset when the recovery happens
+		if (tempZ != 0)
+		{
+			toRecover = true;
+			lcd_setstatus("Print Restored! "); 
+		}
+			
+		
+			
+		// DEBUG ONLY - Used to measure the actuation time
+		DDRL |= (1 << 5); 	// Makes sure port 1 is output
+		PORTL &= ~(1 << 5);	// Sets the output high
+	
+	///////////////////////////////////////////////////////
 }
 
 ISR (PCINT0_vect)
 {
 	
 	
-	if (digitalRead(11))
+	if (digitalRead(11) && IS_SD_PRINTING)
 	{
 		//DEBUG ONLY - Used to measure the execution time
 		PORTL |= (1 << 5);	// Sets the output high
@@ -15449,23 +15496,6 @@ ISR (PCINT0_vect)
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
 			
-			/*
-			for (int i = 0; i < FILENAME_LENGTH; i++)
-				SERIAL_PROTOCOLCHAR(card.filename[i]);
-				SERIAL_ECHOPAIR(" at position ", eeprom_index);
-				SERIAL_ECHOLNPGM(" ");
-			
-			#endif
-			
-			#ifdef SERIAL_DEBUG
-				SERIAL_ECHO("Root file?  ");
-				
-				if(root == '/')
-					SERIAL_ECHOLNPGM("Yes");
-				else
-					SERIAL_ECHOLNPGM("No");
-				
-			*/
 			#endif
 			
 		}
@@ -15506,8 +15536,19 @@ ISR (PCINT0_vect)
 			
 			//lower Z by a set ammount
 			float def1[] = DEFAULT_AXIS_STEPS_PER_UNIT , def2[] = DEFAULT_MAX_FEEDRATE;
-			long steps = def1[2] * (hBp_Restore_LiftZ / 1000);
+			long steps = def1[2] * ((float)hBp_Restore_LiftZ / 1000);
+			
+			#ifdef SERIAL_DEBUG
+			SERIAL_ECHOPAIR("Steps: ", steps);
+			SERIAL_ECHOLNPGM("! ");
+			#endif 
+			
 			long usStep = round(1000000/(def2[2]*steps));
+				
+			#ifdef SERIAL_DEBUG
+			SERIAL_ECHOPAIR("usStep: ", usStep);
+			SERIAL_ECHOLNPGM("! ");
+			#endif 
 				
 			// Enable the Z stepper - Active low
 			PORTK &= ~(1 << 0);
@@ -15534,7 +15575,7 @@ ISR (PCINT0_vect)
 		PORTL &= ~(1 << 5);	// Sets the output low
 		
 		// Used here to force the printer to be in a halt state
-		kill(PSTR(MSG_KILLED));
+		kill(PSTR(_UxGT("Print saved!")));
 		
 	}
 

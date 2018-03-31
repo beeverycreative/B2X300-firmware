@@ -146,20 +146,20 @@
 
 #ifdef hBp_X
 	#define hBp_A4988all
-	#define hBp_ReverseE
 	#define hBp_ReverseX
 	#define hBp_ReverseY
 	#define hBp_Trapezoidal
 	#define hBp_Extendedbed
 	#define hBp_Autolevel
 	#define hBp_Bowden
+	#define hBp_MKS_MINI_12864
 #endif
 
-//#define SERIAL_DEBUG
+#define SERIAL_DEBUG
 #define hBp_Restore
-//#define hBp_Restore_LiftZ 1000
+#define hBp_Restore_LiftZ 300
 
-// Sets the screen as MKS_MINI_12864 regardless of the options
+// Sets the screen as MKS_MINI_12864 regardless of the other options
 // #define hBp_MKS_MINI_12864
 
 //===========================================================================
@@ -727,14 +727,14 @@
 
 #ifndef hBp_Bowden
 	#ifndef hBp_Trapezoidal
-		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 2, 20 }
+		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 3, 20 }
 	#else
-		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 5, 20 }
+		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 6, 20 }
 	#endif
 
 #else
 	#ifndef hBp_Trapezoidal
-		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 2, 60 }
+		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 3, 60 }
 	#else
 		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 6, 60 }
 	#endif
@@ -747,11 +747,7 @@
  * Override with M201
  *                                      X, Y, Z, E0 [, E1[, E2[, E3[, E4]]]]
  */
-#ifdef hBp_Trapezoidal
 	#define DEFAULT_MAX_ACCELERATION      { 3000, 3000, 300, 10000 }
-#else
-	#define DEFAULT_MAX_ACCELERATION      { 3000, 3000, 10, 10000 }
-#endif
 
 /**
  * Default Acceleration (change/s) change = mm/s
@@ -1689,7 +1685,16 @@
 // Use this option to override the number of step signals required to
 // move between next/prev menu items.
 //
-//#define ENCODER_STEPS_PER_MENU_ITEM 5
+//#define ENCODER_STEPS_PER_MENU_ITEM 4
+
+
+// Improved encoder responsiveness
+#ifdef hBp_MKS_MINI_12864
+
+	#define ENCODER_STEPS_PER_MENU_ITEM 1
+	#define ENCODER_PULSES_PER_STEP 4
+
+#endif
 
 /**
  * Encoder Direction Options
@@ -1823,7 +1828,7 @@
 // controller and SD support - http://reprap.org/wiki/MKS_MINI_12864
 //
 // Check if using normal LCD or old version
-#if ( ENABLED(hBp_X) || ENABLED(hBp_MKS_MINI_12864))
+#ifdef hBp_MKS_MINI_12864
 	#define MKS_MINI_12864
 #endif
 
