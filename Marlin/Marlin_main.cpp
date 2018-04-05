@@ -11551,9 +11551,10 @@ inline void gcode_M999() {
   *
  */
 
-inline void gcode_M711() {
+inline void gcode_M711() 
+{
 	
-  // Sets the eeprom index to the begining
+	// Sets the eeprom index to the begining
 	int eeprom_index = 0 ;
 	
 	
@@ -11608,28 +11609,28 @@ inline void gcode_M711() {
 	
 	//Loads SD card position
 	
-		uint32_t tempSdpos = 0;
+	uint32_t tempSdpos = 0;
+
+
+	EEPROM_read(eeprom_index, (uint8_t*)&tempSdpos, sizeof(tempSdpos));
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("Loaded SD card position: ", tempSdpos);
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
 	
+	char filename[FILENAME_LENGTH] ;
 	
-		EEPROM_read(eeprom_index, (uint8_t*)&tempSdpos, sizeof(tempSdpos));
-		#ifdef SERIAL_DEBUG
-			SERIAL_ECHOPAIR("Loaded SD card position: ", tempSdpos);
-			SERIAL_ECHOPAIR(" at position ", eeprom_index);
-			SERIAL_ECHOLNPGM(" ");
-		#endif
+	EEPROM_read(eeprom_index, (uint8_t*)&filename , FILENAME_LENGTH);
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHO("Saved SD file name: ");
 		
-		char filename[FILENAME_LENGTH] ;
+		for (char* i = &filename[0]; i < &filename[0]+ FILENAME_LENGTH; i++)
+		   SERIAL_PROTOCOLCHAR(*i);
 		
-		EEPROM_read(eeprom_index, (uint8_t*)&filename , FILENAME_LENGTH);
-		#ifdef SERIAL_DEBUG
-			SERIAL_ECHO("Saved SD file name: ");
-			
-			for (char* i = &filename[0]; i < &filename[0]+ FILENAME_LENGTH; i++)
-			   SERIAL_PROTOCOLCHAR(*i);
-			
-			SERIAL_ECHOPAIR(" at position ", eeprom_index);
-			SERIAL_ECHOLNPGM(" ");
-		#endif
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
 	
 }
 
@@ -11644,24 +11645,111 @@ inline void gcode_M711() {
 inline void gcode_M710() 
 {
 	//Loads most variables from EEPROM to the respective spots
-	gcode_M711();
 	
-	//Load the file at the desired position
-	char restoreFile[FILENAME_LENGTH+2];
+	// Sets the eeprom index to the begining
+	int eeprom_index = 0 ;
 	
-	int eeprom_index = 20; //The index of the name
-	EEPROM_read(eeprom_index, (uint8_t*)&restoreFile , FILENAME_LENGTH+1);
+	//Loads Z height
+	EEPROM_read(eeprom_index, (uint8_t*)&current_position[Z_AXIS], sizeof(current_position[Z_AXIS]));
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("Loaded Z height: ", current_position[Z_AXIS]);
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
 	
-	restoreFile[FILENAME_LENGTH+1] = '\0';
+	//Loads X position
+	float xPosition = 0;
+	EEPROM_read(eeprom_index, (uint8_t*)&xPosition, sizeof(current_position[X_AXIS]));
+	eeprom_busy_wait();
+	#ifdef SERIAL_DEBUG
+			SERIAL_ECHOPAIR("Loaded X: ", xPosition);
+			SERIAL_ECHOPAIR(" at position ", eeprom_index);
+			SERIAL_ECHOLNPGM(" ");
+	#endif
+		
+	//Loads Y position
+	float yPosition = 0;
+	EEPROM_read(eeprom_index, (uint8_t*)&yPosition, sizeof(current_position[Y_AXIS]));
+	eeprom_busy_wait();
+	#ifdef SERIAL_DEBUG
+			SERIAL_ECHOPAIR("Loaded Y: ", yPosition);
+			SERIAL_ECHOPAIR(" at position ", eeprom_index);
+			SERIAL_ECHOLNPGM(" ");
+	#endif
+	
+	//Stores extrusion ammount
+	EEPROM_read(eeprom_index, (uint8_t*)&current_position[E_AXIS], sizeof(current_position[E_AXIS]));
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("Loaded E ammount: ", current_position[E_AXIS]);
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
+	
+	//Stores part cooling fan speed
+	EEPROM_read(eeprom_index, (uint8_t*)&fanSpeeds[0], sizeof(fanSpeeds[0]));
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("Loaded fan speed: ", fanSpeeds[0]);
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
+	
+	//Stores extruder temps
+	// E0
+	EEPROM_read(eeprom_index, (uint8_t*)&thermalManager.target_temperature[0], sizeof(thermalManager.target_temperature[0]));
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("Loaded E0 temp: ", thermalManager.target_temperature[0]);
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
+	// E1
+	EEPROM_read(eeprom_index, (uint8_t*)&thermalManager.target_temperature[1], sizeof(thermalManager.target_temperature[1]));
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("Loaded E1 temp: ", thermalManager.target_temperature[1]);
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
+	
+	//Stores hot bed temp
+	EEPROM_read(eeprom_index, (uint8_t*)&thermalManager.target_temperature_bed, sizeof(thermalManager.target_temperature_bed));
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("Loaded bed temp: ", thermalManager.target_temperature_bed);
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
+	
+	//Loads SD card position
 	
 	uint32_t tempSdpos = 0;
-	eeprom_index = 16; //The index of the name
+
+
 	EEPROM_read(eeprom_index, (uint8_t*)&tempSdpos, sizeof(tempSdpos));
-		 
-	card.openFile(&restoreFile[0], true);
-	// 540 represents the offset caused by the buffer of 8+1(executing) lines, assuming a average of 60 bytes per instruction
-	card.setIndex((long) (tempSdpos-540));
+	#ifdef SERIAL_DEBUG
+		SERIAL_ECHOPAIR("Loaded SD card position: ", tempSdpos);
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
 	
+	char tempFilename[70];
+	
+	EEPROM_read(eeprom_index, (uint8_t*)&tempFilename[0] , 70);
+	#ifdef SERIAL_DEBUG
+
+		SERIAL_ECHOPAIR("Saved SD file name: ", tempFilename);
+		SERIAL_ECHOLNPGM(" ");
+		
+		SERIAL_ECHOPAIR(" at position ", eeprom_index);
+		SERIAL_ECHOLNPGM(" ");
+	#endif
+		
+	
+		 
+	card.openFile(&tempFilename[0], true);
+	// Makes sure the file has been opened if not, most likely it it a nested file, so it tries a different variation
+	if(! card.isFileOpen())
+		card.openFile(&tempFilename[1], true);
+	// 540 represents the offset caused by the buffer of 8+1(executing) lines, assuming a average of 60 bytes per instruction
+	//card.setIndex((long) (tempSdpos-540));
+	card.setIndex((long) (tempSdpos-600));
 	
 	//Homes X Y not moving the Z axis
 	 HOMEAXIS(X);
@@ -11722,10 +11810,25 @@ inline void gcode_M710()
     }
 	
 	
-		lcd_setstatus("Restoring print"); 
+	lcd_setstatus("Recovering print..."); 
+	
+	//Moves the head to above the print
+	//current_position[X_AXIS] = xPosition;
+	//current_position[Y_AXIS] = yPosition;
+	buffer_line_to_current_position();
+	do_blocking_move_to_xy(xPosition,yPosition,40);
 		
 	//Extrudes a priming amount
-	// TO_DO
+	/*
+	destination[E_AXIS] = current_position[E_AXIS];
+	current_position[E_AXIS] -= 12;
+
+    stepper.synchronize();
+	current_position[E_AXIS] += 12;
+	destination[E_AXIS] = current_position[E_AXIS];
+	*/
+	//destination[E_AXIS] = current_position[E_AXIS];
+	//current_position[E_AXIS] -= 1;
 	
 	// Lowers Z the same amount it was lifted
 	#ifdef hBp_Restore_LiftZ
@@ -11742,7 +11845,7 @@ inline void gcode_M710()
 		//lower Z by a set ammount
 		float def1[] = DEFAULT_AXIS_STEPS_PER_UNIT , def2[] = DEFAULT_MAX_FEEDRATE;
 		long steps = def1[2] * ((float)hBp_Restore_LiftZ / 1000);
-		long usStep = round(1000000/(def2[2]*1.5*steps));
+		long usStep = round(1000000/(def2[2]*def1[2]));
 			
 		// Enable the Z stepper - Active low
 		PORTK &= ~(1 << 0);
@@ -11763,14 +11866,18 @@ inline void gcode_M710()
 	
 	
 	//Sets the stored Z height to 0 because printer has already been restored
-	float temp = 0;
-	int eeprom_index_recover = 0;
+		float temp = 0;
+		int eeprom_index_recover = 0;
+		EEPROM_write(eeprom_index_recover, (uint8_t*)&temp, sizeof(current_position[Z_AXIS]));
 	
-	EEPROM_write(eeprom_index_recover, (uint8_t*)&temp, sizeof(current_position[Z_AXIS]));
-	
+	//destination[E_AXIS] = current_position[E_AXIS] = 0;
+	sync_plan_position_e();
 	
 	//Continues the print
 	card.startFileprint();
+	
+	sync_plan_position_e();
+	
 	
 	toRecover = false;
 	
@@ -15351,6 +15458,15 @@ ISR (PCINT0_vect)
 		//DEBUG ONLY - Used to measure the execution time
 		PORTL |= (1 << 5);	// Sets the output high
 		
+		#ifdef SERIAL_DEBUG
+			SERIAL_ECHOPAIR("buffer tail: ", (planner.block_buffer_tail));
+			SERIAL_ECHOLNPGM("! ");
+			SERIAL_ECHOPAIR("buffer head: ", (planner.block_buffer_head));
+			SERIAL_ECHOLNPGM("! ");
+			SERIAL_ECHOPAIR("buffer size: ", (planner.block_buffer_tail- planner.block_buffer_head));
+			SERIAL_ECHOLNPGM("! ");
+		#endif
+		
 		stepper.quick_stop();
 		disable_all_steppers();
 		clear_command_queue();
@@ -15395,12 +15511,29 @@ ISR (PCINT0_vect)
 			SERIAL_ECHOLNPGM(" ");
 		#endif
 		
-		
-		//Stores extrusion ammount
-		EEPROM_write(eeprom_index, (uint8_t*)&current_position[E_AXIS], sizeof(current_position[E_AXIS]));
+		//Stores X position
+		EEPROM_write(eeprom_index, (uint8_t*)&current_position[X_AXIS], sizeof(current_position[X_AXIS]));
 		eeprom_busy_wait();
 		#ifdef SERIAL_DEBUG
-			SERIAL_ECHOPAIR("Saved E ammount: ", current_position[E_AXIS]);
+			SERIAL_ECHOPAIR("Saved X: ", current_position[X_AXIS]);
+			SERIAL_ECHOPAIR(" at position ", eeprom_index);
+			SERIAL_ECHOLNPGM(" ");
+		#endif
+		
+		//Stores Y position
+		EEPROM_write(eeprom_index, (uint8_t*)&current_position[Y_AXIS], sizeof(current_position[Y_AXIS]));
+		eeprom_busy_wait();
+		#ifdef SERIAL_DEBUG
+			SERIAL_ECHOPAIR("Saved Y: ", current_position[Y_AXIS]);
+			SERIAL_ECHOPAIR(" at position ", eeprom_index);
+			SERIAL_ECHOLNPGM(" ");
+		#endif
+		
+		//Stores extrusion ammount
+		EEPROM_write(eeprom_index, (uint8_t*)&destination[E_AXIS], sizeof(current_position[E_AXIS]));
+		eeprom_busy_wait();
+		#ifdef SERIAL_DEBUG
+			SERIAL_ECHOPAIR("Saved E ammount: ", destination[E_AXIS]);
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
@@ -15455,7 +15588,15 @@ ISR (PCINT0_vect)
 				SERIAL_ECHOLNPGM(" ");
 			#endif
 			
+			// Temporary file path variable
+			char tempFilename[70];
 			
+			card.getAbsFilename(&tempFilename[0]);
+			
+			EEPROM_write(eeprom_index, (uint8_t*)&tempFilename[0] , (strlen (tempFilename) > 69 ? 70 : (strlen (tempFilename)+1)));
+			eeprom_busy_wait();
+			
+			/*
 			//Saves the file name
 			eeprom_index++; //incremented by one to allow the root folder sign
 			EEPROM_write(eeprom_index, (uint8_t*)card.filename , FILENAME_LENGTH);
@@ -15497,7 +15638,7 @@ ISR (PCINT0_vect)
 				SERIAL_ECHOLNPGM(" ");
 			
 			#endif
-			
+			*/
 		}
 		else
 		{
@@ -15505,6 +15646,8 @@ ISR (PCINT0_vect)
 				SERIAL_ECHOLNPGM("No file opened !");
 			#endif
 		}
+		
+		
 		
 		// Disables heating properly
 		#ifdef SERIAL_DEBUG
@@ -15516,6 +15659,16 @@ ISR (PCINT0_vect)
 		
 		#ifdef SERIAL_DEBUG
 			SERIAL_ECHOPAIR("End time: ", millis());
+			SERIAL_ECHOLNPGM("! ");
+		#endif 
+		
+		
+		#ifdef SERIAL_DEBUG
+			SERIAL_ECHOPAIR("buffer tail: ", (planner.block_buffer_tail));
+			SERIAL_ECHOLNPGM("! ");
+			SERIAL_ECHOPAIR("buffer head: ", (planner.block_buffer_head));
+			SERIAL_ECHOLNPGM("! ");
+			SERIAL_ECHOPAIR("buffer size: ", (planner.block_buffer_tail- planner.block_buffer_head));
 			SERIAL_ECHOLNPGM("! ");
 		#endif 
 		
@@ -15543,7 +15696,7 @@ ISR (PCINT0_vect)
 			SERIAL_ECHOLNPGM("! ");
 			#endif 
 			
-			long usStep = round(1000000/(def2[2]*steps));
+			long usStep = round(1000000/(def2[2]*def1[2]));
 				
 			#ifdef SERIAL_DEBUG
 			SERIAL_ECHOPAIR("usStep: ", usStep);
