@@ -3162,10 +3162,13 @@ void lcd_enqueue_filament_change() {
     //
     // Change filament
     //
+	// Removed as change filament already exists on the main menu and on Tune menu
+	/*
     #if ENABLED(ADVANCED_PAUSE_FEATURE)
       if (!thermalManager.tooColdToExtrude(active_extruder) && !IS_SD_FILE_OPEN)
         MENU_ITEM(function, MSG_FILAMENTCHANGE, lcd_enqueue_filament_change);
     #endif
+	*/
 
     #if TEMP_SENSOR_0 != 0
 
