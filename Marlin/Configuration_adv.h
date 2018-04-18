@@ -683,9 +683,9 @@
 #define LIN_ADVANCE
 
 #if ENABLED(LIN_ADVANCE) 
-	#if ( DISABLED(hBp_TMC2208ext) && DISABLED(hBp_TMC2208all) )
+	#if ( DISABLED(BEEVC_TMC2208ext) && DISABLED(BEEVC_TMC2208all) )
 
-		#ifdef hBp_Bowden
+		#ifdef BEEVC_Bowden
 			#define LIN_ADVANCE_K 300
 		#else
 			#define LIN_ADVANCE_K 40
@@ -900,7 +900,7 @@
   
   //DR - 20/10/2017
   //hBp Selects the correct load and unload length for bowden
-  #ifndef hBp_Bowden
+  #ifndef BEEVC_Bowden
   
 	#define FILAMENT_CHANGE_UNLOAD_LENGTH 100   
 	#define FILAMENT_CHANGE_LOAD_FEEDRATE 6     
@@ -917,7 +917,7 @@
 	
 	//DR - 20/10/2017
 	//DEBUG - Allows for a smaller bowden tube
-  #ifndef hBp_Bowden_500
+  #ifndef BEEVC_Bowden_500
 		#define FILAMENT_CHANGE_LOAD_LENGTH 560       // Load filament length over hotend in mm
                                               // Longer length for bowden printers to fast load filament into whole bowden tube over the hotend,
                                               // Short or zero length for printers without bowden where loading is not used

@@ -10121,7 +10121,7 @@ inline void gcode_M502() {
 	else
 	{
 		//Checks if Bowden to apply the correct 3 phase load process
-		#ifndef hBp_Bowden
+		#ifndef BEEVC_Bowden
 		
 			//Direct drive
 				
