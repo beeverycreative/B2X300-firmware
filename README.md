@@ -1,12 +1,12 @@
 # Marlin Firmware for helloBEEprusa by BEEVERYCREATIVE
 
 This fork includes specific customization for the helloBEEprusa such as:
-    - Easy addon configuration
-    - Home offset for the buildplate
-    - Filament change when not printing
-    - Easy Z offset setup for autocalibration
-    - Optimized Acceleration and Jerk settings for the printer
-    - Tuned linear advance for the printer
+- Easy addon configuration
+- Home offset for the buildplate
+- Filament change when not printing
+- Easy Z offset setup for autocalibration
+- Optimized Acceleration and Jerk settings for the printer
+- Tuned linear advance for the printer
 
 
 # Marlin 3D Printer Firmware
