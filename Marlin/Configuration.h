@@ -20,6 +20,24 @@
  *
  */
 
+//===========================================================================
+//============================= BEEVERYCREATIVE =============================
+//===========================================================================
+
+ /*
+  * Choose your printer below by uncommenting the correct line 
+  * To uncomment a line, delete the // before the #include.
+  *
+  * !!!! Choose only one option !!!!
+  */
+ 
+ #include "BEEVC_helloBEEprusa.h"
+ //#include "BEEVC_B2X300.h"
+
+ 
+//===========================================================================
+//===========================================================================
+
 /**
  * Configuration.h
  *
@@ -35,6 +53,9 @@
  * Advanced settings can be found in Configuration_adv.h
  *
  */
+ 
+ 
+ 
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 #define CONFIGURATION_H_VERSION 010107
@@ -55,114 +76,8 @@
  * http://www.thingiverse.com/thing:298812
  */
  
-//===========================================================================
-//========================= helloBEEprusa Printer ===========================
-//===========================================================================
-// Please select the correct options for your helloBEEprusa
-//
-//
-//
-// If your helloBEEprusa has Allegro A4988 stepper drivers please uncomment the correct line, delete the // before the #define.
-//
-// -Allegro A4988 on the Extruders and DRV8825 on the X, Y and Z axis
-// #define hBp_A4988ext
-//
-// -Allegro A4988 on all axis
-// #define hBp_A4988all
-//
-//
-//
-// If your helloBEEprusa has Trinamic TMC2208/2100 stepper drivers please uncomment the correct line
-//
-// -Trinamic TMC2208/2100 on the extruder
-// #define hBp_TMC2208ext
-//
-// -Trinamic TMC2208/2100 on all axis
-// #define hBp_TMC2208all
-//
-//
-//
-// If your helloBEEprusa has auto bed leveling please uncomment the following line.
-// #define hBp_Autolevel
-//
-//
-//
-// If your helloBEEprusa has the extended bed please uncomment the following line.
-// #define hBp_Extendedbed
-//
-//
-//
-// If your helloBEEprusa has trapezoidal Z threaded rods please uncomment the following line.
-// #define hBp_Trapezoidal
-//
-//
-//
-// If your helloBEEprusa has bowden extruders please uncomment the following line.
-// #define hBp_Bowden
-//
-//
-//
-// Bowden with smaller PTFE tube, less 100mm than the original kit size
-// #define hBp_Bowden_500
-//
-//
-//
-// helloBEEprusa X, debug only
-// #define hBp_X
-//
-//
-//
-// Center pulled X carriage
-// #define hBp_ReverseX
-//
-//
-//
-// Center pulled Y carriage
-// #define hBp_ReverseY
-//
-//
-//
-// New spring loaded extruder, black plastic
-// #define hBp_ReverseE
-//
-//
-//
-//===========================================================================
-//===========================================================================
-//
-//DR - As trinamics use 16 microsteps like the A4988 we need to make this configuration
-#ifdef hBp_TMC2208ext
-	#define hBp_A4988ext
-	#define hBp_ReverseE
-#endif
 
-#ifdef hBp_TMC2208all
-	#define hBp_A4988all
-	#define hBp_ReverseE
-	#define hBp_ReverseX
-	#define hBp_ReverseY
-	#define hBp_ReverseZ
-#endif
 
-#ifdef hBp_X
-	#define hBp_A4988all
-	#define hBp_ReverseX
-	#define hBp_ReverseY
-	#define hBp_Trapezoidal
-	#define hBp_Extendedbed
-	#define hBp_Autolevel
-	#define hBp_Bowden
-	#define hBp_MKS_MINI_12864
-#endif
-
-#define SERIAL_DEBUG
-#define BEEVC_Restore
-#define BEEVC_Restore_LiftZ 600
-
-// Sets the screen as MKS_MINI_12864 regardless of the other options
-// #define hBp_MKS_MINI_12864
-
-//===========================================================================
 //============================= DELTA Printer ===============================
 //===========================================================================
 // For a Delta printer start with one of the configuration files in the
@@ -323,7 +238,7 @@
 
 
 //hBp - Checks if bowden to apply the correct offset
-#ifndef hBp_Bowden
+#ifndef BEEVC_Bowden
 	//direct drive
 	#define HOTEND_OFFSET_X {0.0, 67.5} // (in mm) for each extruder, offset of the hotend on the X axis
 	#define HOTEND_OFFSET_Y {0.0, 0.30}  // (in mm) for each extruder, offset of the hotend on the Y axis
@@ -516,7 +431,7 @@
 
 
 // hBp - Checks if the extended bed is being used and adjusts the power limit
-#ifndef hBp_Extendedbed 
+#ifndef BEEVC_Extendedbed 
 #define MAX_BED_POWER 255 // limits duty cycle to bed; 255=full current
 
 #else
@@ -562,7 +477,7 @@
 // Note that for Bowden Extruders a too-small value here may prevent loading.
 
 // DR - hBp - 27/10/17 - Allows the correct load and unload of filamento on the bowden extruder
-#ifndef hBp_Bowden
+#ifndef BEEVC_Bowden
 	#define PREVENT_LENGTHY_EXTRUDE
 	#define EXTRUDE_MAXLENGTH 200
 
@@ -678,11 +593,11 @@
  *                                      X, Y, Z, E0 [, E1[, E2[, E3[, E4]]]]
  */
  
- #ifndef hBp_A4988all
+ #ifndef BEEVC_A4988all
  
-	#ifndef hBp_Trapezoidal
+	#ifndef BEEVC_Trapezoidal
  
-		#ifndef hBp_A4988ext
+		#ifndef BEEVC_A4988ext
 			// All stepper drivers are DRV8825
 			#define DEFAULT_AXIS_STEPS_PER_UNIT   { 160,160,8000, 180}
 
@@ -692,7 +607,7 @@
 	
 		#endif
 	#else
-		#ifndef hBp_A4988ext
+		#ifndef BEEVC_A4988ext
 			// All stepper drivers are DRV8825 with trapezoidal threaded rod
 			#define DEFAULT_AXIS_STEPS_PER_UNIT   { 160,160,3200, 180}
 
@@ -703,7 +618,7 @@
 	#endif
 
 #else
-	#ifndef hBp_Trapezoidal
+	#ifndef BEEVC_Trapezoidal
 		// A4988 on all stepper drivers 
 		#define DEFAULT_AXIS_STEPS_PER_UNIT   { 80,80,4000, 90}
 	#else
@@ -725,15 +640,16 @@
  // also increased the Z speed for the trapezoidal threaded rods
  
 
-#ifndef hBp_Bowden
-	#ifndef hBp_Trapezoidal
+
+#ifndef BEEVC_Bowden
+	#ifndef BEEVC_Trapezoidal
 		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 3, 20 }
 	#else
 		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 6, 20 }
 	#endif
 
 #else
-	#ifndef hBp_Trapezoidal
+	#ifndef BEEVC_Trapezoidal
 		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 3, 60 }
 	#else
 		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 6, 60 }
@@ -834,7 +750,7 @@
 /**
  * Z Servo Probe, such as an endstop switch on a rotating arm.
  */
- #ifndef hBp_Autolevel
+ #ifndef BEEVC_Autolevel
  #else
 #define Z_ENDSTOP_SERVO_NR 0   // Defaults to SERVO 0 connector.
 #define Z_SERVO_ANGLES {10,85}  // Z Servo Deploy and Stow angles
@@ -892,10 +808,10 @@
  */
 
  //hBp - Checks if there is autoleveling
- #ifndef hBp_Autolevel
+ #ifndef BEEVC_Autolevel
  // no leveling so no changes
  #else
-	 #ifndef hBp_Bowden
+	 #ifndef BEEVC_Bowden
 		// direct drive
 		#define X_PROBE_OFFSET_FROM_EXTRUDER 37  // X offset: -left  +right  [of the nozzle]
 		#define Y_PROBE_OFFSET_FROM_EXTRUDER 33  // Y offset: -front +behind [the nozzle]
@@ -977,19 +893,19 @@
 // Invert the stepper direction. Change (or reverse the motor connector) if an axis goes the wrong way.
 
 // DR - Inverts the stepping direction for the trimamic or reversed pulled axis
-#ifdef hBp_ReverseX
+#ifdef BEEVC_ReverseX
 	#define INVERT_X_DIR true
 #else
 	#define INVERT_X_DIR false
 #endif
 
-#ifdef hBp_ReverseY
+#ifdef BEEVC_ReverseY
 	#define INVERT_Y_DIR false
 #else
 	#define INVERT_Y_DIR true
 #endif
 
-#ifdef hBp_ReverseZ
+#ifdef BEEVC_ReverseZ
 	#define INVERT_Z_DIR false
 #else
 	#define INVERT_Z_DIR true
@@ -1003,7 +919,7 @@
 // For direct drive extruder v9 set to true, for geared extruder set to false.
 
 // DR - Inverts the extruder stepping direction for the trinamics or the new extruder assembly
-#ifdef hBp_ReverseE
+#ifdef BEEVC_ReverseE
 	#define INVERT_E0_DIR true
 	#define INVERT_E1_DIR false
 	#define INVERT_E2_DIR true
@@ -1035,7 +951,7 @@
 // Travel limits after homing (units are in mm)
 
 // hBp - Sets the bed size
-#ifndef hBp_Extendedbed
+#ifndef BEEVC_Extendedbed
 	//default bed
 	#define X_MIN_POS -48
 	#define X_BED_SIZE 185
@@ -1043,7 +959,7 @@
 #else
 	#define X_MIN_POS 0
 
-	#ifdef hBp_X
+	#ifdef BEEVC_X
 		//extended bed with more margin
 		#define X_BED_SIZE 330
 	
@@ -1057,7 +973,7 @@
 #endif
 		
 // The size of the print bed
-#ifdef hBp_X
+#ifdef BEEVC_X
 	#define Y_BED_SIZE 224
 #else
 	#define Y_BED_SIZE 195
@@ -1069,7 +985,7 @@
 #define X_MAX_POS X_BED_SIZE
 #define Y_MAX_POS Y_BED_SIZE
 
-#ifdef hBp_X
+#ifdef BEEVC_X
 	#define Z_MAX_POS 350
 #else
 	#define Z_MAX_POS 190
@@ -1161,7 +1077,7 @@
 //#define MESH_BED_LEVELING
 
 // hBp - Enables auto bed leveling
-#ifndef hBp_Autolevel
+#ifndef BEEVC_Autolevel
 	//manual leveling
 	#define MESH_BED_LEVELING
 #else
@@ -1204,7 +1120,7 @@
 #if ENABLED(AUTO_BED_LEVELING_LINEAR) || ENABLED(AUTO_BED_LEVELING_BILINEAR)
 
   // Set the number of grid points per dimension.
-  #ifdef hBp_Extendedbed
+  #ifdef BEEVC_Extendedbed
 	#define GRID_MAX_POINTS_X 5
   #else
 	#define GRID_MAX_POINTS_X 3
@@ -1301,7 +1217,7 @@
  */
  
  // hBp - Enables LCD bed leveling when autoleveling is off
- #ifndef hBp_Autolevel
+ #ifndef BEEVC_Autolevel
 	// Manual LCD leveling
 	#define LCD_BED_LEVELING
 	
@@ -1348,7 +1264,7 @@
 //#define Z_SAFE_HOMING
 
 // hBp - Setting the home position to allow the probe to measure
-#ifndef hBp_Autolevel
+#ifndef BEEVC_Autolevel
 #else
 	#define Z_SAFE_HOMING
 #endif
@@ -1696,6 +1612,15 @@
 
 #endif
 
+
+// Improved encoder responsiveness
+#ifdef BEEVC_MKS_MINI_12864
+
+	#define ENCODER_STEPS_PER_MENU_ITEM 1
+	#define ENCODER_PULSES_PER_STEP 4
+
+#endif
+
 /**
  * Encoder Direction Options
  *
@@ -1712,7 +1637,7 @@
 //  Set this option if CLOCKWISE causes values to DECREASE
 //
 // this if makes sure the encoder works correctly
-#if (DISABLED(hBp_X) && DISABLED(hBp_MKS_MINI_12864))
+#if (DISABLED(BEEVC_X) && DISABLED(BEEVC_MKS_MINI_12864))
 	#define REVERSE_ENCODER_DIRECTION
 #endif
 
@@ -1805,7 +1730,7 @@
 // Note: Usually sold with a white PCB.
 //
 // Check if using normal LCD or old version
-#if (DISABLED(hBp_X) && DISABLED(hBp_MKS_MINI_12864))
+#if (DISABLED(BEEVC_X) && DISABLED(BEEVC_MKS_MINI_12864))
 	#define REPRAP_DISCOUNT_SMART_CONTROLLER
 #endif
 
@@ -1828,7 +1753,7 @@
 // controller and SD support - http://reprap.org/wiki/MKS_MINI_12864
 //
 // Check if using normal LCD or old version
-#ifdef hBp_MKS_MINI_12864
+#ifdef BEEVC_MKS_MINI_12864
 	#define MKS_MINI_12864
 #endif
 
@@ -2109,7 +2034,7 @@
  * Leave undefined or set to 0 to entirely disable the servo subsystem.
  */
 // hBp - Enabled if it has autoleveling
-#ifndef hBp_Autolevel
+#ifndef BEEVC_Autolevel
 	//does nothing
 #else
 	#define NUM_SERVOS 1 // Servo index starts with 0 for M280 command

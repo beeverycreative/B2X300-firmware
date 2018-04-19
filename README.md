@@ -1,10 +1,6 @@
 # Marlin 3D Printer Firmware
 
----
-
-# :warning: **THIS IS THE `ft` branch** :warning:
-
----
+# :warning: **THIS IS THE `dev` branch** :warning:
 
 <img align="right" src="buildroot/share/pixmaps/logo/marlin-250.png" />
 

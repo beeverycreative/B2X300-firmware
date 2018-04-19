@@ -62,6 +62,7 @@
 		#define SERVO0_PIN		 6
 	#else
 		#define SERVO0_PIN       11
+  #endif
 #endif
 
 #define SERVO1_PIN          6
