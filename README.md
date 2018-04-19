@@ -1,7 +1,7 @@
 # Marlin 3D Printer Firmware
 ---
 
-# :warning: **THIS IS THE `dev` branch** :warning:
+# :warning: **THIS IS THE `pre-release` branch** :warning:
 
 ---
 
