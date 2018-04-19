@@ -841,9 +841,6 @@ void kill_screen(const char* lcd_msg) {
       clear_command_queue();
       quickstop_stepper();
 	  
-	  //DR - forces the disabling of stepper motors
-	  stepper.finish_and_disable();
-	  
       print_job_timer.stop();
       thermalManager.disable_all_heaters();
       #if FAN_COUNT > 0
@@ -852,8 +849,12 @@ void kill_screen(const char* lcd_msg) {
       wait_for_heatup = false;
 	  lcd_setstatusPGM(PSTR(MSG_PRINT_ABORTED), -1);
       lcd_return_to_status();
-	  //DR - forces the disabling of stepper motors
-	  stepper.finish_and_disable();
+	  
+	  // Homes X and Y so the nozzle doesn't stick to the printed part
+	  enqueue_and_echo_commands_P(PSTR("G28 X Y"));
+	  
+	  // Ensures the steppers are disabled
+	  enqueue_and_echo_commands_P(PSTR("M84"));
     }
 
   #endif // SDSUPPORT
