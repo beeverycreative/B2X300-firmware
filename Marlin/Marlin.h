@@ -60,7 +60,7 @@ void idle(
 void manage_inactivity(bool ignore_stepper_queue = false);
 
 ////////////   Power recovery feature    //////////////
-#ifdef hBp_Restore
+#ifdef BEEVC_Restore
 	extern bool toRecover;
 #endif
 ///////////////////////////////////////////////////////

@@ -156,8 +156,8 @@
 #endif
 
 #define SERIAL_DEBUG
-#define hBp_Restore
-#define hBp_Restore_LiftZ 600
+#define BEEVC_Restore
+#define BEEVC_Restore_LiftZ 600
 
 // Sets the screen as MKS_MINI_12864 regardless of the other options
 // #define hBp_MKS_MINI_12864

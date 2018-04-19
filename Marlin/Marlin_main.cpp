@@ -721,7 +721,7 @@ XYZ_CONSTS_FROM_CONFIG(float, home_bump_mm,   HOME_BUMP_MM);
 XYZ_CONSTS_FROM_CONFIG(signed char, home_dir, HOME_DIR);
 
 ////////////   Power recovery feature    //////////////
-#ifdef hBp_Restore
+#ifdef BEEVC_Restore
 	bool toRecover = false;
 #endif
 ///////////////////////////////////////////////////////
@@ -779,7 +779,7 @@ void report_current_position_detail();
 #endif
 
 ////////////   Power recovery feature    //////////////
-#ifdef hBp_Restore
+#ifdef BEEVC_Restore
 	
 	 // Necessary to write to eeprom
  inline void EEPROM_write(int &pos, const uint8_t *value, uint16_t size) {
@@ -7033,7 +7033,7 @@ inline void gcode_M31() {
     }
   #endif // SDCARD_SORT_ALPHA && SDSORT_GCODE
 
-  #if ENABLED(hBp_Restore) && ENABLED(SERIAL_DEBUG)
+  #if ENABLED(BEEVC_Restore) && ENABLED(SERIAL_DEBUG)
     /**
      * M35: List absolute filename with all folders
      */
@@ -11831,7 +11831,7 @@ inline void gcode_M710()
 	//current_position[E_AXIS] -= 1;
 	
 	// Lowers Z the same amount it was lifted
-	#ifdef hBp_Restore_LiftZ
+	#ifdef BEEVC_Restore_LiftZ
 		// Reference for the pins used
 		// Z_ENABLE 	= D62 	= PK0
 		// Z_DIR		= D48	= PL1	
@@ -11844,7 +11844,7 @@ inline void gcode_M710()
 		
 		//lower Z by a set ammount
 		float def1[] = DEFAULT_AXIS_STEPS_PER_UNIT , def2[] = DEFAULT_MAX_FEEDRATE;
-		long steps = def1[2] * ((float)hBp_Restore_LiftZ / 1000);
+		long steps = def1[2] * ((float)BEEVC_Restore_LiftZ / 1000);
 		long usStep = round(1000000/(def2[2]*def1[2]));
 			
 		// Enable the Z stepper - Active low
@@ -12654,7 +12654,7 @@ void process_parsed_command() {
             gcode_M34(); break;
         #endif // SDCARD_SORT_ALPHA && SDSORT_GCODE
 		
-		#if ENABLED(hBp_Restore) && ENABLED(SERIAL_DEBUG)
+		#if ENABLED(BEEVC_Restore) && ENABLED(SERIAL_DEBUG)
           case 35: // M35: List absolute filename with all folders
             gcode_M35(); break;
         #endif // SDCARD_SORT_ALPHA && SDSORT_GCODE
@@ -15675,7 +15675,7 @@ ISR (PCINT0_vect)
 		
 		
 		
-		#ifdef hBp_Restore_LiftZ
+		#ifdef BEEVC_Restore_LiftZ
 		
 			// Reference for the pins used
 			// Z_ENABLE 	= D62 	= PK0
@@ -15689,7 +15689,7 @@ ISR (PCINT0_vect)
 			
 			//lower Z by a set ammount
 			float def1[] = DEFAULT_AXIS_STEPS_PER_UNIT , def2[] = DEFAULT_MAX_FEEDRATE;
-			long steps = def1[2] * ((float)hBp_Restore_LiftZ / 1000);
+			long steps = def1[2] * ((float)BEEVC_Restore_LiftZ / 1000);
 			
 			#ifdef SERIAL_DEBUG
 			SERIAL_ECHOPAIR("Steps: ", steps);
