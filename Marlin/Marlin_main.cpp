@@ -780,11 +780,11 @@ void report_current_position_detail();
 
 ////////////   Power recovery feature    //////////////
 #ifdef BEEVC_Restore
-	
+
 	 // Necessary to write to eeprom
  inline void EEPROM_write(int &pos, const uint8_t *value, uint16_t size) {
 	bool eeprom_error = false;
-	
+
     while (size--) {
       uint8_t * const p = (uint8_t * const)pos;
       uint8_t v = *value;
@@ -811,7 +811,7 @@ void report_current_position_detail();
       value++;
     } while (--size);
   }
-	
+
 #endif
 
 ///////////////////////////////////////////////////////
@@ -4033,10 +4033,10 @@ inline void gcode_G4() {
       #endif
 
       do_blocking_move_to_xy(destination[X_AXIS], destination[Y_AXIS]);
-	  
+
 	  // DR - Forces the Z axis to lift a bit
 	  do_blocking_move_to_z(destination[Z_AXIS]);
-	  
+
       HOMEAXIS(Z);
     }
     else {
@@ -4354,13 +4354,13 @@ void home_all_axes() { gcode_G28(true); }
    */
   inline void gcode_G29() {
 
-	
+
 	//DR-Stores the extruder and changes to E0
 	uint8_t extruderNumber = active_extruder;
 	if (extruderNumber != 1)
 		tool_change(0);
-			
-	
+
+
     static int mbl_probe_index = -1;
     #if HAS_SOFTWARE_ENDSTOPS
       static bool enable_soft_endstops;
@@ -4505,10 +4505,10 @@ void home_all_axes() { gcode_G28(true); }
     }
 
     report_current_position();
-	
+
 	//DR-Restores to the previous extruder
 		tool_change(extruderNumber);
-	
+
   }
 
 #elif OLDSCHOOL_ABL
@@ -4600,12 +4600,12 @@ void home_all_axes() { gcode_G28(true); }
    *
    */
   inline void gcode_G29() {
-	  
+
 	  //DR-Stores the extruder and changes to E0
 	uint8_t extruderNumber = active_extruder;
 	if (extruderNumber != 0)
 		tool_change(0);
-	
+
 
     // G29 Q is also available if debugging
     #if ENABLED(DEBUG_LEVELING_FEATURE)
@@ -5431,10 +5431,10 @@ void home_all_axes() { gcode_G28(true); }
 
     if (planner.leveling_active)
       SYNC_PLAN_POSITION_KINEMATIC();
-  
+
 	// DR-Restores to the previous extruder
 	tool_change(extruderNumber);
-  
+
   }
 
 #endif // OLDSCHOOL_ABL
@@ -6986,7 +6986,7 @@ inline void gcode_M31() {
       const bool call_procedure = parser.boolval('P');
 
       card.openFile(parser.string_arg, true, call_procedure);
-	  
+
 	  // DEBUG ONLY - TO REMOVE
 	  SERIAL_ECHOPGM(" string: \"");
       SERIAL_ECHO(parser.string_arg);
@@ -7040,21 +7040,21 @@ inline void gcode_M31() {
     /**
      * M35: List absolute filename with all folders
      */
-    inline void gcode_M35() 
+    inline void gcode_M35()
 	{
 		char tempFilename[60] = "";		//initialized at zero
-		
+
 		card.getAbsFilename(&tempFilename[0]);
-		
+
 		SERIAL_PROTOCOLLNPAIR("Absolute Filename:\n", tempFilename);
 		SERIAL_PROTOCOLLNPGM("");
-		
+
 		SERIAL_PROTOCOLLNPAIR("Filename size:\n", strlen (tempFilename));
 		SERIAL_PROTOCOLLNPGM("");
-		
+
 	}
   #endif // only enabled for power recovery debuging
-  
+
   /**
    * M928: Start SD Write
    */
@@ -9872,7 +9872,7 @@ void quickstop_stepper() {
 
 #if ENABLED(MESH_BED_LEVELING)
 
-  
+
   /**
    * M421: Set a single Mesh Bed Leveling Z coordinate
    *
@@ -10162,87 +10162,87 @@ inline void gcode_M502() {
     // Save and pause the print job timer
     const bool job_running = print_job_timer.isRunning();
     print_job_timer.pause();
-	
+
     // Save current position of all axes
     float lastpos[XYZE];
     COPY(lastpos, current_position);
     set_destination_from_current();
-	
+
     // Synchronize the steppers
     stepper.synchronize();
-	
+
 		// Set the planner to the current position to avoid erroneous movements
 	sync_plan_position();
 
-		
+
 	// Extrudes a small ammount to fluidify the tip of the filament
 	destination[E_AXIS] += 15;
 
 	RUNPLAN(ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
 	stepper.synchronize();
-		
-		
+
+
 	lcd_advanced_pause_show_message(FILAMENT_CHANGE_MESSAGE_MOVING);
 	//idle();
-		
+
 	// Checks if the unload flag is enabled, to see if it should execute Load or Unload
 	bool unloadFlag = (parser.seen('U') ? parser.value_bool() : 0);
 	if(unloadFlag)
 	{
-			
+
 		// Unload filament
 		destination[E_AXIS] += -(FILAMENT_CHANGE_UNLOAD_LENGTH);
-			
+
 		RUNPLAN(FILAMENT_CHANGE_UNLOAD_FEEDRATE);
 		stepper.synchronize();
-		
-		
+
+
 		// Asks if a load is to be performed
 		KEEPALIVE_STATE(PAUSED_FOR_USER);
 		wait_for_user = false;
 		lcd_advanced_pause_show_message(FILAMENT_CHANGE_UNLOAD_OPTION);
 		while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
 		KEEPALIVE_STATE(IN_HANDLER);
-		
+
 		if (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_LOAD)
 			unloadFlag = false;
 	}
-	
-	
+
+
 	// When loading
-	else if (!unloadFlag)
+	if (!unloadFlag)
 	{
 		//Checks if Bowden to apply the correct 3 phase load process
 		#ifndef BEEVC_Bowden
-		
+
 			//Direct drive
-				
+
 			// Load filament
 			destination[E_AXIS] += FILAMENT_CHANGE_LOAD_LENGTH;
 			RUNPLAN(FILAMENT_CHANGE_LOAD_FEEDRATE);
 			stepper.synchronize();
-				
+
 		#else
-			
+
 	//Bowden
-			
+
 		// Load filament slowly into PTFE tube
 		destination[E_AXIS] += 50;
 		RUNPLAN(ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
 		stepper.synchronize();
-				
+
 		// Load filament quickly into PTFE tube
 		destination[E_AXIS] += FILAMENT_CHANGE_LOAD_LENGTH;
 		RUNPLAN(FILAMENT_CHANGE_LOAD_FEEDRATE);
 		stepper.synchronize();
 
 	#endif
-			
+
 	// Extrude filament
-	do 
+	do
 	{
 		lcd_advanced_pause_show_message(FILAMENT_CHANGE_MESSAGE_MOVING);
-			
+
 		// Extrude filament to get into hotend
 		destination[E_AXIS] += ADVANCED_PAUSE_EXTRUDE_LENGTH;
 		RUNPLAN(ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
@@ -10257,9 +10257,9 @@ inline void gcode_M502() {
 
 		// Keep looping if "Extrude More" was selected
 	} while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE);
-			
+
 	}
-	
+
 	/* debug
 	// Waits for movements to finish
 	while (destination[E_AXIS] != current_position[E_AXIS])
@@ -10269,7 +10269,7 @@ inline void gcode_M502() {
 		stepper.synchronize();
 	}
 	*/
-	
+
 	// Set extruder to saved position
 		destination[E_AXIS] = current_position[E_AXIS] = lastpos[E_AXIS];
 		planner.set_e_position_mm(current_position[E_AXIS]);
@@ -10285,9 +10285,9 @@ inline void gcode_M502() {
 		  destination[Z_AXIS] = lastpos[Z_AXIS];
 		  RUNPLAN(5);
 		#endif
-	
+
 	// Force steppers to synchronize before finishing the command
-	RUNPLAN(5);	
+	RUNPLAN(5);
 	stepper.synchronize();
 
     // Show status screen
@@ -10295,7 +10295,7 @@ inline void gcode_M502() {
 
     // Resume the print job timer if it was running
     if (job_running) print_job_timer.start();
-	
+
    }
 
   /**
@@ -10313,8 +10313,8 @@ inline void gcode_M502() {
    *
    */
   inline void gcode_M600() {
-	  
-	  
+
+
     point_t park_point = NOZZLE_PARK_POINT;
 
     #if ENABLED(HOME_BEFORE_FILAMENT_CHANGE)
@@ -11343,7 +11343,7 @@ inline void gcode_M999() {
  * M711 - Loads current position from EEPROM
  *
  */
- 
+
  /**
   * M701: Store current position to EEPROM
   *
@@ -11360,15 +11360,15 @@ inline void gcode_M999() {
   *
  */
  #ifdef BEEVC_Restore
- 
-	 inline void gcode_M701() 
+
+	 inline void gcode_M701()
 	{
-		
-		
+
+
 		// Sets the eeprom index to the begining
 		int eeprom_index = 0 ;
-		
-		
+
+
 		//Stores Z height
 		EEPROM_write(eeprom_index, (uint8_t*)&current_position[Z_AXIS], sizeof(current_position[Z_AXIS]));
 		#ifdef SERIAL_DEBUG
@@ -11376,8 +11376,8 @@ inline void gcode_M999() {
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
-		
-		
+
+
 		//Stores extrusion ammount
 		EEPROM_write(eeprom_index, (uint8_t*)&current_position[E_AXIS], sizeof(current_position[E_AXIS]));
 		#ifdef SERIAL_DEBUG
@@ -11385,7 +11385,7 @@ inline void gcode_M999() {
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
-		
+
 		//Stores part cooling fan speed
 		EEPROM_write(eeprom_index, (uint8_t*)&fanSpeeds[0], sizeof(fanSpeeds[0]));
 		#ifdef SERIAL_DEBUG
@@ -11393,7 +11393,7 @@ inline void gcode_M999() {
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
-		
+
 		//Stores extruder temps
 		// E0
 		EEPROM_write(eeprom_index, (uint8_t*)&thermalManager.target_temperature[0], sizeof(thermalManager.target_temperature[0]));
@@ -11409,7 +11409,7 @@ inline void gcode_M999() {
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
-		
+
 		//Stores hot bed temp
 		EEPROM_write(eeprom_index, (uint8_t*)&thermalManager.target_temperature_bed, sizeof(thermalManager.target_temperature_bed));
 		#ifdef SERIAL_DEBUG
@@ -11417,34 +11417,34 @@ inline void gcode_M999() {
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
-		
+
 		//Stores SD card position
 		if (card.isFileOpen())
 		{
 			uint32_t tempSdpos = card.getpos();
-		
-		
+
+
 			EEPROM_write(eeprom_index, (uint8_t*)&tempSdpos, sizeof(tempSdpos));
 			#ifdef SERIAL_DEBUG
 				SERIAL_ECHOPAIR("Saved SD card position: ", tempSdpos);
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
 			#endif
-			
-			
+
+
 			//Saves the file name
 			eeprom_index++; //incremented by one to allow the root folder sign
 			EEPROM_write(eeprom_index, (uint8_t*)card.filename , FILENAME_LENGTH);
-			
-			
-			
+
+
+
 			//Checks if on root or not
 			char root = *card.getWorkDirName();
 			if(root == '/')
 			{
 				eeprom_index -= FILENAME_LENGTH+1;
 				EEPROM_write(eeprom_index, (uint8_t*)&root , 1);
-					
+
 			}
 			else
 			{
@@ -11452,42 +11452,42 @@ inline void gcode_M999() {
 				eeprom_index -= FILENAME_LENGTH+1;
 				EEPROM_write(eeprom_index, (uint8_t*)&null , 1);
 			}
-			
+
 			#ifdef SERIAL_DEBUG
 			SERIAL_ECHO("Saved SD file name: ");
-			
+
 			char filename[FILENAME_LENGTH+1] ;
-			
+
 			eeprom_index--; //decremented by one to allow reading of the full name
-			
+
 			EEPROM_read(eeprom_index, (uint8_t*)&filename , FILENAME_LENGTH+1);
 			for (char* i = &filename[0]; i < &filename[0]+ FILENAME_LENGTH; i++)
 				   SERIAL_PROTOCOLCHAR(*i);
-				
+
 				SERIAL_ECHOLNPGM(" ");
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
-			
+
 			/*
 			for (int i = 0; i < FILENAME_LENGTH; i++)
 				SERIAL_PROTOCOLCHAR(card.filename[i]);
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
-			
+
 			#endif
-			
+
 			#ifdef SERIAL_DEBUG
 				SERIAL_ECHO("Root file?  ");
-				
+
 				if(root == '/')
 					SERIAL_ECHOLNPGM("Yes");
 				else
 					SERIAL_ECHOLNPGM("No");
-				
+
 			*/
 			#endif
-			   
-			
+
+
 		}
 		else
 		{
@@ -11495,8 +11495,8 @@ inline void gcode_M999() {
 				SERIAL_ECHOLNPGM("No file opened !");
 			#endif
 		}
-		
-		
+
+
 	}
 	/**
 	  * M700: Stops print and saves current position to EEPROM
@@ -11505,61 +11505,61 @@ inline void gcode_M999() {
 	  *
 	  *
 	 */
-	 
-	 inline void gcode_M700() 
+
+	 inline void gcode_M700()
 	{
 		stepper.quick_stop();
 		disable_all_steppers();
 		clear_command_queue();
-		
+
 		//disables interrupts to stop the execution of steps and all other internal processes to execute as fast as possible
 		cli();
-		
-		
+
+
 		// Disables heating by forcing the mosfets OFF
 		#ifdef SERIAL_DEBUG
 			SERIAL_ECHOPAIR("Start time: ", millis());
 			SERIAL_ECHOLNPGM("! ");
 			SERIAL_ECHOLNPGM("Forced disabling of heating elements !");
-		#endif 
+		#endif
 		WRITE_HEATER_BED(LOW);
 		WRITE_HEATER_0(LOW);
 		WRITE_HEATER_1(LOW);
-		
-		
+
+
 		// Disables all stepper motors
 		#ifdef SERIAL_DEBUG
 			SERIAL_ECHOLNPGM("Stopping stepper drivers !");
-		#endif 
+		#endif
 		stepper.quick_stop();
 		disable_all_steppers();
-		
-		
+
+
 		// Saves the variables to EEPROM
 		#ifdef SERIAL_DEBUG
 			SERIAL_ECHOLNPGM("Saving variables !");
-		#endif 
+		#endif
 		gcode_M701();
-		
+
 		// Disables heating properly
 		#ifdef SERIAL_DEBUG
 			SERIAL_ECHOLNPGM("Disabling heating elements properly !");
-		#endif 
-		
+		#endif
+
 		thermalManager.disable_all_heaters();
-		
-		
+
+
 		#ifdef SERIAL_DEBUG
 			SERIAL_ECHOPAIR("End time: ", millis());
 			SERIAL_ECHOLNPGM("! ");
-		#endif 
-		
-		
+		#endif
+
+
 		//Restores the interrupts now that the necessary data has been stored
 		//sei();
-		
+
 		kill(PSTR(MSG_KILLED));
-		
+
 	}
 
 	/**
@@ -11570,13 +11570,13 @@ inline void gcode_M999() {
 	  *
 	 */
 
-	inline void gcode_M711() 
+	inline void gcode_M711()
 	{
-		
+
 		// Sets the eeprom index to the begining
 		int eeprom_index = 0 ;
-		
-		
+
+
 		//Loads Z height
 		EEPROM_read(eeprom_index, (uint8_t*)&current_position[Z_AXIS], sizeof(current_position[Z_AXIS]));
 		#ifdef SERIAL_DEBUG
@@ -11584,8 +11584,8 @@ inline void gcode_M999() {
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
-		
-		
+
+
 		//Stores extrusion ammount
 		EEPROM_read(eeprom_index, (uint8_t*)&current_position[E_AXIS], sizeof(current_position[E_AXIS]));
 		#ifdef SERIAL_DEBUG
@@ -11593,7 +11593,7 @@ inline void gcode_M999() {
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
-		
+
 		//Stores part cooling fan speed
 		EEPROM_read(eeprom_index, (uint8_t*)&fanSpeeds[0], sizeof(fanSpeeds[0]));
 		#ifdef SERIAL_DEBUG
@@ -11601,7 +11601,7 @@ inline void gcode_M999() {
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
-		
+
 		//Stores extruder temps
 		// E0
 		EEPROM_read(eeprom_index, (uint8_t*)&thermalManager.target_temperature[0], sizeof(thermalManager.target_temperature[0]));
@@ -11617,7 +11617,7 @@ inline void gcode_M999() {
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
-		
+
 		//Stores hot bed temp
 		EEPROM_read(eeprom_index, (uint8_t*)&thermalManager.target_temperature_bed, sizeof(thermalManager.target_temperature_bed));
 		#ifdef SERIAL_DEBUG
@@ -11625,9 +11625,9 @@ inline void gcode_M999() {
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
-		
+
 		//Loads SD card position
-		
+
 		uint32_t tempSdpos = 0;
 
 
@@ -11637,20 +11637,20 @@ inline void gcode_M999() {
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
-		
+
 		char filename[FILENAME_LENGTH] ;
-		
+
 		EEPROM_read(eeprom_index, (uint8_t*)&filename , FILENAME_LENGTH);
 		#ifdef SERIAL_DEBUG
 			SERIAL_ECHO("Saved SD file name: ");
-			
+
 			for (char* i = &filename[0]; i < &filename[0]+ FILENAME_LENGTH; i++)
 			   SERIAL_PROTOCOLCHAR(*i);
-			
+
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
-		
+
 	}
 
 	/**
@@ -11661,13 +11661,13 @@ inline void gcode_M999() {
 	  *
 	 */
 
-	inline void gcode_M710() 
+	inline void gcode_M710()
 	{
 		//Loads most variables from EEPROM to the respective spots
-		
+
 		// Sets the eeprom index to the begining
 		int eeprom_index = 0 ;
-		
+
 		//Loads Z height
 		EEPROM_read(eeprom_index, (uint8_t*)&current_position[Z_AXIS], sizeof(current_position[Z_AXIS]));
 		#ifdef SERIAL_DEBUG
@@ -11675,7 +11675,7 @@ inline void gcode_M999() {
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
-		
+
 		//Loads X position
 		float xPosition = 0;
 		EEPROM_read(eeprom_index, (uint8_t*)&xPosition, sizeof(current_position[X_AXIS]));
@@ -11685,7 +11685,7 @@ inline void gcode_M999() {
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
 		#endif
-			
+
 		//Loads Y position
 		float yPosition = 0;
 		EEPROM_read(eeprom_index, (uint8_t*)&yPosition, sizeof(current_position[Y_AXIS]));
@@ -11695,7 +11695,7 @@ inline void gcode_M999() {
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
 		#endif
-		
+
 		//Stores extrusion ammount
 		EEPROM_read(eeprom_index, (uint8_t*)&current_position[E_AXIS], sizeof(current_position[E_AXIS]));
 		#ifdef SERIAL_DEBUG
@@ -11703,7 +11703,7 @@ inline void gcode_M999() {
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
-		
+
 		//Stores part cooling fan speed
 		EEPROM_read(eeprom_index, (uint8_t*)&fanSpeeds[0], sizeof(fanSpeeds[0]));
 		#ifdef SERIAL_DEBUG
@@ -11711,7 +11711,7 @@ inline void gcode_M999() {
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
-		
+
 		//Stores extruder temps
 		// E0
 		EEPROM_read(eeprom_index, (uint8_t*)&thermalManager.target_temperature[0], sizeof(thermalManager.target_temperature[0]));
@@ -11727,7 +11727,7 @@ inline void gcode_M999() {
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
-		
+
 		//Stores hot bed temp
 		EEPROM_read(eeprom_index, (uint8_t*)&thermalManager.target_temperature_bed, sizeof(thermalManager.target_temperature_bed));
 		#ifdef SERIAL_DEBUG
@@ -11735,9 +11735,9 @@ inline void gcode_M999() {
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
-		
+
 		//Loads SD card position
-		
+
 		uint32_t tempSdpos = 0;
 
 
@@ -11747,21 +11747,21 @@ inline void gcode_M999() {
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
-		
+
 		char tempFilename[70];
-		
+
 		EEPROM_read(eeprom_index, (uint8_t*)&tempFilename[0] , 70);
 		#ifdef SERIAL_DEBUG
 
 			SERIAL_ECHOPAIR("Saved SD file name: ", tempFilename);
 			SERIAL_ECHOLNPGM(" ");
-			
+
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
-			
-		
-			 
+
+
+
 		card.openFile(&tempFilename[0], true);
 		// Makes sure the file has been opened if not, most likely it it a nested file, so it tries a different variation
 		if(! card.isFileOpen())
@@ -11769,74 +11769,74 @@ inline void gcode_M999() {
 		// 540 represents the offset caused by the buffer of 8+1(executing) lines, assuming a average of 60 bytes per instruction
 		//card.setIndex((long) (tempSdpos-540));
 		card.setIndex((long) (tempSdpos-600));
-		
+
 		//Homes X Y not moving the Z axis
 		 HOMEAXIS(X);
 		 HOMEAXIS(Y);
-		
+
 		//Waits for thermal stability
-		
+
 		long now = millis()+1000;
 		//Waits for bed temperature to stabilized
-		lcd_setstatus("Heating Bed"); 
-		while (abs((thermalManager.degBed() - thermalManager.degTargetBed()) >= 2 )) 
+		lcd_setstatus("Heating Bed");
+		while (abs((thermalManager.degBed() - thermalManager.degTargetBed()) >= 2 ))
 		{
 			if (millis() > now)
 			{
 				now = millis()+1000;
 				thermalManager.print_heaterstates();
-				
+
 			}
-			else 
+			else
 				if(thermalManager.degTargetBed() <30)
 					break;
 			else
 				idle();
 		  }
-		  
+
 		 //Waits for hotend 0 temperature to stabilized
-		 lcd_setstatus("Heating E0"); 
-		while ((abs(thermalManager.degHotend(0) - thermalManager.degTargetHotend(0)) > 5 )) 
+		 lcd_setstatus("Heating E0");
+		while ((abs(thermalManager.degHotend(0) - thermalManager.degTargetHotend(0)) > 5 ))
 		{
 			if (millis() > now)
 			{
 				now = millis()+1000;
 				thermalManager.print_heaterstates();
-				
+
 			}
-			else 
+			else
 				if(thermalManager.degTargetHotend(0) <30)
 					break;
 			else
 				idle();
 		  }
-		  
+
 		  //Waits for hotend 1 temperature to stabilized
-		  lcd_setstatus("Heating E1"); 
-		while (abs((thermalManager.degHotend(1) - thermalManager.degTargetHotend(1)) > 5 )) 
+		  lcd_setstatus("Heating E1");
+		while (abs((thermalManager.degHotend(1) - thermalManager.degTargetHotend(1)) > 5 ))
 		{
 			if (millis() > now)
 			{
 				now = millis()+1000;
 				thermalManager.print_heaterstates();
-				
+
 			}
-			else 
+			else
 				if(thermalManager.degTargetHotend(1) <30)
 					break;
 			else
 				idle();
 		}
-		
-		
-		lcd_setstatus("Recovering print..."); 
-		
+
+
+		lcd_setstatus("Recovering print...");
+
 		//Moves the head to above the print
 		//current_position[X_AXIS] = xPosition;
 		//current_position[Y_AXIS] = yPosition;
 		buffer_line_to_current_position();
 		do_blocking_move_to_xy(xPosition,yPosition,40);
-			
+
 		//Extrudes a priming amount
 		/*
 		destination[E_AXIS] = current_position[E_AXIS];
@@ -11848,30 +11848,30 @@ inline void gcode_M999() {
 		*/
 		//destination[E_AXIS] = current_position[E_AXIS];
 		//current_position[E_AXIS] -= 1;
-		
+
 		// Lowers Z the same amount it was lifted
 		#ifdef BEEVC_Restore_LiftZ
 			// Reference for the pins used
 			// Z_ENABLE 	= D62 	= PK0
-			// Z_DIR		= D48	= PL1	
+			// Z_DIR		= D48	= PL1
 			// Z_STEP_PIN	= D46	= PL3
 
 			//Makes sure the ports are configured as outputs
 			DDRK |= (1 << DDK0);
 			DDRL |= (1 << DDL1) || (1 << DDL3);
 			DDRE |= (1 << DDE1);
-			
+
 			//lower Z by a set ammount
 			float def1[] = DEFAULT_AXIS_STEPS_PER_UNIT , def2[] = DEFAULT_MAX_FEEDRATE;
 			long steps = def1[2] * ((float)BEEVC_Restore_LiftZ / 1000);
 			long usStep = round(1000000/(def2[2]*def1[2]));
-				
+
 			// Enable the Z stepper - Active low
 			PORTK &= ~(1 << 0);
-			
+
 			// Sets direction of Z axis, up when LOW, down when HIGH
 			PORTL |= (1 << 1);
-			
+
 			//Generate the steps necessary
 			for(long count = 0; count < steps; count++)
 			{
@@ -11879,27 +11879,27 @@ inline void gcode_M999() {
 				delayMicroseconds(usStep);
 				PORTL &= ~(1 << 3);
 				delayMicroseconds(usStep);
-			}  
+			}
 		#endif
-		
-		
-		
+
+
+
 		//Sets the stored Z height to 0 because printer has already been restored
 			float temp = 0;
 			int eeprom_index_recover = 0;
 			EEPROM_write(eeprom_index_recover, (uint8_t*)&temp, sizeof(current_position[Z_AXIS]));
-		
+
 		//destination[E_AXIS] = current_position[E_AXIS] = 0;
 		sync_plan_position_e();
-		
+
 		//Continues the print
 		card.startFileprint();
-		
+
 		sync_plan_position_e();
-		
-		
+
+
 		toRecover = false;
-		
+
 	}
 #endif
 
@@ -12673,7 +12673,7 @@ void process_parsed_command() {
           case 34: // M34: Set SD card sorting options
             gcode_M34(); break;
         #endif // SDCARD_SORT_ALPHA && SDSORT_GCODE
-		
+
 		#if ENABLED(BEEVC_Restore) && ENABLED(SERIAL_DEBUG)
           case 35: // M35: List absolute filename with all folders
             gcode_M35(); break;
@@ -13155,11 +13155,11 @@ void process_parsed_command() {
         case 600: // M600: Pause for filament change
           gcode_M600();
           break;
-		  
+
 		case 620: // M620: Filament change manual
 		  gcode_M620();
 		  break;
-		  
+
       #endif // ADVANCED_PAUSE_FEATURE
 
       #if ENABLED(DUAL_X_CARRIAGE) || ENABLED(DUAL_NOZZLE_DUPLICATION_MODE)
@@ -13311,21 +13311,21 @@ void process_parsed_command() {
       case 999: // M999: Restart after being Stopped
         gcode_M999();
         break;
-		
+
 		//*************************** BEEVC codes **************************************
 		#ifdef BEEVC_Restore
 			case 700:  //Stops print and saves current position to EEPROM
 				gcode_M700();
 				break;
-			
+
 			case 701:  //Store current position to EEPROM
 				gcode_M701();
 				break;
-			
+
 			case 710:  //Loads position and restores print
 				gcode_M710();
 				break;
-			
+
 			case 711:  //Loads current position from EEPROM
 				gcode_M711();
 				break;
@@ -14915,14 +14915,14 @@ void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
   #if (ENABLED(FILAMENT_RUNOUT_SENSOR) && ENABLED(FILAMENT_RUNOUT_DUAL))
     if ((IS_SD_PRINTING || print_job_timer.isRunning()) && (READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING)  && (active_extruder == 0))
 			handle_filament_runout();
-		
+
 	if ((IS_SD_PRINTING || print_job_timer.isRunning()) && (READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING) && (active_extruder == 1))
 			handle_filament_runout();
-	
+
   #elif ENABLED(FILAMENT_RUNOUT_SENSOR)
 			if ((IS_SD_PRINTING || print_job_timer.isRunning()) && (READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING))
 				handle_filament_runout();
-	
+
   #endif
 
   if (commands_in_queue < BUFSIZE) get_available_commands();
@@ -15444,8 +15444,8 @@ void setup() {
     delay(1000);
     WRITE(LCD_PINS_RS, HIGH);
   #endif
-  
-  
+
+
   ////////////   Power recovery feature    //////////////
   #ifdef BEEVC_Restore
 		// Using external interrupt
@@ -15458,26 +15458,26 @@ void setup() {
 		(_SFR_BYTE(PCICR) |= _BV(PCIE0));			// Enables interrupts on PCI0
 		(_SFR_BYTE(PCMSK0) |= _BV(PCINT5));		// Sets the interrupt to trigger on PCINT_5 (port D11)
 
-	  
+
 		// Check if there is a print to be recovered
 		float tempZ = 0;
 		int eeprom_index = 0;
 		//Loads Z height
 		EEPROM_read(eeprom_index, (uint8_t*)&tempZ, sizeof(current_position[Z_AXIS]));
-		
+
 		//Sets the toRecover flag if at the last store it had a Z height, the Z heigh is reset when the recovery happens
 		if (tempZ != 0)
 		{
 			toRecover = true;
-			lcd_setstatus("Print Restored! "); 
+			lcd_setstatus("Print Restored! ");
 		}
-			
-		
-			
+
+
+
 		// DEBUG ONLY - Used to measure the actuation time
 		DDRL |= (1 << 5); 	// Makes sure port 1 is output
 		PORTL &= ~(1 << 5);	// Sets the output high
-	
+
 	#endif
 	///////////////////////////////////////////////////////
 }
@@ -15486,13 +15486,13 @@ void setup() {
 
 	ISR (PCINT0_vect)
 	{
-		
-		
+
+
 		if (digitalRead(11) && IS_SD_PRINTING)
 		{
 			//DEBUG ONLY - Used to measure the execution time
 			PORTL |= (1 << 5);	// Sets the output high
-			
+
 			#ifdef SERIAL_DEBUG
 				SERIAL_ECHOPAIR("buffer tail: ", (planner.block_buffer_tail));
 				SERIAL_ECHOLNPGM("! ");
@@ -15501,42 +15501,42 @@ void setup() {
 				SERIAL_ECHOPAIR("buffer size: ", (planner.block_buffer_tail- planner.block_buffer_head));
 				SERIAL_ECHOLNPGM("! ");
 			#endif
-			
+
 			stepper.quick_stop();
 			disable_all_steppers();
 			clear_command_queue();
-			
+
 			//disables interrupts to stop the execution of steps and all other internal processes to execute as fast as possible
 			cli();
-			
-			
+
+
 			// Disables heating by forcing the mosfets OFF
 			#ifdef SERIAL_DEBUG
 				SERIAL_ECHOPAIR("Start time: ", millis());
 				SERIAL_ECHOLNPGM("! ");
 				SERIAL_ECHOLNPGM("Forced disabling of heating elements !");
-			#endif 
+			#endif
 			WRITE_HEATER_BED(LOW);
 			WRITE_HEATER_0(LOW);
 			WRITE_HEATER_1(LOW);
-			
-			
+
+
 			// Disables all stepper motors
 			#ifdef SERIAL_DEBUG
 				SERIAL_ECHOLNPGM("Stopping stepper drivers !");
-			#endif 
+			#endif
 			stepper.quick_stop();
 			disable_all_steppers();
-			
-			
+
+
 			// Saves the variables to EEPROM
 			#ifdef SERIAL_DEBUG
 				SERIAL_ECHOLNPGM("Saving variables !");
-			#endif 
+			#endif
 			// Sets the eeprom index to the begining
 			int eeprom_index = 0 ;
-			
-			
+
+
 			//Stores Z height
 			EEPROM_write(eeprom_index, (uint8_t*)&current_position[Z_AXIS], sizeof(current_position[Z_AXIS]));
 			eeprom_busy_wait();
@@ -15545,7 +15545,7 @@ void setup() {
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
 			#endif
-			
+
 			//Stores X position
 			EEPROM_write(eeprom_index, (uint8_t*)&current_position[X_AXIS], sizeof(current_position[X_AXIS]));
 			eeprom_busy_wait();
@@ -15554,7 +15554,7 @@ void setup() {
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
 			#endif
-			
+
 			//Stores Y position
 			EEPROM_write(eeprom_index, (uint8_t*)&current_position[Y_AXIS], sizeof(current_position[Y_AXIS]));
 			eeprom_busy_wait();
@@ -15563,7 +15563,7 @@ void setup() {
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
 			#endif
-			
+
 			//Stores extrusion ammount
 			EEPROM_write(eeprom_index, (uint8_t*)&destination[E_AXIS], sizeof(current_position[E_AXIS]));
 			eeprom_busy_wait();
@@ -15572,7 +15572,7 @@ void setup() {
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
 			#endif
-			
+
 			//Stores part cooling fan speed
 			EEPROM_write(eeprom_index, (uint8_t*)&fanSpeeds[0], sizeof(fanSpeeds[0]));
 			eeprom_busy_wait();
@@ -15581,7 +15581,7 @@ void setup() {
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
 			#endif
-			
+
 			//Stores extruder temps
 			// E0
 			EEPROM_write(eeprom_index, (uint8_t*)&thermalManager.target_temperature[0], sizeof(thermalManager.target_temperature[0]));
@@ -15599,7 +15599,7 @@ void setup() {
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
 			#endif
-			
+
 			//Stores hot bed temp
 			EEPROM_write(eeprom_index, (uint8_t*)&thermalManager.target_temperature_bed, sizeof(thermalManager.target_temperature_bed));
 			eeprom_busy_wait();
@@ -15608,13 +15608,13 @@ void setup() {
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
 			#endif
-			
+
 			//Stores SD card position
 			if (card.isFileOpen())
 			{
 				uint32_t tempSdpos = card.getpos();
-			
-			
+
+
 				EEPROM_write(eeprom_index, (uint8_t*)&tempSdpos, sizeof(tempSdpos));
 				eeprom_busy_wait();
 				#ifdef SERIAL_DEBUG
@@ -15622,23 +15622,23 @@ void setup() {
 					SERIAL_ECHOPAIR(" at position ", eeprom_index);
 					SERIAL_ECHOLNPGM(" ");
 				#endif
-				
+
 				// Temporary file path variable
 				char tempFilename[70];
-				
+
 				card.getAbsFilename(&tempFilename[0]);
-				
+
 				EEPROM_write(eeprom_index, (uint8_t*)&tempFilename[0] , (strlen (tempFilename) > 69 ? 70 : (strlen (tempFilename)+1)));
 				eeprom_busy_wait();
-				
+
 				/*
 				//Saves the file name
 				eeprom_index++; //incremented by one to allow the root folder sign
 				EEPROM_write(eeprom_index, (uint8_t*)card.filename , FILENAME_LENGTH);
 				eeprom_busy_wait();
-				
-				
-				
+
+
+
 				//Checks if on root or not
 				char root = *card.getWorkDirName();
 				if(root == '/')
@@ -15646,7 +15646,7 @@ void setup() {
 					eeprom_index -= FILENAME_LENGTH+1;
 					EEPROM_write(eeprom_index, (uint8_t*)&root , 1);
 					eeprom_busy_wait();
-						
+
 				}
 				else
 				{
@@ -15655,23 +15655,23 @@ void setup() {
 					EEPROM_write(eeprom_index, (uint8_t*)&null , 1);
 					eeprom_busy_wait();
 				}
-				
+
 				#ifdef SERIAL_DEBUG
 				SERIAL_ECHO("Saved SD file name: ");
-				
+
 				char filename[FILENAME_LENGTH+1] ;
-				
+
 				eeprom_index--; //decremented by one to allow reading of the full name
-				
+
 				EEPROM_read(eeprom_index, (uint8_t*)&filename , FILENAME_LENGTH+1);
 				eeprom_busy_wait();
 				for (char* i = &filename[0]; i < &filename[0]+ FILENAME_LENGTH; i++)
 					   SERIAL_PROTOCOLCHAR(*i);
-					
+
 					SERIAL_ECHOLNPGM(" ");
 					SERIAL_ECHOPAIR(" at position ", eeprom_index);
 					SERIAL_ECHOLNPGM(" ");
-				
+
 				#endif
 				*/
 			}
@@ -15681,23 +15681,23 @@ void setup() {
 					SERIAL_ECHOLNPGM("No file opened !");
 				#endif
 			}
-			
-			
-			
+
+
+
 			// Disables heating properly
 			#ifdef SERIAL_DEBUG
 				SERIAL_ECHOLNPGM("Disabling heating elements properly !");
-			#endif 
-			
+			#endif
+
 			thermalManager.disable_all_heaters();
-			
-			
+
+
 			#ifdef SERIAL_DEBUG
 				SERIAL_ECHOPAIR("End time: ", millis());
 				SERIAL_ECHOLNPGM("! ");
-			#endif 
-			
-			
+			#endif
+
+
 			#ifdef SERIAL_DEBUG
 				SERIAL_ECHOPAIR("buffer tail: ", (planner.block_buffer_tail));
 				SERIAL_ECHOLNPGM("! ");
@@ -15705,45 +15705,45 @@ void setup() {
 				SERIAL_ECHOLNPGM("! ");
 				SERIAL_ECHOPAIR("buffer size: ", (planner.block_buffer_tail- planner.block_buffer_head));
 				SERIAL_ECHOLNPGM("! ");
-			#endif 
-			
-			
-			
-			
+			#endif
+
+
+
+
 			#ifdef BEEVC_Restore_LiftZ
-			
+
 				// Reference for the pins used
 				// Z_ENABLE 	= D62 	= PK0
-				// Z_DIR		= D48	= PL1	
+				// Z_DIR		= D48	= PL1
 				// Z_STEP_PIN	= D46	= PL3
 
 				//Makes sure the ports are configured as outputs
 				DDRK |= (1 << DDK0);
 				DDRL |= (1 << DDL1) || (1 << DDL3);
 				DDRE |= (1 << DDE1);
-				
+
 				//lower Z by a set ammount
 				float def1[] = DEFAULT_AXIS_STEPS_PER_UNIT , def2[] = DEFAULT_MAX_FEEDRATE;
 				long steps = def1[2] * ((float)BEEVC_Restore_LiftZ / 1000);
-				
+
 				#ifdef SERIAL_DEBUG
 				SERIAL_ECHOPAIR("Steps: ", steps);
 				SERIAL_ECHOLNPGM("! ");
-				#endif 
-				
+				#endif
+
 				long usStep = round(1000000/(def2[2]*def1[2]));
-					
+
 				#ifdef SERIAL_DEBUG
 				SERIAL_ECHOPAIR("usStep: ", usStep);
 				SERIAL_ECHOLNPGM("! ");
-				#endif 
-					
+				#endif
+
 				// Enable the Z stepper - Active low
 				PORTK &= ~(1 << 0);
-				
+
 				// Sets direction of Z axis, up when LOW, down when HIGH
 				PORTL &= ~(1 << 1);
-				
+
 				//Generate the steps necessary
 				for(long count = 0; count < steps; count++)
 				{
@@ -15751,24 +15751,24 @@ void setup() {
 					delayMicroseconds(usStep);
 					PORTL &= ~(1 << 3);
 					delayMicroseconds(usStep);
-				}  
-			#endif	
-			
-			
-			
+				}
+			#endif
+
+
+
 			//Restores the interrupts now that the necessary data has been stored
 			//sei();
-			
+
 			//DEBUG ONLY - Used to measure the execution time
 			PORTL &= ~(1 << 5);	// Sets the output low
-			
+
 			// Used here to force the printer to be in a halt state
 			kill(PSTR(_UxGT("Print saved!")));
-			
+
 		}
 
 	}
-	
+
 #endif
 
 /**
