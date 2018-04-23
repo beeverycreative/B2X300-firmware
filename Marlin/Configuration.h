@@ -32,23 +32,7 @@
   */
 
  //#include "BEEVC_helloBEEprusa.h"
-// #include "BEEVC_B2X300.h"
-
-
- ////// Prusa testes com MDF//
-#define BEEVC_A4988ext
-#define BEEVC_Autolevel
-#define BEEVC_Trapezoidal
-#define BEEVC_Bowden
-#define BEEVC_ReverseX
-#define BEEVC_MKS_MINI_12864
-#define BEEVC_Restore
-#define BEEVC_Restore_LiftZ 600
-
-#define SERIAL_DEBUG
-/////////////////////////////
-
-
+ #include "BEEVC_B2X300.h"
 
 
 //===========================================================================
@@ -1041,9 +1025,13 @@
  * For other boards you may need to define FIL_RUNOUT_PIN.
  * By default the firmware assumes HIGH = has filament, LOW = ran out
  */
-//#define FILAMENT_RUNOUT_SENSOR
+ //#define FILAMENT_RUNOUT_SENSOR
+
+ // Enables dual filament runout sensor
+ //#define FILAMENT_RUNOUT_DUAL
+
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)
-  #define FIL_RUNOUT_INVERTING true // set to true to invert the logic of the sensor.
+  #define FIL_RUNOUT_INVERTING false // set to true to invert the logic of the sensor.
   #define ENDSTOPPULLUP_FIL_RUNOUT // Uncomment to use internal pullup for filament runout pins if the sensor is defined.
   #define FILAMENT_RUNOUT_SCRIPT "M600"
 #endif
@@ -1123,7 +1111,7 @@
   /**
    * Enable the G26 Mesh Validation Pattern tool.
    */
-  #define G26_MESH_VALIDATION   // Enable G26 mesh validation
+  //#define G26_MESH_VALIDATION   // Enable G26 mesh validation
   #if ENABLED(G26_MESH_VALIDATION)
     #define MESH_TEST_NOZZLE_SIZE     0.4   // (mm) Diameter of primary nozzle.
     #define MESH_TEST_LAYER_HEIGHT    0.2   // (mm) Default layer height for the G26 Mesh Validation Tool.

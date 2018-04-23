@@ -24,6 +24,8 @@
 	#define BEEVC_Bowden
 	#define BEEVC_MKS_MINI_12864
 	#define BEEVC_Restore
+	#define FILAMENT_RUNOUT_SENSOR
+  #define FILAMENT_RUNOUT_DUAL
 #endif
 
 // Power Restore defines
@@ -34,6 +36,6 @@
 	#else
 		#define BEEVC_Restore_LiftZ 600
 	#endif
-	
+
 	#define SERIAL_DEBUG
 #endif

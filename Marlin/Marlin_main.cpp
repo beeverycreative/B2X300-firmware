@@ -953,6 +953,9 @@ void setup_killpin() {
   void setup_filrunoutpin() {
     #if ENABLED(ENDSTOPPULLUP_FIL_RUNOUT)
       SET_INPUT_PULLUP(FIL_RUNOUT_PIN);
+	  #if ENABLED(FILAMENT_RUNOUT_DUAL)
+		SET_INPUT_PULLUP(FIL_RUNOUT_PIN2);
+	  #endif
     #else
       SET_INPUT(FIL_RUNOUT_PIN);
     #endif
@@ -10310,6 +10313,8 @@ inline void gcode_M502() {
    *
    */
   inline void gcode_M600() {
+	  
+	  
     point_t park_point = NOZZLE_PARK_POINT;
 
     #if ENABLED(HOME_BEFORE_FILAMENT_CHANGE)
@@ -14907,9 +14912,17 @@ void disable_all_steppers() {
  */
 void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
 
-  #if ENABLED(FILAMENT_RUNOUT_SENSOR)
-    if ((IS_SD_PRINTING || print_job_timer.isRunning()) && (READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING))
-      handle_filament_runout();
+  #if (ENABLED(FILAMENT_RUNOUT_SENSOR) && ENABLED(FILAMENT_RUNOUT_DUAL))
+    if ((IS_SD_PRINTING || print_job_timer.isRunning()) && (READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING)  && (active_extruder == 0))
+			handle_filament_runout();
+		
+	if ((IS_SD_PRINTING || print_job_timer.isRunning()) && (READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING) && (active_extruder == 1))
+			handle_filament_runout();
+	
+  #elif ENABLED(FILAMENT_RUNOUT_SENSOR)
+			if ((IS_SD_PRINTING || print_job_timer.isRunning()) && (READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING))
+				handle_filament_runout();
+	
   #endif
 
   if (commands_in_queue < BUFSIZE) get_available_commands();
