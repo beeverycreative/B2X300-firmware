@@ -1779,7 +1779,7 @@ static void lcd_filament_change_extruder_1()
 
 static void lcd_filament_change_move_to_position()
 {
-  // homing and moving to Z = 20
+  // homing and moving to Z = 50
   enqueue_and_echo_commands_P(PSTR("G28"));
   enqueue_and_echo_commands_P(PSTR("G1 Z50 F3000"));
 }
@@ -1791,7 +1791,7 @@ static void lcd_filament_change()
   // Go back to previous menu
   MENU_BACK(MSG_BACK);
 
-  MENU_ITEM(submenu, _UxGT("Move to position"), lcd_filament_change_move_to_position);
+  MENU_ITEM(function, _UxGT("Move to position"), lcd_filament_change_move_to_position);
   MENU_ITEM(submenu, _UxGT("Extruder 0"), lcd_filament_change_extruder_0);
   MENU_ITEM(submenu, _UxGT("Extruder 1"), lcd_filament_change_extruder_1);
 
