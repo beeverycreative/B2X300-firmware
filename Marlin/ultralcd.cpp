@@ -1566,7 +1566,7 @@ static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool u
 	// update LCD and return
     lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
 
-	for(long k = millis()+500; k > millis();)
+	for(unsigned long k = millis()+500; k > millis();)
 		idle(true);
 
 
