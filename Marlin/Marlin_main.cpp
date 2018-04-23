@@ -10202,14 +10202,37 @@ inline void gcode_M502() {
 		while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
 		KEEPALIVE_STATE(IN_HANDLER);
 
+    // Beeps and waits for user input to start the loading procedure
 		if (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_LOAD)
-			unloadFlag = false;
+    {
+      unloadFlag = false;
+      lcd_advanced_pause_show_message(FILAMENT_CHANGE_PRESS);
+
+      //Beep while waiting for button press
+      KEEPALIVE_STATE(PAUSED_FOR_USER);
+      wait_for_user = true;    // LCD click or M108 will clear this
+  	  unsigned long next_update = millis() + 100;
+
+  	while (wait_for_user ) {
+  		if(next_update < millis())
+  		{
+  			#if HAS_BUZZER
+  			buzzer.tone(100, 2000);
+  			#endif
+  			idle(true);
+  			next_update = millis() + 1000;
+  		}
+  	  }
+    }
+
 	}
 
 
 	// When loading
 	if (!unloadFlag)
 	{
+    lcd_advanced_pause_show_message(FILAMENT_CHANGE_MESSAGE_MOVING);
+
 		//Checks if Bowden to apply the correct 3 phase load process
 		#ifndef BEEVC_Bowden
 

@@ -5224,6 +5224,10 @@ void lcd_enqueue_filament_change() {
 		  defer_return_to_status = true;
           lcd_goto_screen(lcd_filament_change_moving);
           break;
+    case FILAMENT_CHANGE_PRESS:
+      defer_return_to_status = true;
+          lcd_goto_screen(lcd_filament_change_press);
+          break;
 		case FILAMENT_CHANGE_MESSAGE_OPTION:
 		  defer_return_to_status = true;
           advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
