@@ -25,16 +25,32 @@
 //===========================================================================
 
  /*
-  * Choose your printer below by uncommenting the correct line 
+  * Choose your printer below by uncommenting the correct line
   * To uncomment a line, delete the // before the #include.
   *
   * !!!! Choose only one option !!!!
   */
- 
- #include "BEEVC_helloBEEprusa.h"
- //#include "BEEVC_B2X300.h"
 
- 
+ //#include "BEEVC_helloBEEprusa.h"
+// #include "BEEVC_B2X300.h"
+
+
+ ////// Prusa testes com MDF//
+#define BEEVC_A4988ext
+#define BEEVC_Autolevel
+#define BEEVC_Trapezoidal
+#define BEEVC_Bowden
+#define BEEVC_ReverseX
+#define BEEVC_MKS_MINI_12864
+#define BEEVC_Restore
+#define BEEVC_Restore_LiftZ 600
+
+#define SERIAL_DEBUG
+/////////////////////////////
+
+
+
+
 //===========================================================================
 //===========================================================================
 
@@ -53,9 +69,9 @@
  * Advanced settings can be found in Configuration_adv.h
  *
  */
- 
- 
- 
+
+
+
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 #define CONFIGURATION_H_VERSION 010107
@@ -75,7 +91,7 @@
  * https://sites.google.com/site/repraplogphase/calibration-of-your-reprap
  * http://www.thingiverse.com/thing:298812
  */
- 
+
 
 
 //============================= DELTA Printer ===============================
@@ -142,7 +158,7 @@
 // The following define selects which electronics board you have.
 // Please choose the name from boards.h that matches your setup
 #ifndef MOTHERBOARD
-  #define MOTHERBOARD BOARD_MKS_13   
+  #define MOTHERBOARD BOARD_MKS_13
 #endif
 
 // Optional custom name for your RepStrap or other custom machine
@@ -247,7 +263,7 @@
 	#define HOTEND_OFFSET_X {0.0, 13.0} // (in mm) for each extruder, offset of the hotend on the X axis
 	#define HOTEND_OFFSET_Y {0.0, 0.00}  // (in mm) for each extruder, offset of the hotend on the Y axis
 #endif
-	
+
 // @section machine
 
 /**
@@ -391,7 +407,7 @@
   //#define  DEFAULT_Kp 22.2
   //#define  DEFAULT_Ki 1.08
   //#define  DEFAULT_Kd 114
-  
+
     #define  DEFAULT_Kp 18.0
     #define  DEFAULT_Ki 0.40
     #define  DEFAULT_Kd 110
@@ -431,7 +447,7 @@
 
 
 // hBp - Checks if the extended bed is being used and adjusts the power limit
-#ifndef BEEVC_Extendedbed 
+#ifndef BEEVC_Extendedbed
 #define MAX_BED_POWER 255 // limits duty cycle to bed; 255=full current
 
 #else
@@ -450,7 +466,7 @@
   //define  DEFAULT_bedKp 10.00
   //#define  DEFAULT_bedKi .023
   //#define  DEFAULT_bedKd 305.4
-  
+
   #define DEFAULT_bedKp 194.02
   #define  DEFAULT_bedKi 27.54
   #define  DEFAULT_bedKd 341.71
@@ -592,11 +608,11 @@
  * Override with M92
  *                                      X, Y, Z, E0 [, E1[, E2[, E3[, E4]]]]
  */
- 
+
  #ifndef BEEVC_A4988all
- 
+
 	#ifndef BEEVC_Trapezoidal
- 
+
 		#ifndef BEEVC_A4988ext
 			// All stepper drivers are DRV8825
 			#define DEFAULT_AXIS_STEPS_PER_UNIT   { 160,160,8000, 180}
@@ -604,22 +620,22 @@
 		#else
 			// DRV8825 on XYZ and A4988 on Extruders
 			#define DEFAULT_AXIS_STEPS_PER_UNIT   { 160,160,8000, 90}
-	
+
 		#endif
 	#else
 		#ifndef BEEVC_A4988ext
 			// All stepper drivers are DRV8825 with trapezoidal threaded rod
 			#define DEFAULT_AXIS_STEPS_PER_UNIT   { 160,160,3200, 180}
 
-		#else 
+		#else
 			// DRV8825 on XYZ and A4988 on Extruders with trapezoidal threaded rod
-			#define DEFAULT_AXIS_STEPS_PER_UNIT   { 160,160,3200, 90}	
+			#define DEFAULT_AXIS_STEPS_PER_UNIT   { 160,160,3200, 90}
 		#endif
 	#endif
 
 #else
 	#ifndef BEEVC_Trapezoidal
-		// A4988 on all stepper drivers 
+		// A4988 on all stepper drivers
 		#define DEFAULT_AXIS_STEPS_PER_UNIT   { 80,80,4000, 90}
 	#else
 		// A4988 on all stepper drivers with trapezoidal threaded rod
@@ -634,11 +650,11 @@
  * Override with M203
  *                                      X, Y, Z, E0 [, E1[, E2[, E3[, E4]]]]
  */
- 
+
  //DR 03/11/2017
  //hBp - Increases the max extruder speed for a faster load/unload
  // also increased the Z speed for the trapezoidal threaded rods
- 
+
 
 
 #ifndef BEEVC_Bowden
@@ -754,7 +770,7 @@
  #else
 #define Z_ENDSTOP_SERVO_NR 0   // Defaults to SERVO 0 connector.
 #define Z_SERVO_ANGLES {10,85}  // Z Servo Deploy and Stow angles
- 
+
  #endif
 
 /**
@@ -816,13 +832,13 @@
 		#define X_PROBE_OFFSET_FROM_EXTRUDER 37  // X offset: -left  +right  [of the nozzle]
 		#define Y_PROBE_OFFSET_FROM_EXTRUDER 33  // Y offset: -front +behind [the nozzle]
 		#define Z_PROBE_OFFSET_FROM_EXTRUDER -9   // Z offset: -below +above  [the nozzle]
-	
+
 	#else
 		// bowden
 		#define X_PROBE_OFFSET_FROM_EXTRUDER 7  // X offset: -left  +right  [of the nozzle]
 		#define Y_PROBE_OFFSET_FROM_EXTRUDER 39  // Y offset: -front +behind [the nozzle]
 		#define Z_PROBE_OFFSET_FROM_EXTRUDER -9   // Z offset: -below +above  [the nozzle]
-		
+
 	#endif
 #endif
 
@@ -955,23 +971,23 @@
 	//default bed
 	#define X_MIN_POS -48
 	#define X_BED_SIZE 185
-	
+
 #else
 	#define X_MIN_POS 0
 
 	#ifdef BEEVC_X
 		//extended bed with more margin
 		#define X_BED_SIZE 330
-	
+
 	#else
 		//extended bed
 	#define X_BED_SIZE 300
-		
+
 	#endif
-	
-	
+
+
 #endif
-		
+
 // The size of the print bed
 #ifdef BEEVC_X
 	#define Y_BED_SIZE 224
@@ -1125,19 +1141,19 @@
   #else
 	#define GRID_MAX_POINTS_X 3
   #endif
-  
+
   #define GRID_MAX_POINTS_Y 3
 
   //DR - 17-10-17 13h00 The probing place is closer to the edge of the bed
   //DR - 31-10-17 15h Different probing positions depending on the bed X size
   // Set the boundaries for probing (where the probe can reach).
 
-	  
+
 		#define LEFT_PROBE_BED_POSITION 30
 		#define RIGHT_PROBE_BED_POSITION X_MAX_POS-30
 		#define FRONT_PROBE_BED_POSITION 40
 		#define BACK_PROBE_BED_POSITION 180
-  
+
 
 
   // The Z probe minimum outer margin (to validate G29 parameters).
@@ -1145,7 +1161,7 @@
 
   // Probe along the Y axis, advancing X after each column
   //#define PROBE_Y_FIRST
-  
+
   //DR - 17-10-17 13h00 Activated bilinear extrapolation and bilinear subdivision to improove the quality of the leveling
 
   #if ENABLED(AUTO_BED_LEVELING_BILINEAR)
@@ -1215,15 +1231,15 @@
  * Use the LCD controller for bed leveling
  * Requires MESH_BED_LEVELING or PROBE_MANUALLY
  */
- 
+
  // hBp - Enables LCD bed leveling when autoleveling is off
  #ifndef BEEVC_Autolevel
 	// Manual LCD leveling
 	#define LCD_BED_LEVELING
-	
+
 #endif
-	
-	
+
+
 #if ENABLED(LCD_BED_LEVELING)
   #define MBL_Z_STEP 0.025    // Step size while manually probing Z axis.
   #define LCD_PROBE_Z_RANGE 4 // Z Range centered on Z_MIN_POS for LCD Z adjustment
@@ -1544,9 +1560,9 @@
  *
  * :['JAPANESE', 'WESTERN', 'CYRILLIC']
  */
- 
+
  //#define DISPLAY_CHARSET_HD44780 JAPANESE
- 
+
  //DEBUG
 #define DISPLAY_CHARSET_HD44780 WESTERN
 
