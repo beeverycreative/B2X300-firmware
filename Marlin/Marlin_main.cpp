@@ -783,7 +783,6 @@ void report_current_position_detail();
 
 	 // Necessary to write to eeprom
  inline void EEPROM_write(int &pos, const uint8_t *value, uint16_t size) {
-	bool eeprom_error = false;
 
     while (size--) {
       uint8_t * const p = (uint8_t * const)pos;
@@ -795,7 +794,6 @@ void report_current_position_detail();
         if (eeprom_read_byte(p) != v) {
           SERIAL_ECHO_START();
           SERIAL_ECHOLNPGM(MSG_ERR_EEPROM_WRITE);
-          eeprom_error = true;
           return;
         }
       }
@@ -11562,6 +11560,23 @@ inline void gcode_M999() {
 
 	}
 
+  /**
+    * M712 - Clears the Z height register
+    *
+    * Signals there is no need for the print to be recovered
+    *
+    *
+   */
+
+   inline void gcode_M712()
+ 	{
+      //Sets the stored Z height to 0
+      float temp = 0;
+      int eeprom_index_recover = 0;
+      EEPROM_write(eeprom_index_recover, (uint8_t*)&temp, sizeof(current_position[Z_AXIS]));
+
+  }
+
 	/**
 	  * M711 - Loads current position from EEPROM
 	  *
@@ -11776,7 +11791,7 @@ inline void gcode_M999() {
 
 		//Waits for thermal stability
 
-		long now = millis()+1000;
+		unsigned long now = millis()+1000;
 		//Waits for bed temperature to stabilized
 		lcd_setstatus("Heating Bed");
 		while (abs((thermalManager.degBed() - thermalManager.degTargetBed()) >= 2 ))
@@ -13329,6 +13344,11 @@ void process_parsed_command() {
 			case 711:  //Loads current position from EEPROM
 				gcode_M711();
 				break;
+
+      case 712:  //Resets recover flag
+  				gcode_M712();
+  				break;
+
 		#endif
     }
     break;

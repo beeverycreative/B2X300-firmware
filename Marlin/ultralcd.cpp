@@ -1047,7 +1047,7 @@ void kill_screen(const char* lcd_msg) {
 			MENU_ITEM(function, _UxGT("Restore print"), recover_print);
 
 	#endif
-	
+
 	///////////////////////////////////////////////////////
 
 
@@ -5422,6 +5422,12 @@ void lcd_enqueue_filament_change() {
       #endif
       UNUSED(longFilename);
       card.openAndPrintFile(filename);
+
+      //Starting a new print so recovered files can be deleted
+      toRecover = false;
+
+      enqueue_and_echo_commands_P(PSTR("M712"));
+
       lcd_return_to_status();
     }
 
