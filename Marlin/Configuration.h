@@ -76,7 +76,8 @@
  * http://www.thingiverse.com/thing:298812
  */
  
-//===========================================================================
+
+
 //============================= DELTA Printer ===============================
 //===========================================================================
 // For a Delta printer start with one of the configuration files in the
@@ -639,6 +640,7 @@
  // also increased the Z speed for the trapezoidal threaded rods
  
 
+
 #ifndef BEEVC_Bowden
 	#ifndef BEEVC_Trapezoidal
 		#define DEFAULT_MAX_FEEDRATE          { 200, 200, 3, 20 }
@@ -662,7 +664,6 @@
  *                                      X, Y, Z, E0 [, E1[, E2[, E3[, E4]]]]
  */
 	#define DEFAULT_MAX_ACCELERATION      { 3000, 3000, 300, 10000 }
-
 
 /**
  * Default Acceleration (change/s) change = mm/s
@@ -1600,7 +1601,16 @@
 // Use this option to override the number of step signals required to
 // move between next/prev menu items.
 //
-//#define ENCODER_STEPS_PER_MENU_ITEM 5
+//#define ENCODER_STEPS_PER_MENU_ITEM 4
+
+
+// Improved encoder responsiveness
+#ifdef hBp_MKS_MINI_12864
+
+	#define ENCODER_STEPS_PER_MENU_ITEM 1
+	#define ENCODER_PULSES_PER_STEP 4
+
+#endif
 
 
 // Improved encoder responsiveness
