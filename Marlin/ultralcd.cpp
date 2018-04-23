@@ -3466,7 +3466,6 @@ void lcd_enqueue_filament_change() {
 
     void _lcd_z_offset_completed()
 	{
-	  enqueue_and_echo_commands_P(PSTR("G28 X Y"));
 	  lcd_implementation_clear();
 
 	  START_SCREEN();
@@ -3513,6 +3512,7 @@ void lcd_enqueue_filament_change() {
 		zprobe_zoffset = (current_position[Z_AXIS] + zprobe_zoffset);
 		lcd_completion_feedback(settings.save());
 
+    enqueue_and_echo_commands_P(PSTR("G28 X Y"));
 		lcd_goto_screen(_lcd_z_offset_completed);
 	}
 
