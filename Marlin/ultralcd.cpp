@@ -200,6 +200,7 @@ uint16_t max_display_update_time = 0;
     void lcd_advanced_pause_heat_nozzle();
     void lcd_advanced_pause_extrude_message();
     void lcd_advanced_pause_resume_message();
+	void lcd_enqueue_filament_change();
 	
 	// Manual filament change feature
 	static void lcd_filament_change();
@@ -1068,8 +1069,9 @@ void kill_screen(const char* lcd_msg) {
       MENU_ITEM(submenu, MSG_BLTOUCH, bltouch_menu);
     #endif
 
-    if (planner.movesplanned() || IS_SD_PRINTING) {
+    if (planner.movesplanned() || IS_SD_PRINTING || IS_SD_FILE_OPEN) {
       MENU_ITEM(submenu, MSG_TUNE, lcd_tune_menu);
+	  MENU_ITEM(function, MSG_FILAMENTCHANGE, lcd_enqueue_filament_change);
     }
     else {
 
@@ -1086,7 +1088,7 @@ void kill_screen(const char* lcd_msg) {
 		  MENU_ITEM(function, MSG_LEVEL_BED, _lcd_level_bed_continue); 
 	  #endif
 	  #if HAS_ABL
-		  MENU_ITEM(gcode, MSG_LEVEL_BED, PSTR("T0\nG28\nG29\nG1 X160 Y200 F11000\nM500\nG4 P200\n M300 S4000 P200\nG4 P500\n M300 S4000 P200")); 
+		  MENU_ITEM(gcode, MSG_LEVEL_BED, PSTR("T0\nG28\nG29\nG28 X Y\nM500\nG4 P200\n M300 S4000 P200\nG4 P500\n M300 S4000 P200")); 
 	  #endif
 		
 	  //DR - Calibrate Z_offset
@@ -1377,9 +1379,10 @@ void kill_screen(const char* lcd_msg) {
       advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE;
     }
 	
-	void lcd_filament_change_continue_to_load() {
-      advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE;
+	void lcd_filament_change_load() {
+      advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_LOAD;
     }
+	
 	
 	void lcd_filament_change_press() {
       START_SCREEN();
@@ -1410,6 +1413,16 @@ void kill_screen(const char* lcd_msg) {
       END_MENU();
     }
 	
+	void lcd_filament_change_unload_option_menu() {
+      START_MENU();
+      #if LCD_HEIGHT > 2
+        STATIC_ITEM(MSG_FILAMENTCHANGE, true, false);
+      #endif
+	  MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_LOAD, lcd_filament_change_load);
+      MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_RESUME, lcd_filament_change_resume_print);
+      END_MENU();
+    }
+	
 	
 	
 	void lcd_filament_change_unload_menu() {
@@ -1418,10 +1431,8 @@ void kill_screen(const char* lcd_msg) {
         STATIC_ITEM(MSG_FILAMENTCHANGE, true, false);
       #endif
       MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_RESUME, lcd_filament_change_resume_print);
-	  
-	  // TODO unload more
       
-	  MENU_ITEM(function, _UxGT("Load filament"), lcd_filament_change_continue_to_load);
+	  MENU_ITEM(function, _UxGT("Load filament"), lcd_filament_change_extrude_more);
       END_MENU();
     }
 	
@@ -1736,7 +1747,7 @@ static void lcd_filament_change_move_to_position()
 {
   // homing and moving to Z = 20
   enqueue_and_echo_commands_P(PSTR("G28"));
-  enqueue_and_echo_commands_P(PSTR("G1 X20 Z20 F3000"));
+  enqueue_and_echo_commands_P(PSTR("G1 Z50 F3000"));
 }
 
 static void lcd_filament_change()
@@ -1910,10 +1921,12 @@ void lcd_enqueue_filament_change() {
     //
     // Change filament
     //
+	/*
     #if ENABLED(ADVANCED_PAUSE_FEATURE)
       if (!thermalManager.tooColdToExtrude(active_extruder))
         MENU_ITEM(function, MSG_FILAMENTCHANGE, lcd_enqueue_filament_change);
     #endif
+	*/
 
     END_MENU();
   }
@@ -3163,7 +3176,7 @@ void lcd_enqueue_filament_change() {
     //
     // Change filament
     //
-	// Removed as change filament already exists on the main menu and on Tune menu
+	// Removed as change filament already exists on the main menu 
 	/*
     #if ENABLED(ADVANCED_PAUSE_FEATURE)
       if (!thermalManager.tooColdToExtrude(active_extruder) && !IS_SD_FILE_OPEN)
@@ -3419,9 +3432,11 @@ void lcd_enqueue_filament_change() {
    
     void _lcd_z_offset_completed()
 	{
-		lcd_implementation_clear();
-		
-		START_SCREEN();
+	  enqueue_and_echo_commands_P(PSTR("G28 X Y"));
+	  lcd_implementation_clear();
+	  
+	  START_SCREEN();
+	  
 	  STATIC_ITEM(_UxGT("Nozzle height"), true, true);
 	  lcd_implementation_drawmenu_static(2, PSTR("Process completed"));
 	  lcd_implementation_drawmenu_static(3, PSTR("  Press to exit  "));
@@ -3526,8 +3541,6 @@ void lcd_enqueue_filament_change() {
       STATIC_ITEM("Homing XYZ axis ", true, true);
       STATIC_ITEM("Allow movement to");
 	  STATIC_ITEM("finish and press!");
-	  //STATIC_ITEM("finish and press ");
-	  //STATIC_ITEM("   to continue   ");
       END_SCREEN();
 	  }
 	  
@@ -5181,6 +5194,11 @@ void lcd_enqueue_filament_change() {
 		  defer_return_to_status = true;
           advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
           lcd_goto_screen(lcd_filament_change_option_menu);
+          break;
+		 case FILAMENT_CHANGE_UNLOAD_OPTION:
+		  defer_return_to_status = true;
+          advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
+          lcd_goto_screen(lcd_filament_change_unload_option_menu);
           break;
       }
     }

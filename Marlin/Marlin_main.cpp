@@ -10107,7 +10107,8 @@ inline void gcode_M502() {
 	//idle();
 		
 	// Checks if the unload flag is enabled, to see if it should execute Load or Unload
-	if(parser.seen('U') ? parser.value_bool() : 0)
+	bool unloadFlag = (parser.seen('U') ? parser.value_bool() : 0);
+	if(unloadFlag)
 	{
 			
 		// Unload filament
@@ -10115,10 +10116,22 @@ inline void gcode_M502() {
 			
 		RUNPLAN(FILAMENT_CHANGE_UNLOAD_FEEDRATE);
 		stepper.synchronize();
+		
+		
+		// Asks if a load is to be performed
+		KEEPALIVE_STATE(PAUSED_FOR_USER);
+		wait_for_user = false;
+		lcd_advanced_pause_show_message(FILAMENT_CHANGE_UNLOAD_OPTION);
+		while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
+		KEEPALIVE_STATE(IN_HANDLER);
+		
+		if (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_LOAD)
+			unloadFlag = false;
 	}
 	
+	
 	// When loading
-	else
+	else if (!unloadFlag)
 	{
 		//Checks if Bowden to apply the correct 3 phase load process
 		#ifndef BEEVC_Bowden

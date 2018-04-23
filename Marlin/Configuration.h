@@ -31,8 +31,8 @@
   * !!!! Choose only one option !!!!
   */
  
- #include "helloBEEprusa.h"
- //#include "B2X300.h"
+ #include "BEEVC_helloBEEprusa.h"
+ //#include "BEEVC_B2X300.h"
 
  
 //===========================================================================
