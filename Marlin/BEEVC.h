@@ -24,16 +24,26 @@
 	#define BEEVC_Bowden
 	#define BEEVC_MKS_MINI_12864
 	#define BEEVC_Restore
+	#define FILAMENT_RUNOUT_SENSOR
+  #define FILAMENT_RUNOUT_DUAL
 #endif
 
 // Power Restore defines
 #ifdef BEEVC_Restore
 
-	#ifdef BEEVC_Trapezoidal
-		#define BEEVC_Restore_LiftZ 2000
+	#define BEEVC_Restore_LiftRetract
+
+	#ifdef BEEVC_Bowden
+		#define BEEVC_Restore_Retract 6000
 	#else
-		#define BEEVC_Restore_LiftZ 600
+		#define BEEVC_Restore_Retract 2000
 	#endif
-	
+
+	#ifdef BEEVC_Trapezoidal
+			#define BEEVC_Restore_LiftZ 1600
+	#else
+			#define BEEVC_Restore_LiftZ 600
+	#endif
+
 	#define SERIAL_DEBUG
 #endif
