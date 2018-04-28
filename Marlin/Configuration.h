@@ -32,18 +32,9 @@
   */
 
  //#include "BEEVC_helloBEEprusa.h"
- //#include "BEEVC_B2X300.h"
+ #include "BEEVC_B2X300.h"
 
-///////
-
-#define BEEVC_Restore
-#define SERIAL_DEBUG
-#define BEEVC_Restore_LiftRetract
-#define BEEVC_Restore_LiftZ 400
-#define BEEVC_Restore_Retract 2000
-
-//////
-
+ 
 //===========================================================================
 //===========================================================================
 
