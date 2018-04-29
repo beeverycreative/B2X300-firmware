@@ -149,3 +149,5 @@ Marlin/Conditionals_LCD.h
 Marlin/enum.h
 Marlin/Conditionals_LCD.h
 Marlin/Configuration.h
+.clang_complete
+.gcc-flags.json
