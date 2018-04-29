@@ -959,7 +959,7 @@
 #else
 	#define X_MIN_POS 0
 
-	#ifdef BEEVC_X
+	#ifdef BEEVC_B2X300
 		//extended bed with more margin
 		#define X_BED_SIZE 330
 
@@ -973,7 +973,7 @@
 #endif
 
 // The size of the print bed
-#ifdef BEEVC_X
+#ifdef BEEVC_B2X300
 	#define Y_BED_SIZE 224
 #else
 	#define Y_BED_SIZE 195
@@ -985,7 +985,7 @@
 #define X_MAX_POS X_BED_SIZE
 #define Y_MAX_POS Y_BED_SIZE
 
-#ifdef BEEVC_X
+#ifdef BEEVC_B2X300
 	#define Z_MAX_POS 350
 #else
 	#define Z_MAX_POS 190
@@ -1641,7 +1641,7 @@
 //  Set this option if CLOCKWISE causes values to DECREASE
 //
 // this if makes sure the encoder works correctly
-#if (DISABLED(BEEVC_X) && DISABLED(BEEVC_MKS_MINI_12864))
+#if (DISABLED(BEEVC_B2X300) && DISABLED(BEEVC_MKS_MINI_12864))
 	#define REVERSE_ENCODER_DIRECTION
 #endif
 
@@ -1734,7 +1734,7 @@
 // Note: Usually sold with a white PCB.
 //
 // Check if using normal LCD or old version
-#if (DISABLED(BEEVC_X) && DISABLED(BEEVC_MKS_MINI_12864))
+#if (DISABLED(BEEVC_B2X300) && DISABLED(BEEVC_MKS_MINI_12864))
 	#define REPRAP_DISCOUNT_SMART_CONTROLLER
 #endif
 
