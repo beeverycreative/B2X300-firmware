@@ -38,9 +38,7 @@
  //==================== BEEVERYCREATIVE re-define=============================
  //===========================================================================
 
- //DR - As trinamics use 16 microsteps like the A4988 we need to make this configuration
-
- // Trinamic stepper drivers defines
+ // Trinamic stepper drivers use 16 microsteps like the A4988 we need to make this configuration
  #ifdef BEEVC_TMC2208ext
  	#define BEEVC_A4988ext
  	#define BEEVC_ReverseE
@@ -54,30 +52,13 @@
  	#define BEEVC_ReverseZ
  #endif
 
- // B2X300 defines
- #ifdef BEEVC_B2X300
- 	#define BEEVC_A4988all
- 	#define BEEVC_ReverseX
- 	#define BEEVC_ReverseY
- 	#define BEEVC_Trapezoidal
- 	#define BEEVC_Extendedbed
- 	#define BEEVC_Autolevel
- 	#define BEEVC_Bowden
- 	#define BEEVC_MKS_MINI_12864
- 	#define BEEVC_Restore
- 	#define FILAMENT_RUNOUT_SENSOR
-   #define FILAMENT_RUNOUT_DUAL
- #endif
-
  // Power Restore defines
  #ifdef BEEVC_Restore
-
  	#ifdef BEEVC_Trapezoidal
- 		#define BEEVC_Restore_LiftZ 2000
+ 		//#define BEEVC_Restore_LiftZ 2000
  	#else
  		#define BEEVC_Restore_LiftZ 600
  	#endif
-
  	#define SERIAL_DEBUG
  #endif
 
@@ -1183,10 +1164,10 @@
   // Set the boundaries for probing (where the probe can reach).
 
 
-		#define LEFT_PROBE_BED_POSITION 30
-		#define RIGHT_PROBE_BED_POSITION X_MAX_POS-30
+		#define LEFT_PROBE_BED_POSITION 35
+		#define RIGHT_PROBE_BED_POSITION X_MAX_POS-35
 		#define FRONT_PROBE_BED_POSITION 40
-		#define BACK_PROBE_BED_POSITION 180
+		#define BACK_PROBE_BED_POSITION 185
 
 
 

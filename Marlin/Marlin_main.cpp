@@ -16005,6 +16005,84 @@ void setup() {
 
 			#endif
 
+      #ifdef BEEVC_Restore_Move_X
+
+        // Reference for the pins used
+        // X_ENABLE 	   = D38 	= PD7
+        // X_DIR		     = D55	= PF1
+        // X_STEP_PIN	   = D54	= PF0
+
+        //Makes sure the ports are configured as outputs
+        // X
+        DDRD |= (1 << DDD7);
+        DDRF |= (1 << DDF1) || (1 << DDF0);
+
+        //Choses the best direction to move X into and calculates move distance
+        float movedistance = 0;
+
+        if (current_position[X_AXIS] > (X_BED_SIZE/2))
+            {
+            PORTF &= ~(1 << 1);
+            movedistance = current_position[X_AXIS] - (X_BED_SIZE/2);
+            }
+        else
+            {
+            PORTF |= (1 << 1);
+            movedistance = current_position[X_AXIS];
+            }
+
+        //Calculates the necessary ammounts of steps and the stepping speed
+        float def1[] = DEFAULT_AXIS_STEPS_PER_UNIT;
+        long stepsX = def1[0] * movedistance;
+
+        #ifdef SERIAL_DEBUG
+        SERIAL_ECHOPAIR("Steps X: ", stepsX);
+        SERIAL_ECHOLNPGM("! ");
+        #endif
+
+        /*
+        long usStepX = round(100000/(BEEVC_Restore_Move_X*def1[2]));
+
+        #ifdef SERIAL_DEBUG
+        SERIAL_ECHOPAIR("usStep X: ", usStepX);
+        SERIAL_ECHOLNPGM("! ");
+        #endif
+        */
+
+        // Enable the X stepper - Active low
+				PORTD &= ~(1 << 7);
+
+
+        // Generates the steps
+        bool stepcycleX = false;
+        long elapsedSteps = 0;
+        uint8_t delayX = 30;
+
+        while(stepsX != 0)
+          {
+            if(stepcycleX)
+            {
+              stepsX-= 1;
+              elapsedSteps ++;
+              PORTF |= (1 << 0);
+            }
+            else
+              PORTF &= ~(1 << 0);
+
+            stepcycleX = !stepcycleX;
+
+            if ((elapsedSteps % 5) == 0)
+              {
+                if (delayX > 1)
+                  delayX-= 1;
+              }
+
+            delayMicroseconds(delayX);
+
+          }
+
+      #endif
+
 
 
 

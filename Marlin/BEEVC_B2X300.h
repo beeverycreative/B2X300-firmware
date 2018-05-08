@@ -30,4 +30,18 @@
 //
 //
 //===========================================================================
+//============================= B2X300 re-define ============================
 //===========================================================================
+
+#define BEEVC_A4988all
+#define BEEVC_ReverseX
+#define BEEVC_ReverseY
+#define BEEVC_Trapezoidal
+#define BEEVC_Extendedbed
+#define BEEVC_Autolevel
+#define BEEVC_Bowden
+#define BEEVC_MKS_MINI_12864
+#define BEEVC_Restore
+#define FILAMENT_RUNOUT_SENSOR
+#define FILAMENT_RUNOUT_DUAL
+#define BEEVC_Restore_Move_X   600
