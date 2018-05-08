@@ -60,7 +60,6 @@
  	#define BEEVC_ReverseX
  	#define BEEVC_ReverseY
  	#define BEEVC_Trapezoidal
- 	#define BEEVC_Extendedbed
  	#define BEEVC_Autolevel
  	#define BEEVC_Bowden
  	#define BEEVC_MKS_MINI_12864
@@ -997,42 +996,39 @@
 // Travel limits after homing (units are in mm)
 
 // hBp - Sets the bed size
-#ifndef BEEVC_Extendedbed
-	//default bed
-	#define X_MIN_POS -48
-	#define X_BED_SIZE 185
+#if ENABLED(BEEVC_B2X300)
+    //extended bed with more margin
+    #define X_MIN_POS -20
+    #define X_BED_SIZE 310
+
+#elif ENABLED(BEEVC_Extendedbed)
+    //extended bed
+    #define X_MIN_POS 0
+    #define X_BED_SIZE 300
 
 #else
-	#define X_MIN_POS 0
-
-	#ifdef BEEVC_B2X300
-		//extended bed with more margin
-		#define X_BED_SIZE 330
-
-	#else
-		//extended bed
-	#define X_BED_SIZE 300
-
-	#endif
-
+    //default bed
+    #define X_MIN_POS -48
+    #define X_BED_SIZE 185
 
 #endif
 
 // The size of the print bed
 #ifdef BEEVC_B2X300
-	#define Y_BED_SIZE 224
+  #define Y_MIN_POS -21
+	#define Y_BED_SIZE 203
 #else
+  #define Y_MIN_POS 0
 	#define Y_BED_SIZE 195
 #endif
 
 // Travel limits (mm) after homing, corresponding to endstop positions.
-#define Y_MIN_POS 0
 #define Z_MIN_POS 0
 #define X_MAX_POS X_BED_SIZE
 #define Y_MAX_POS Y_BED_SIZE
 
 #ifdef BEEVC_B2X300
-	#define Z_MAX_POS 350
+	#define Z_MAX_POS 300
 #else
 	#define Z_MAX_POS 190
 #endif
