@@ -34,7 +34,53 @@
  //#include "BEEVC_helloBEEprusa.h"
  #include "BEEVC_B2X300.h"
 
- 
+ //===========================================================================
+ //==================== BEEVERYCREATIVE re-define=============================
+ //===========================================================================
+
+ //DR - As trinamics use 16 microsteps like the A4988 we need to make this configuration
+
+ // Trinamic stepper drivers defines
+ #ifdef BEEVC_TMC2208ext
+ 	#define BEEVC_A4988ext
+ 	#define BEEVC_ReverseE
+ #endif
+
+ #ifdef BEEVC_TMC2208all
+ 	#define BEEVC_A4988all
+ 	#define BEEVC_ReverseE
+ 	#define BEEVC_ReverseX
+ 	#define BEEVC_ReverseY
+ 	#define BEEVC_ReverseZ
+ #endif
+
+ // B2X300 defines
+ #ifdef BEEVC_B2X300
+ 	#define BEEVC_A4988all
+ 	#define BEEVC_ReverseX
+ 	#define BEEVC_ReverseY
+ 	#define BEEVC_Trapezoidal
+ 	#define BEEVC_Extendedbed
+ 	#define BEEVC_Autolevel
+ 	#define BEEVC_Bowden
+ 	#define BEEVC_MKS_MINI_12864
+ 	#define BEEVC_Restore
+ 	#define FILAMENT_RUNOUT_SENSOR
+   #define FILAMENT_RUNOUT_DUAL
+ #endif
+
+ // Power Restore defines
+ #ifdef BEEVC_Restore
+
+ 	#ifdef BEEVC_Trapezoidal
+ 		#define BEEVC_Restore_LiftZ 2000
+ 	#else
+ 		#define BEEVC_Restore_LiftZ 600
+ 	#endif
+
+ 	#define SERIAL_DEBUG
+ #endif
+
 //===========================================================================
 //===========================================================================
 
@@ -959,7 +1005,7 @@
 #else
 	#define X_MIN_POS 0
 
-	#ifdef BEEVC_X
+	#ifdef BEEVC_B2X300
 		//extended bed with more margin
 		#define X_BED_SIZE 330
 
@@ -973,7 +1019,7 @@
 #endif
 
 // The size of the print bed
-#ifdef BEEVC_X
+#ifdef BEEVC_B2X300
 	#define Y_BED_SIZE 224
 #else
 	#define Y_BED_SIZE 195
@@ -985,7 +1031,7 @@
 #define X_MAX_POS X_BED_SIZE
 #define Y_MAX_POS Y_BED_SIZE
 
-#ifdef BEEVC_X
+#ifdef BEEVC_B2X300
 	#define Z_MAX_POS 350
 #else
 	#define Z_MAX_POS 190
@@ -1641,7 +1687,7 @@
 //  Set this option if CLOCKWISE causes values to DECREASE
 //
 // this if makes sure the encoder works correctly
-#if (DISABLED(BEEVC_X) && DISABLED(BEEVC_MKS_MINI_12864))
+#if (DISABLED(BEEVC_B2X300) && DISABLED(BEEVC_MKS_MINI_12864))
 	#define REVERSE_ENCODER_DIRECTION
 #endif
 
@@ -1734,7 +1780,7 @@
 // Note: Usually sold with a white PCB.
 //
 // Check if using normal LCD or old version
-#if (DISABLED(BEEVC_X) && DISABLED(BEEVC_MKS_MINI_12864))
+#if (DISABLED(BEEVC_B2X300) && DISABLED(BEEVC_MKS_MINI_12864))
 	#define REPRAP_DISCOUNT_SMART_CONTROLLER
 #endif
 
