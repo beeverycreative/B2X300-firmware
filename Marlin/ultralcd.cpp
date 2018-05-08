@@ -2138,13 +2138,13 @@ void lcd_enqueue_filament_change() {
         #endif
       #else
         #if TEMP_SENSOR_BED != 0
-          MENU_ITEM(function, MSG_PREHEAT_1_N MSG_H1, lcd_preheat_m1_e0);
-          MENU_ITEM(function, MSG_PREHEAT_1_END " " MSG_E1, lcd_preheat_m1_e0_only);
-          MENU_ITEM(function, MSG_PREHEAT_1_N MSG_H2, lcd_preheat_m1_e1);
-          MENU_ITEM(function, MSG_PREHEAT_1_END " " MSG_E2, lcd_preheat_m1_e1_only);
+          MENU_ITEM(function, MSG_PREHEAT_1_N MSG_E1, lcd_preheat_m1_e0);
+          MENU_ITEM(function, MSG_PREHEAT_1_N MSG_E1 " End", lcd_preheat_m1_e0_only);
+          MENU_ITEM(function, MSG_PREHEAT_1_N MSG_E2, lcd_preheat_m1_e1);
+          MENU_ITEM(function, MSG_PREHEAT_1_N MSG_E2 " End", lcd_preheat_m1_e1_only);
         #else
-          MENU_ITEM(function, MSG_PREHEAT_1_N MSG_H1, lcd_preheat_m1_e0_only);
-          MENU_ITEM(function, MSG_PREHEAT_1_N MSG_H2, lcd_preheat_m1_e1_only);
+          MENU_ITEM(function, MSG_PREHEAT_1_N MSG_E1, lcd_preheat_m1_e0_only);
+          MENU_ITEM(function, MSG_PREHEAT_1_N MSG_E2, lcd_preheat_m1_e1_only);
         #endif
         #if HOTENDS > 2
           #if TEMP_SENSOR_BED != 0
@@ -2190,13 +2190,13 @@ void lcd_enqueue_filament_change() {
         #endif
       #else
         #if TEMP_SENSOR_BED != 0
-          MENU_ITEM(function, MSG_PREHEAT_2_N MSG_H1, lcd_preheat_m2_e0);
-          MENU_ITEM(function, MSG_PREHEAT_2_END " " MSG_E1, lcd_preheat_m2_e0_only);
-          MENU_ITEM(function, MSG_PREHEAT_2_N MSG_H2, lcd_preheat_m2_e1);
-          MENU_ITEM(function, MSG_PREHEAT_2_END " " MSG_E2, lcd_preheat_m2_e1_only);
+          MENU_ITEM(function, MSG_PREHEAT_2_N MSG_E1, lcd_preheat_m1_e0);
+          MENU_ITEM(function, MSG_PREHEAT_2_N MSG_E1 " End", lcd_preheat_m1_e0_only);
+          MENU_ITEM(function, MSG_PREHEAT_2_N MSG_E2, lcd_preheat_m1_e1);
+          MENU_ITEM(function, MSG_PREHEAT_2_N MSG_E2 " End", lcd_preheat_m1_e1_only);
         #else
-          MENU_ITEM(function, MSG_PREHEAT_2_N MSG_H1, lcd_preheat_m2_e0_only);
-          MENU_ITEM(function, MSG_PREHEAT_2_N MSG_H2, lcd_preheat_m2_e1_only);
+          MENU_ITEM(function, MSG_PREHEAT_2_N MSG_E1, lcd_preheat_m1_e0_only);
+          MENU_ITEM(function, MSG_PREHEAT_2_N MSG_E2, lcd_preheat_m1_e1_only);
         #endif
         #if HOTENDS > 2
           #if TEMP_SENSOR_BED != 0
