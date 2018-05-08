@@ -1418,22 +1418,28 @@ void kill_screen(const char* lcd_msg) {
     }
 
 
-	void lcd_filament_change_press() {
+	void lcd_filament_change_press()
+    {
       START_SCREEN();
       STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
       STATIC_ITEM(" ");
-	  STATIC_ITEM("Press and hold ");
-	  STATIC_ITEM("to continue... ");
+	    STATIC_ITEM("Press and hold ");
 
+      // Shows extra line if filament detection is active
+      #ifdef FILAMENT_RUNOUT_SENSOR
+        STATIC_ITEM("or insert filament");
+      #endif
+
+	    STATIC_ITEM("to continue... ");
       END_SCREEN();
     }
 
-	void lcd_filament_change_moving() {
+	void lcd_filament_change_moving()
+    {
       START_SCREEN();
       STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
       STATIC_ITEM(" ");
-	  STATIC_ITEM("Moving, please wait...");
-
+	    STATIC_ITEM("Moving, please wait...");
       END_SCREEN();
     }
 
@@ -1539,23 +1545,36 @@ static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool u
   }
 
 
-	//show press to continue
+	//Shows "Press to continue" and beeps while waiting
 	lcd_goto_screen(lcd_filament_change_press);
-
-    //Beep while waiting for button press
-    KEEPALIVE_STATE(PAUSED_FOR_USER);
-    wait_for_user = true;    // LCD click or M108 will clear this
+  KEEPALIVE_STATE(PAUSED_FOR_USER);
+  wait_for_user = true;    // LCD click or M108 will clear this
 	next_update = millis() + 100;
-
-	while (wait_for_user ) {
+	while (wait_for_user )
+  {
 		if(next_update < millis())
-		{
-			#if HAS_BUZZER
-			buzzer.tone(100, 2000);
-			#endif
-			idle(true);
-			next_update = millis() + 1000;
-		}
+  		{
+  			#if HAS_BUZZER
+  			   buzzer.tone(100, 2000);
+  			#endif
+
+        // Detects if the filament sensor is activated
+        if (extruder)
+          // E0
+          {
+            if (!(READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING))
+              break;
+          }
+        else
+          // E1
+          {
+            if (!(READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING))
+              break;
+          }
+
+  			idle(true);
+  			next_update = millis() + 1000;
+  		}
 	  }
 
     KEEPALIVE_STATE(IN_HANDLER);
