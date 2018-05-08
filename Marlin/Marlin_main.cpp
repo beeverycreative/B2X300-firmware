@@ -16031,6 +16031,10 @@ void setup() {
             movedistance = current_position[X_AXIS];
             }
 
+        // Ensures move distance does not exceed maximum possible movement before motor freerunning
+        if (movedistance > 55)
+          movedistance = 55;
+
         //Calculates the necessary ammounts of steps and the stepping speed
         float def1[] = DEFAULT_AXIS_STEPS_PER_UNIT;
         long stepsX = def1[0] * movedistance;
@@ -16040,23 +16044,13 @@ void setup() {
         SERIAL_ECHOLNPGM("! ");
         #endif
 
-        /*
-        long usStepX = round(100000/(BEEVC_Restore_Move_X*def1[2]));
-
-        #ifdef SERIAL_DEBUG
-        SERIAL_ECHOPAIR("usStep X: ", usStepX);
-        SERIAL_ECHOLNPGM("! ");
-        #endif
-        */
-
         // Enable the X stepper - Active low
 				PORTD &= ~(1 << 7);
-
 
         // Generates the steps
         bool stepcycleX = false;
         long elapsedSteps = 0;
-        uint8_t delayX = 30;
+        uint8_t delayX = 40;
 
         while(stepsX != 0)
           {
@@ -16071,15 +16065,18 @@ void setup() {
 
             stepcycleX = !stepcycleX;
 
-            if ((elapsedSteps % 5) == 0)
+            if ((elapsedSteps % 100) == 0)
               {
-                if (delayX > 1)
-                  delayX-= 1;
+                if (delayX > 5)
+                  delayX-= 5;
               }
 
             delayMicroseconds(delayX);
 
           }
+
+          // Disable the X stepper - Allows the inertia of the system to continue the movement
+  				PORTD |= (1 << 7);
 
       #endif
 
