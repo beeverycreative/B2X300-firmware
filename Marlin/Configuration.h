@@ -911,7 +911,7 @@
 #define Z_CLEARANCE_BETWEEN_PROBES  2 // Z Clearance between probe points
 
 // For M851 give a range for adjusting the Z probe offset
-#define Z_PROBE_OFFSET_RANGE_MIN -15
+#define Z_PROBE_OFFSET_RANGE_MIN -18
 #define Z_PROBE_OFFSET_RANGE_MAX -3
 
 // Enable the M48 repeatability test to test probe accuracy
