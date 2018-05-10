@@ -192,7 +192,11 @@
 
 // Optional custom name for your RepStrap or other custom machine
 // Displayed in the LCD "Ready" message
-#define CUSTOM_MACHINE_NAME "helloBEEprusa"
+#ifdef B2X300
+  #define CUSTOM_MACHINE_NAME "B2X300"
+#else
+  #define CUSTOM_MACHINE_NAME "helloBEEprusa"
+#endif
 
 // Define this to set a unique identifier for this printer, (Used by some programs to differentiate between machines)
 // You can use an online service to generate a random UUID. (eg http://www.uuidgenerator.net/version4)
