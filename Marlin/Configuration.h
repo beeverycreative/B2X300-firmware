@@ -65,7 +65,7 @@
  	#define BEEVC_MKS_MINI_12864
  	#define BEEVC_Restore
  	#define FILAMENT_RUNOUT_SENSOR
-   #define FILAMENT_RUNOUT_DUAL
+  #define FILAMENT_RUNOUT_DUAL
  #endif
 
  // Power Restore defines
