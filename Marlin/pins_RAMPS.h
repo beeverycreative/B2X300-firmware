@@ -76,13 +76,18 @@
 //
 #define X_MIN_PIN           3
 
-#ifndef FILAMENT_RUNOUT_SENSOR
-	#define X_MAX_PIN         2
-	
-	#ifndef FILAMENT_RUNOUT_DUAL
-		#define Y_MIN_PIN          		14
-	#endif
-#endif
+#ifdef BEEVC_B2X300_YMINSTOP
+  #define Y_MIN_PIN         15
+#else
+  #ifndef FILAMENT_RUNOUT_SENSOR
+    #define X_MAX_PIN         2
+
+    #ifndef FILAMENT_RUNOUT_DUAL
+      #define Y_MIN_PIN          		14
+    #endif  //FILAMENT_RUNOUT_DUAL
+  #endif  //FILAMENT_RUNOUT_SENSOR
+#endif  //BEEVC_B2X300_YMINSTOP
+
 
 #define Y_MAX_PIN          15
 #define Z_MIN_PIN          18
@@ -267,7 +272,7 @@
 // Filament runout pin is the X+ plug port D2
 #ifdef FILAMENT_RUNOUT_SENSOR
 	#define FIL_RUNOUT_PIN      2
-	
+
 	// Second filament runout sensor, the port Y-
 	#ifdef FILAMENT_RUNOUT_DUAL
 		#define FIL_RUNOUT_PIN2     14
@@ -480,7 +485,7 @@
       #define DOGLCD_CS         25
 
       // GLCD features
-      //#define LCD_CONTRAST   
+      //#define LCD_CONTRAST
 	  #define LCD_CONTRAST   255
       // Uncomment screen orientation
       //#define LCD_SCREEN_ROT_90
@@ -521,8 +526,8 @@
       #define SDSS              53
       #define SD_DETECT_PIN     49
       #define KILL_PIN          64
-	  
-	// Included MKS mini screen  
+
+	// Included MKS mini screen
 	#elif ENABLED(MKS_MINI_12864)
 		   #define MISO_PIN      50  // system defined - only needed if using onboard SD card
 		   #define MOSI_PIN      51  // system defined

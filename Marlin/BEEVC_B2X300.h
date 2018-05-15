@@ -11,12 +11,12 @@
 //===========================================================================
 //=========================== Experimental/Beta =============================
 //===========================================================================
-//
+// Back mounted Y endstop, uncomment this if your Y endstop is next to the Y motor
+// #define BEEVC_B2X300_YMINSTOP
 //
 //
 // New spring loaded extruder, black plastic
 // #define BEEVC_ReverseE
-//
 //
 //
 // If your helloBEEprusa has Trinamic TMC2208/2100 stepper drivers please uncomment the correct line

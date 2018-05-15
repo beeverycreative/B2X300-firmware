@@ -582,10 +582,18 @@
 // Almost all printers will be using one per axis. Probes will use one or more of the
 // extra connectors. Leave undefined any used for non-endstop and non-probe purposes.
 #define USE_XMIN_PLUG
-//#define USE_YMIN_PLUG
+
+// If the Y endstop is next to the Y motor
+#ifdef BEEVC_B2X300_YMINSTOP
+  #define USE_YMIN_PLUG
+// If the Y endstop is on the front
+#else
+  #define USE_YMAX_PLUG
+#endif //BEEVC_B2X300_YMINSTOP
+
 #define USE_ZMIN_PLUG
 //#define USE_XMAX_PLUG
-#define USE_YMAX_PLUG
+
 //#define USE_ZMAX_PLUG
 
 // coarse Endstop Settings
@@ -604,7 +612,7 @@
 
 // Mechanical endstop with COM to ground and NC to Signal uses "false" here (most common setup).
 #define X_MIN_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.
-#define Y_MIN_ENDSTOP_INVERTING false // set to true to invert the logic of the endstop.
+#define Y_MIN_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.
 #define Z_MIN_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.
 #define X_MAX_ENDSTOP_INVERTING false // set to true to invert the logic of the endstop.
 #define Y_MAX_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.
@@ -992,44 +1000,61 @@
 // Direction of endstops when homing; 1=MAX, -1=MIN
 // :[-1,1]
 #define X_HOME_DIR -1
-#define Y_HOME_DIR 1
+
+// If the endstop is towards Y-
+#ifdef BEEVC_B2X300_YMINSTOP
+  #define Y_HOME_DIR -1
+// If the endstop is towards Y+
+#else
+  #define Y_HOME_DIR 1
+#endif //BEEVC_B2X300_Y-STOP
+
 #define Z_HOME_DIR -1
 
-// @section machine
 
+// @section machine
 // Travel limits after homing (units are in mm)
 
-// hBp - Sets the bed size
-#if ENABLED(BEEVC_B2X300)
-    //extended bed with more margin
-    #define X_MIN_POS -20
-    #define X_BED_SIZE 310
-
-#elif ENABLED(BEEVC_Extendedbed)
-    //extended bed
-    #define X_MIN_POS 0
-    #define X_BED_SIZE 300
-
-#else
-    //default bed
-    #define X_MIN_POS -48
-    #define X_BED_SIZE 185
-
-#endif
-
-// The size of the print bed
-#ifdef BEEVC_B2X300
+// The size of the printbed for B2X300 with Y- endstop
+#if  ENABLED(BEEVC_B2X300_YMINSTOP)
+  #define X_MIN_POS -16
+  #define X_MAX_POS 314
+  #define X_BED_SIZE 300
+  #define Y_MIN_POS -7
+  #define Y_MAX_POS 217
+  #define Y_BED_SIZE 200
+  #define Z_MAX_POS 300
+// The size of the printbed for B2X300 with Y+ endstop
+#elif ENABLED(BEEVC_B2X300)
+  #define X_MIN_POS -20
+  #define X_MAX_POS 310
+  #define X_BED_SIZE 300
   #define Y_MIN_POS -21
-	#define Y_BED_SIZE 203
-#else
+  #define Y_MAX_POS 203
+  #define Y_BED_SIZE 200
+  #define Z_MAX_POS 300
+// The size of the printbed for helloBEEprusa with extended bed
+#elif ENABLED(BEEVC_Extendedbed)
+  #define X_MIN_POS 0
+  #define X_MAX_POS 300
+  #define X_BED_SIZE 300
   #define Y_MIN_POS 0
+  #define Y_MAX_POS 195
 	#define Y_BED_SIZE 195
+  #define Z_MAX_POS 190
+// The size of the printbed for helloBEEprusa
+#else
+  #define X_MIN_POS -48
+  #define X_MAX_POS 185
+  #define X_BED_SIZE 185
+  #define Y_MIN_POS 0
+  #define Y_MAX_POS 195
+	#define Y_BED_SIZE 195
+  #define Z_MAX_POS 190
 #endif
 
 // Travel limits (mm) after homing, corresponding to endstop positions.
 #define Z_MIN_POS 0
-#define X_MAX_POS X_BED_SIZE
-#define Y_MAX_POS Y_BED_SIZE
 
 #ifdef BEEVC_B2X300
 	#define Z_MAX_POS 300
@@ -1170,7 +1195,7 @@
 #if ENABLED(AUTO_BED_LEVELING_LINEAR) || ENABLED(AUTO_BED_LEVELING_BILINEAR)
 
   // Set the number of grid points per dimension.
-  #ifdef ENABLED(BEEVC_Extendedbed) || ENABLED(BEEVC_B2X300)
+  #if ENABLED(BEEVC_Extendedbed) || ENABLED(BEEVC_B2X300)
 	#define GRID_MAX_POINTS_X 5
   #else
 	#define GRID_MAX_POINTS_X 3
