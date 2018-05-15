@@ -1170,7 +1170,7 @@
 #if ENABLED(AUTO_BED_LEVELING_LINEAR) || ENABLED(AUTO_BED_LEVELING_BILINEAR)
 
   // Set the number of grid points per dimension.
-  #ifdef BEEVC_Extendedbed
+  #ifdef ENABLED(BEEVC_Extendedbed) || ENABLED(BEEVC_B2X300)
 	#define GRID_MAX_POINTS_X 5
   #else
 	#define GRID_MAX_POINTS_X 3
