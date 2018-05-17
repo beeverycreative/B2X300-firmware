@@ -16112,7 +16112,7 @@ void setup() {
         else
             {
             PORTF |= (1 << 7);
-            movedistance = current_position[X_AXIS];
+            movedistance = current_position[Y_AXIS];
             }
 
         #ifdef SERIAL_DEBUG
@@ -16156,7 +16156,7 @@ void setup() {
 
             if ((elapsedSteps % 5) == 0)
               {
-                if (delayY > 5)
+                if (delayY >= 2)
                   delayY-= 1;
               }
 
