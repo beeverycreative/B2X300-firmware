@@ -11761,22 +11761,24 @@ inline void gcode_M999() {
 
 		//Loads extruder temps
 		// E0
-		EEPROM_read(eeprom_index, (uint8_t*)&thermalManager.target_temperature[0], sizeof(thermalManager.target_temperature[0]));
+    float tempE0 = 0;
+		EEPROM_read(eeprom_index, (uint8_t*)&tempE0, sizeof(thermalManager.target_temperature[0]));
 		#ifdef SERIAL_DEBUG
-			SERIAL_ECHOPAIR("Loaded E0 temp: ", thermalManager.target_temperature[0]);
+			SERIAL_ECHOPAIR("Loaded E0 temp: ", tempE0);
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
 		// E1
-		EEPROM_read(eeprom_index, (uint8_t*)&thermalManager.target_temperature[1], sizeof(thermalManager.target_temperature[1]));
+    float tempE1 = 0;
+		EEPROM_read(eeprom_index, (uint8_t*)&tempE1, sizeof(thermalManager.target_temperature[1]));
 		#ifdef SERIAL_DEBUG
-			SERIAL_ECHOPAIR("Loaded E1 temp: ", thermalManager.target_temperature[1]);
+			SERIAL_ECHOPAIR("Loaded E1 temp: ", tempE1);
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
 
 		//Loads hot bed temp
-		EEPROM_read(eeprom_index, (uint8_t*)&thermalManager.target_temperature_bed, sizeof(thermalManager.target_temperature_bed));
+    EEPROM_read(eeprom_index, (uint8_t*)&thermalManager.target_temperature_bed, sizeof(thermalManager.target_temperature_bed));
 		#ifdef SERIAL_DEBUG
 			SERIAL_ECHOPAIR("Loaded bed temp: ", thermalManager.target_temperature_bed);
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
@@ -11784,10 +11786,7 @@ inline void gcode_M999() {
 		#endif
 
 		//Loads SD card position
-
 		uint32_t tempSdpos = 0;
-
-
 		EEPROM_read(eeprom_index, (uint8_t*)&tempSdpos, sizeof(tempSdpos));
 		#ifdef SERIAL_DEBUG
 			SERIAL_ECHOPAIR("Loaded SD card position: ", tempSdpos);
@@ -11795,32 +11794,27 @@ inline void gcode_M999() {
 			SERIAL_ECHOLNPGM(" ");
 		#endif
 
+    //Loads SD card filename
 		char tempFilename[70];
-
 		EEPROM_read(eeprom_index, (uint8_t*)&tempFilename[0] , 70);
 		#ifdef SERIAL_DEBUG
-
 			SERIAL_ECHOPAIR("Saved SD file name: ", tempFilename);
 			SERIAL_ECHOLNPGM(" ");
-
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
 
-
-
+    // Opens SDcard file
 		card.openFile(&tempFilename[0], true);
 		// Makes sure the file has been opened if not, most likely it it a nested file, so it tries a different variation
 		if(! card.isFileOpen())
 			card.openFile(&tempFilename[1], true);
-		// 540 represents the offset caused by the buffer of 8+1(executing) lines, assuming a average of 60 bytes per instruction
-		//card.setIndex((long) (tempSdpos-540));
+		// 540 represents the offset caused by the buffer of 8+2(executing) lines, assuming a average of 60 bytes per instruction
 		card.setIndex((long) (tempSdpos-600));
 
-    //Waits for thermal stability
 
+    //Heats up bed to avoid the print from lifting
 		unsigned long now = millis()+1000;
-		//Waits for bed temperature to stabilized
 		lcd_setstatus("Heating Bed");
 		while (abs((thermalManager.degBed() - thermalManager.degTargetBed()) >= 2 ))
 		{
@@ -11837,49 +11831,97 @@ inline void gcode_M999() {
 				idle();
 		  }
 
-		 //Waits for hotend 0 temperature to stabilized
-		 lcd_setstatus("Heating E0");
-		while ((abs(thermalManager.degHotend(0) - thermalManager.degTargetHotend(0)) > 5 ))
-		{
-			if (millis() > now)
-			{
-				now = millis()+1000;
-				thermalManager.print_heaterstates();
+      // Heats up extruders that were hot to 100ºC in case it is stuck to the printed parts
+      if ((active_extruder == 0) || tempE0 > 100)
+        thermalManager.target_temperature[0] = 100;
 
-			}
-			else
-				if(thermalManager.degTargetHotend(0) <30)
-					break;
-			else
-				idle();
-		  }
+      if ((active_extruder == 1) || tempE1 > 100)
+        thermalManager.target_temperature[1] = 100;
+
+      //Waits for hotend 0 temperature to stabilized
+      lcd_setstatus("Pre-Heating E0");
+      while ((abs(thermalManager.degHotend(0) - thermalManager.degTargetHotend(0)) > 5 ))
+      {
+        if (millis() > now)
+        {
+          now = millis()+1000;
+          thermalManager.print_heaterstates();
+
+        }
+        // Ensures the loop does't try heating up to low temperatures
+        else
+          if(thermalManager.degTargetHotend(0) <30)
+            break;
+        else
+        idle();
+      }
 
 		  //Waits for hotend 1 temperature to stabilized
-		  lcd_setstatus("Heating E1");
-		while (abs((thermalManager.degHotend(1) - thermalManager.degTargetHotend(1)) > 5 ))
-		{
-			if (millis() > now)
-			{
-				now = millis()+1000;
-				thermalManager.print_heaterstates();
+		  lcd_setstatus("Pre-Heating E1");
+  		while (abs((thermalManager.degHotend(1) - thermalManager.degTargetHotend(1)) > 5 ))
+  		{
+  			if (millis() > now)
+  			{
+  				now = millis()+1000;
+  				thermalManager.print_heaterstates();
 
-			}
-			else
-				if(thermalManager.degTargetHotend(1) <30)
-					break;
-			else
-				idle();
-		}
+  			}
+  			else
+  				if(thermalManager.degTargetHotend(1) <30)
+  					break;
+  			else
+  				idle();
+  		}
 
+    //Lifts Z 20mm and homes X Y not moving the Z axis
+    do_blocking_move_to_z((current_position[2]+20), 4);
+    lcd_setstatus("Homing XY...");
+		HOMEAXIS(X);
+		HOMEAXIS(Y);
+
+    //Sets the correct extruder temperatures
+    thermalManager.target_temperature[0] = tempE0;
+    thermalManager.target_temperature[1] = tempE1;
+    //Waits for hotend 0 temperature to stabilized
+    lcd_setstatus("Heating E0");
+    while ((abs(thermalManager.degHotend(0) - thermalManager.degTargetHotend(0)) > 5 ))
+    {
+      if (millis() > now)
+      {
+        now = millis()+1000;
+        thermalManager.print_heaterstates();
+
+      }
+      // Ensures the loop does't try heating up to low temperatures
+      else
+        if(thermalManager.degTargetHotend(0) <30)
+          break;
+      else
+      idle();
+    }
+
+    //Waits for hotend 1 temperature to stabilized
+    lcd_setstatus("Heating E1");
+    while (abs((thermalManager.degHotend(1) - thermalManager.degTargetHotend(1)) > 5 ))
+    {
+      if (millis() > now)
+      {
+        now = millis()+1000;
+        thermalManager.print_heaterstates();
+
+      }
+      else
+        if(thermalManager.degTargetHotend(1) <30)
+          break;
+      else
+        idle();
+    }
+
+    // Moves the printhead to the printed part and lowers Z
     lcd_setstatus("Recovering print...");
-
-		//Homes X Y not moving the Z axis
-		 HOMEAXIS(X);
-		 HOMEAXIS(Y);
-
-
 		buffer_line_to_current_position();
 		do_blocking_move_to_xy(xPosition,yPosition,40);
+    do_blocking_move_to_z((current_position[2]-20), 4);
 
 		//Extrudes a priming amount
 		/*
@@ -12024,7 +12066,6 @@ inline void gcode_M999() {
           }
 
         }
-
     #endif
 
 
@@ -12075,7 +12116,6 @@ inline void gcode_M999() {
     #endif
 
 		toRecover = false;
-
 	}
 #endif
 
