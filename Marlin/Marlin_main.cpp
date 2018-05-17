@@ -15674,6 +15674,9 @@ void setup() {
 			//DEBUG ONLY - Used to measure the execution time
 			PORTL |= (1 << 5);	// Sets the output high
 
+      // Disables interrupts to stop the execution of steps and all other internal processes to execute as fast as possible
+      cli();
+
 			#ifdef SERIAL_DEBUG
 				SERIAL_ECHOPAIR("buffer tail: ", (planner.block_buffer_tail));
 				SERIAL_ECHOLNPGM("! ");
@@ -15683,24 +15686,13 @@ void setup() {
 				SERIAL_ECHOLNPGM("! ");
 			#endif
 
-			stepper.quick_stop();
-			disable_all_steppers();
-			clear_command_queue();
-
-			//disables interrupts to stop the execution of steps and all other internal processes to execute as fast as possible
-			cli();
-
-
 			// Disables heating by forcing the mosfets OFF
 			#ifdef SERIAL_DEBUG
-				SERIAL_ECHOPAIR("Start time: ", millis());
-				SERIAL_ECHOLNPGM("! ");
 				SERIAL_ECHOLNPGM("Forced disabling of heating elements !");
 			#endif
 			WRITE_HEATER_BED(LOW);
 			WRITE_HEATER_0(LOW);
 			WRITE_HEATER_1(LOW);
-
 
 			// Disables all stepper motors
 			#ifdef SERIAL_DEBUG
@@ -15708,7 +15700,7 @@ void setup() {
 			#endif
 			stepper.quick_stop();
 			disable_all_steppers();
-
+      clear_command_queue();
 
 			// Saves the variables to EEPROM
 			#ifdef SERIAL_DEBUG
@@ -15716,7 +15708,6 @@ void setup() {
 			#endif
 			// Sets the eeprom index to the begining
 			int eeprom_index = 0 ;
-
 
 			//Stores Z height
 			EEPROM_write(eeprom_index, (uint8_t*)&current_position[Z_AXIS], sizeof(current_position[Z_AXIS]));
@@ -15838,12 +15829,6 @@ void setup() {
 			#endif
 
 			thermalManager.disable_all_heaters();
-
-
-			#ifdef SERIAL_DEBUG
-				SERIAL_ECHOPAIR("End time: ", millis());
-				SERIAL_ECHOLNPGM("! ");
-			#endif
 
 
 			#ifdef SERIAL_DEBUG
@@ -16002,8 +15987,7 @@ void setup() {
             }
 
           }
-
-			#endif
+			#endif //BEEVC_Restore_LiftRetract
 
       #ifdef BEEVC_Restore_Move_X
 
@@ -16030,6 +16014,11 @@ void setup() {
             PORTF |= (1 << 1);
             movedistance = current_position[X_AXIS];
             }
+
+        #ifdef SERIAL_DEBUG
+          SERIAL_ECHOPAIR("Move distance X: ", movedistance);
+          SERIAL_ECHOLNPGM("! ");
+        #endif
 
         // Ensures move distance does not exceed maximum possible movement before motor freerunning
         if (movedistance > 55)
@@ -16077,8 +16066,85 @@ void setup() {
 
           // Disable the X stepper - Allows the inertia of the system to continue the movement
   				PORTD |= (1 << 7);
+      #endif //BEEVC_Restore_Move_X
 
-      #endif
+      #ifdef BEEVC_Restore_Move_Y
+
+        // Reference for the pins used
+        // Y_ENABLE 	   = D56 	= PF2
+        // Y_DIR		     = D61	= PF7
+        // Y_STEP_PIN	   = D60	= PF6
+
+        //Makes sure the ports are configured as outputs
+        // Y
+        DDRF |= (1 << DDF2) || (1 << DDF6) || (1 << DDF7);
+
+        //Choses the best direction to move Y into and calculates move distance
+        float movedistance = 0;
+
+        if (current_position[Y_AXIS] > (Y_BED_SIZE/2))
+            {
+            PORTF &= ~(1 << 7);
+            movedistance = current_position[Y_AXIS] - (Y_BED_SIZE/2);
+            }
+        else
+            {
+            PORTF |= (1 << 7);
+            movedistance = current_position[X_AXIS];
+            }
+
+        #ifdef SERIAL_DEBUG
+          SERIAL_ECHOPAIR("Move distance Y: ", movedistance);
+          SERIAL_ECHOLNPGM("! ");
+        #endif
+
+        // Ensures move distance does not exceed maximum possible movement before motor freerunning
+        //if (movedistance > 55)
+        //  movedistance = 55;
+
+        //Calculates the necessary ammounts of steps and the stepping speed
+        float def1[] = DEFAULT_AXIS_STEPS_PER_UNIT;
+        long stepsY = def1[1] * movedistance;
+
+        #ifdef SERIAL_DEBUG
+          SERIAL_ECHOPAIR("Steps Y: ", stepsY);
+          SERIAL_ECHOLNPGM("! ");
+        #endif
+
+        // Enable the X stepper - Active low
+				PORTF &= ~(1 << 2);
+
+        // Generates the steps
+        bool stepcycleY = false;
+        long elapsedSteps = 0;
+        uint8_t delayY = 40;
+
+        while(stepsY != 0)
+          {
+            if(stepcycleY)
+            {
+              stepsY-= 1;
+              elapsedSteps ++;
+              PORTF |= (1 << 6);
+            }
+            else
+              PORTF &= ~(1 << 6);
+
+            stepcycleY = !stepcycleY;
+
+            if ((elapsedSteps % 5) == 0)
+              {
+                if (delayY > 5)
+                  delayY-= 1;
+              }
+
+            delayMicroseconds(delayY);
+
+          }
+
+          // Disable the X stepper - Allows the inertia of the system to continue the movement
+  				PORTF |= (1 << 2);
+      #endif //BEEVC_Restore_Move_Y
 
 
 
