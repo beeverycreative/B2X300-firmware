@@ -192,7 +192,7 @@
 
 // Optional custom name for your RepStrap or other custom machine
 // Displayed in the LCD "Ready" message
-#ifdef B2X300
+#ifdef BEEVC_B2X300
   #define CUSTOM_MACHINE_NAME "B2X300"
 #else
   #define CUSTOM_MACHINE_NAME "helloBEEprusa"
