@@ -44,5 +44,5 @@
 #define BEEVC_Restore
 #define FILAMENT_RUNOUT_SENSOR
 #define FILAMENT_RUNOUT_DUAL
-#define BEEVC_Restore_Move_X   600
-#define BEEVC_Restore_Move_Y   600
+#define BEEVC_Restore_Move_X
+#define BEEVC_Restore_Move_Y
