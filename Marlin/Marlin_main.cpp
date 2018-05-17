@@ -15667,8 +15667,6 @@ void setup() {
 
 	ISR (PCINT0_vect)
 	{
-
-
 		if (digitalRead(11) && IS_SD_PRINTING)
 		{
 			//DEBUG ONLY - Used to measure the execution time
@@ -15711,8 +15709,8 @@ void setup() {
 
 			//Stores Z height
 			EEPROM_write(eeprom_index, (uint8_t*)&current_position[Z_AXIS], sizeof(current_position[Z_AXIS]));
-			eeprom_busy_wait();
 			#ifdef SERIAL_DEBUG
+			  eeprom_busy_wait();
 				SERIAL_ECHOPAIR("Saved Z height: ", current_position[Z_AXIS]);
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
@@ -15720,8 +15718,8 @@ void setup() {
 
 			//Stores X position
 			EEPROM_write(eeprom_index, (uint8_t*)&current_position[X_AXIS], sizeof(current_position[X_AXIS]));
-			eeprom_busy_wait();
 			#ifdef SERIAL_DEBUG
+			  eeprom_busy_wait();
 				SERIAL_ECHOPAIR("Saved X: ", current_position[X_AXIS]);
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
@@ -15729,8 +15727,8 @@ void setup() {
 
 			//Stores Y position
 			EEPROM_write(eeprom_index, (uint8_t*)&current_position[Y_AXIS], sizeof(current_position[Y_AXIS]));
-			eeprom_busy_wait();
 			#ifdef SERIAL_DEBUG
+			  eeprom_busy_wait();
 				SERIAL_ECHOPAIR("Saved Y: ", current_position[Y_AXIS]);
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
@@ -15738,17 +15736,17 @@ void setup() {
 
       //Stores active extruder
   		EEPROM_write(eeprom_index, (uint8_t*)&active_extruder, sizeof(active_extruder));
-  		eeprom_busy_wait();
   		#ifdef SERIAL_DEBUG
-  				SERIAL_ECHOPAIR("Saved active extruder: ", active_extruder);
-  				SERIAL_ECHOPAIR(" at position ", eeprom_index);
-  				SERIAL_ECHOLNPGM(" ");
+  	    eeprom_busy_wait();
+  			SERIAL_ECHOPAIR("Saved active extruder: ", active_extruder);
+  			SERIAL_ECHOPAIR(" at position ", eeprom_index);
+  			SERIAL_ECHOLNPGM(" ");
   		#endif
 
 			//Stores extrusion ammount
 			EEPROM_write(eeprom_index, (uint8_t*)&destination[E_AXIS], sizeof(current_position[E_AXIS]));
-			eeprom_busy_wait();
 			#ifdef SERIAL_DEBUG
+  	    eeprom_busy_wait();
 				SERIAL_ECHOPAIR("Saved E ammount: ", destination[E_AXIS]);
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
@@ -15756,8 +15754,8 @@ void setup() {
 
 			//Stores part cooling fan speed
 			EEPROM_write(eeprom_index, (uint8_t*)&fanSpeeds[0], sizeof(fanSpeeds[0]));
-			eeprom_busy_wait();
 			#ifdef SERIAL_DEBUG
+  	    eeprom_busy_wait();
 				SERIAL_ECHOPAIR("Saved fan speed: ", fanSpeeds[0]);
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
@@ -15766,16 +15764,16 @@ void setup() {
 			//Stores extruder temps
 			// E0
 			EEPROM_write(eeprom_index, (uint8_t*)&thermalManager.target_temperature[0], sizeof(thermalManager.target_temperature[0]));
-			eeprom_busy_wait();
 			#ifdef SERIAL_DEBUG
+  	    eeprom_busy_wait();
 				SERIAL_ECHOPAIR("Saved E0 temp: ", thermalManager.target_temperature[0]);
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
 			#endif
 			// E1
 			EEPROM_write(eeprom_index, (uint8_t*)&thermalManager.target_temperature[1], sizeof(thermalManager.target_temperature[1]));
-			eeprom_busy_wait();
 			#ifdef SERIAL_DEBUG
+  	    eeprom_busy_wait();
 				SERIAL_ECHOPAIR("Saved E1 temp: ", thermalManager.target_temperature[1]);
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
@@ -15783,8 +15781,8 @@ void setup() {
 
 			//Stores hot bed temp
 			EEPROM_write(eeprom_index, (uint8_t*)&thermalManager.target_temperature_bed, sizeof(thermalManager.target_temperature_bed));
-			eeprom_busy_wait();
 			#ifdef SERIAL_DEBUG
+  	    eeprom_busy_wait();
 				SERIAL_ECHOPAIR("Saved bed temp: ", thermalManager.target_temperature_bed);
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
@@ -15794,11 +15792,9 @@ void setup() {
 			if (card.isFileOpen())
 			{
 				uint32_t tempSdpos = card.getpos();
-
-
 				EEPROM_write(eeprom_index, (uint8_t*)&tempSdpos, sizeof(tempSdpos));
-				eeprom_busy_wait();
 				#ifdef SERIAL_DEBUG
+    	    eeprom_busy_wait();
 					SERIAL_ECHOPAIR("Saved SD card position: ", tempSdpos);
 					SERIAL_ECHOPAIR(" at position ", eeprom_index);
 					SERIAL_ECHOLNPGM(" ");
@@ -15806,13 +15802,14 @@ void setup() {
 
 				// Temporary file path variable
 				char tempFilename[70];
-
 				card.getAbsFilename(&tempFilename[0]);
-
 				EEPROM_write(eeprom_index, (uint8_t*)&tempFilename[0] , (strlen (tempFilename) > 69 ? 70 : (strlen (tempFilename)+1)));
-				eeprom_busy_wait();
-
-
+        #ifdef SERIAL_DEBUG
+    	    eeprom_busy_wait();
+          SERIAL_ECHOPAIR("Saved SD filename: ", tempFilename[0]);
+					SERIAL_ECHOPAIR(" at position ", eeprom_index);
+					SERIAL_ECHOLNPGM(" ");
+				#endif
 			}
 			else
 			{
@@ -15821,16 +15818,13 @@ void setup() {
 				#endif
 			}
 
-
-
 			// Disables heating properly
+      thermalManager.disable_all_heaters();
 			#ifdef SERIAL_DEBUG
 				SERIAL_ECHOLNPGM("Disabling heating elements properly !");
 			#endif
 
-			thermalManager.disable_all_heaters();
-
-
+      //Prints out lots of debug info
 			#ifdef SERIAL_DEBUG
 				SERIAL_ECHOPAIR("buffer tail: ", (planner.block_buffer_tail));
 				SERIAL_ECHOLNPGM("! ");
@@ -15853,9 +15847,6 @@ void setup() {
         SERIAL_ECHOPAIR("percentage1: ", (planner.flow_percentage[1]));
 				SERIAL_ECHOLNPGM("! ");
 			#endif
-
-
-
 
 			#ifdef BEEVC_Restore_LiftRetract
 
@@ -16146,17 +16137,12 @@ void setup() {
   				PORTF |= (1 << 2);
       #endif //BEEVC_Restore_Move_Y
 
-
-
-
 			//DEBUG ONLY - Used to measure the execution time
 			PORTL &= ~(1 << 5);	// Sets the output low
 
 			// Used here to force the printer to be in a halt state
 			kill(PSTR(_UxGT("Print saved!")));
-
 		}
-
 	}
 
 #endif
