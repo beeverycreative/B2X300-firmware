@@ -15789,8 +15789,6 @@ void setup() {
 			#endif
 
 			//Stores SD card position
-			if (card.isFileOpen())
-			{
 				uint32_t tempSdpos = card.getpos();
 				EEPROM_write(eeprom_index, (uint8_t*)&tempSdpos, sizeof(tempSdpos));
 				#ifdef SERIAL_DEBUG
@@ -15810,13 +15808,6 @@ void setup() {
 					SERIAL_ECHOPAIR(" at position ", eeprom_index);
 					SERIAL_ECHOLNPGM(" ");
 				#endif
-			}
-			else
-			{
-				#ifdef SERIAL_DEBUG
-					SERIAL_ECHOLNPGM("No file opened !");
-				#endif
-			}
 
 			// Disables heating properly
       thermalManager.disable_all_heaters();
