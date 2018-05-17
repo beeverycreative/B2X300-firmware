@@ -59,7 +59,7 @@
  	#else
  		#define BEEVC_Restore_LiftZ 600
  	#endif
- 	#define SERIAL_DEBUG
+ 	//#define SERIAL_DEBUG
  #endif
 
 //===========================================================================
