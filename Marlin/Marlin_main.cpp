@@ -11761,7 +11761,7 @@ inline void gcode_M999() {
 
 		//Loads extruder temps
 		// E0
-    float tempE0 = 0;
+    int16_t tempE0 = 0;
 		EEPROM_read(eeprom_index, (uint8_t*)&tempE0, sizeof(thermalManager.target_temperature[0]));
 		#ifdef SERIAL_DEBUG
 			SERIAL_ECHOPAIR("Loaded E0 temp: ", tempE0);
@@ -11769,7 +11769,7 @@ inline void gcode_M999() {
 			SERIAL_ECHOLNPGM(" ");
 		#endif
 		// E1
-    float tempE1 = 0;
+    int16_t tempE1 = 0;
 		EEPROM_read(eeprom_index, (uint8_t*)&tempE1, sizeof(thermalManager.target_temperature[1]));
 		#ifdef SERIAL_DEBUG
 			SERIAL_ECHOPAIR("Loaded E1 temp: ", tempE1);
@@ -11837,9 +11837,9 @@ inline void gcode_M999() {
         {
           //Verifies if  the hotend isn't above 100ºC already
           if(thermalManager.degHotend(0) >=100)
-            thermalManager.setTargetHotend(tempE0, 0);
+            thermalManager.target_temperature[0] = tempE0;
           else
-            thermalManager.setTargetHotend(100, 0);
+            thermalManager.target_temperature[0] = 100;
         }
 
 
@@ -11847,9 +11847,9 @@ inline void gcode_M999() {
       {
         //Verifies if  the hotend isn't above 100ºC already
         if(thermalManager.degHotend(1) >=100)
-          thermalManager.setTargetHotend(tempE1, 1);
-        else
-          thermalManager.setTargetHotend(100, 1);
+        thermalManager.target_temperature[1] = tempE1;
+      else
+        thermalManager.target_temperature[1] = 100;
       }
 
       //Waits for hotend 0 temperature to stabilized to atleast 100ºC
@@ -11894,8 +11894,8 @@ inline void gcode_M999() {
 		HOMEAXIS(Y);
 
     //Sets the correct extruder temperatures for printing
-    thermalManager.setTargetHotend(tempE0, 0);
-    thermalManager.setTargetHotend(tempE1, 1);
+    thermalManager.target_temperature[0] = tempE0;
+    thermalManager.target_temperature[1] = tempE1;
 
     //Waits for hotend 0 temperature to stabilized
     lcd_setstatus("Heating E0");
