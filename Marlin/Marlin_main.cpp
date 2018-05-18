@@ -11831,14 +11831,28 @@ inline void gcode_M999() {
 				idle();
 		  }
 
+
       // Heats up extruders that were hot to 100ºC in case it is stuck to the printed parts
       if ((active_extruder == 0) || tempE0 > 100)
-        thermalManager.target_temperature[0] = 100;
+        {
+          //Verifies if  the hotend isn't above 100ºC already
+          if(thermalManager.degHotend(0) >=100)
+            thermalManager.setTargetHotend(tempE0, 0);
+          else
+            thermalManager.setTargetHotend(100, 0);
+        }
+
 
       if ((active_extruder == 1) || tempE1 > 100)
-        thermalManager.target_temperature[1] = 100;
+      {
+        //Verifies if  the hotend isn't above 100ºC already
+        if(thermalManager.degHotend(1) >=100)
+          thermalManager.setTargetHotend(tempE1, 1);
+        else
+          thermalManager.setTargetHotend(100, 1);
+      }
 
-      //Waits for hotend 0 temperature to stabilized
+      //Waits for hotend 0 temperature to stabilized to atleast 100ºC
       lcd_setstatus("Pre-Heating E0");
       while ((abs(thermalManager.degHotend(0) - thermalManager.degTargetHotend(0)) > 5 ))
       {
@@ -11848,15 +11862,15 @@ inline void gcode_M999() {
           thermalManager.print_heaterstates();
 
         }
-        // Ensures the loop does't try heating up to low temperatures
+        // Ensures the loop does't try heating up to low temperatures or cooling down if hot enough
         else
-          if(thermalManager.degTargetHotend(0) <30)
+          if(thermalManager.degTargetHotend(0) <30 || thermalManager.degTargetHotend(0) > 100 )
             break;
         else
         idle();
       }
 
-		  //Waits for hotend 1 temperature to stabilized
+		  //Waits for hotend 1 temperature to stabilized to atleast 100ºC
 		  lcd_setstatus("Pre-Heating E1");
   		while (abs((thermalManager.degHotend(1) - thermalManager.degTargetHotend(1)) > 5 ))
   		{
@@ -11867,7 +11881,7 @@ inline void gcode_M999() {
 
   			}
   			else
-  				if(thermalManager.degTargetHotend(1) <30)
+  				if(thermalManager.degTargetHotend(1) <30 || thermalManager.degTargetHotend(1) > 100 )
   					break;
   			else
   				idle();
@@ -11879,9 +11893,10 @@ inline void gcode_M999() {
 		HOMEAXIS(X);
 		HOMEAXIS(Y);
 
-    //Sets the correct extruder temperatures
-    thermalManager.target_temperature[0] = tempE0;
-    thermalManager.target_temperature[1] = tempE1;
+    //Sets the correct extruder temperatures for printing
+    thermalManager.setTargetHotend(tempE0, 0);
+    thermalManager.setTargetHotend(tempE1, 1);
+
     //Waits for hotend 0 temperature to stabilized
     lcd_setstatus("Heating E0");
     while ((abs(thermalManager.degHotend(0) - thermalManager.degTargetHotend(0)) > 5 ))
