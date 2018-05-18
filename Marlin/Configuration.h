@@ -101,22 +101,6 @@
 
  #endif //BEEVC_TMC2130XY
 
-// TMC2130 defines, makes sure the correct ports are selected for SPI
-#if (ENABLED(BEEVC_TMC2130) || ENABLED(BEEVC_TMC2130XY))
-  #undef X_CS_PIN
-  #undef Y_CS_PIN
-  #undef Z_CS_PIN
-  #undef E0_CS_PIN
-  #undef E1_CS_PIN
-
-  #define X_CS_PIN        59
-  #define Y_CS_PIN        64
-  #define Z_CS_PIN        44
-  #define E0_CS_PIN       42
-  #define E1_CS_PIN       65
-#endif
-
-
  // Power Restore defines
  #ifdef BEEVC_Restore
  	//#define SERIAL_DEBUG

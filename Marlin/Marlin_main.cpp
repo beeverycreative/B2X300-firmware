@@ -10799,32 +10799,33 @@ inline void gcode_M502() {
           report_tmc_status = false;
       } else {
         SERIAL_ECHOPGM("\t");                 tmc_debug_loop(TMC_CODES);
-        SERIAL_ECHOPGM("Enabled\t");          tmc_debug_loop(TMC_ENABLED);
+        SERIAL_ECHOPGM("Enabled");          tmc_debug_loop(TMC_ENABLED);
         SERIAL_ECHOPGM("Set current");        tmc_debug_loop(TMC_CURRENT);
         SERIAL_ECHOPGM("RMS current");        tmc_debug_loop(TMC_RMS_CURRENT);
         SERIAL_ECHOPGM("MAX current");        tmc_debug_loop(TMC_MAX_CURRENT);
         SERIAL_ECHOPGM("Run current");        tmc_debug_loop(TMC_IRUN);
         SERIAL_ECHOPGM("Hold current");       tmc_debug_loop(TMC_IHOLD);
-        SERIAL_ECHOPGM("CS actual\t");        tmc_debug_loop(TMC_CS_ACTUAL);
+        SERIAL_ECHOPGM("CS actual");        tmc_debug_loop(TMC_CS_ACTUAL);
         SERIAL_ECHOPGM("PWM scale");          tmc_debug_loop(TMC_PWM_SCALE);
         SERIAL_ECHOPGM("vsense\t");           tmc_debug_loop(TMC_VSENSE);
         SERIAL_ECHOPGM("stealthChop");        tmc_debug_loop(TMC_STEALTHCHOP);
         SERIAL_ECHOPGM("msteps\t");           tmc_debug_loop(TMC_MICROSTEPS);
         SERIAL_ECHOPGM("tstep\t");            tmc_debug_loop(TMC_TSTEP);
-        SERIAL_ECHOPGM("pwm\nthreshold\t");   tmc_debug_loop(TMC_TPWMTHRS);
+        SERIAL_ECHOPGM("pwm\nthreshold");   tmc_debug_loop(TMC_TPWMTHRS);
         SERIAL_ECHOPGM("[mm/s]\t");           tmc_debug_loop(TMC_TPWMTHRS_MMS);
         SERIAL_ECHOPGM("OT prewarn");         tmc_debug_loop(TMC_OTPW);
-        SERIAL_ECHOPGM("OT prewarn has\nbeen triggered"); tmc_debug_loop(TMC_OTPW_TRIGGERED);
-        SERIAL_ECHOPGM("off time\t");         tmc_debug_loop(TMC_TOFF);
+        SERIAL_ECHOPGM("OT prewarn T"); tmc_debug_loop(TMC_OTPW_TRIGGERED);
+        SERIAL_ECHOPGM("off time");         tmc_debug_loop(TMC_TOFF);
         SERIAL_ECHOPGM("blank time");         tmc_debug_loop(TMC_TBL);
         SERIAL_ECHOPGM("hysterisis\n-end\t"); tmc_debug_loop(TMC_HEND);
         SERIAL_ECHOPGM("-start\t");           tmc_debug_loop(TMC_HSTRT);
-        SERIAL_ECHOPGM("Stallguard thrs");    tmc_debug_loop(TMC_SGT);
+        SERIAL_ECHOPGM("SG thrs");            tmc_debug_loop(TMC_SGT);
 
         SERIAL_ECHOPGM("DRVSTATUS");          drv_status_loop(TMC_DRV_CODES);
         #if ENABLED(HAVE_TMC2130)
           SERIAL_ECHOPGM("stallguard\t");     drv_status_loop(TMC_STALLGUARD);
-          SERIAL_ECHOPGM("sg_result\t");      drv_status_loop(TMC_SG_RESULT);
+          SERIAL_ECHOPGM("SG_Value");      drv_status_loop(TMC_SG_RESULT);
+          SERIAL_ECHOPGM("SG_result");      drv_status_loop(TMC_SG_RESULT);
           SERIAL_ECHOPGM("fsactive\t");       drv_status_loop(TMC_FSACTIVE);
         #endif
         SERIAL_ECHOPGM("stst\t");             drv_status_loop(TMC_STST);
@@ -11060,7 +11061,7 @@ inline void gcode_M502() {
   /**
    * M914: Set SENSORLESS_HOMING sensitivity.
    */
-  #if ENABLED(SENSORLESS_HOMING)
+  #if ENABLED(HAVE_TMC2130)
     inline void gcode_M914() {
       #if ENABLED(X_IS_TMC2130) || ENABLED(IS_TRAMS)
         if (parser.seen(axis_codes[X_AXIS])) tmc_set_sgt(stepperX, extended_axis_codes[TMC_X], parser.value_int());
