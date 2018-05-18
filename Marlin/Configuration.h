@@ -41,26 +41,86 @@
  // Trinamic stepper drivers use 16 microsteps like the A4988 we need to make this configuration
  #ifdef BEEVC_TMC2208ext
  	#define BEEVC_A4988ext
- 	#define BEEVC_ReverseE
- #endif
 
- #ifdef BEEVC_TMC2208all
+  // Makes sure to reverse E no matter the former state
+  #ifdef BEEVC_ReverseE
+    #undef BEEVC_ReverseE
+  #else
+    #define BEEVC_ReverseE
+  #endif  //BEEVC_ReverseE
+ #endif //BEEVC_TMC2208ext
+
+ #if (ENABLED(BEEVC_TMC2208all) || ENABLED(BEEVC_TMC2130))
  	#define BEEVC_A4988all
- 	#define BEEVC_ReverseE
- 	#define BEEVC_ReverseX
- 	#define BEEVC_ReverseY
- 	#define BEEVC_ReverseZ
- #endif
+
+  // Makes sure to reverse E no matter the former state
+  #ifdef BEEVC_ReverseE
+    #undef BEEVC_ReverseE
+  #else
+    #define BEEVC_ReverseE
+  #endif
+
+  // Makes sure to reverse X no matter the former state
+  #ifdef BEEVC_ReverseX
+    #undef BEEVC_ReverseX
+  #else
+    #define BEEVC_ReverseX
+  #endif
+
+  // Makes sure to reverse Y no matter the former state
+  #ifdef BEEVC_ReverseY
+    #undef BEEVC_ReverseY
+  #else
+    #define BEEVC_ReverseY
+  #endif
+
+  // Makes sure to reverse Z no matter the former state
+  #ifdef BEEVC_ReverseZ
+    #undef BEEVC_ReverseZ
+  #else
+    #define BEEVC_ReverseZ
+  #endif
+ #endif //BEEVC_TMC2208all
+
+ #ifdef BEEVC_TMC2130XY
+    #define BEEVC_A4988all
+
+    // Makes sure to reverse X no matter the former state
+    #ifdef BEEVC_ReverseX
+      #undef BEEVC_ReverseX
+    #else
+      #define BEEVC_ReverseX
+    #endif
+
+    // Makes sure to reverse Y no matter the former state
+    #ifdef BEEVC_ReverseY
+      #undef BEEVC_ReverseY
+    #else
+      #define BEEVC_ReverseY
+    #endif
+
+ #endif //BEEVC_TMC2130XY
+
+// TMC2130 defines, makes sure the correct ports are selected for SPI
+#if (ENABLED(BEEVC_TMC2130) || ENABLED(BEEVC_TMC2130XY))
+  #undef X_CS_PIN
+  #undef Y_CS_PIN
+  #undef Z_CS_PIN
+  #undef E0_CS_PIN
+  #undef E1_CS_PIN
+
+  #define X_CS_PIN        59
+  #define Y_CS_PIN        64
+  #define Z_CS_PIN        44
+  #define E0_CS_PIN       42
+  #define E1_CS_PIN       65
+#endif
+
 
  // Power Restore defines
  #ifdef BEEVC_Restore
- 	#ifdef BEEVC_Trapezoidal
- 		//#define BEEVC_Restore_LiftZ 2000
- 	#else
- 		#define BEEVC_Restore_LiftZ 600
- 	#endif
  	//#define SERIAL_DEBUG
- #endif
+ #endif //BEEVC_Restore
 
 //===========================================================================
 //===========================================================================
