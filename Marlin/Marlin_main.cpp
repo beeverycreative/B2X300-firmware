@@ -226,6 +226,7 @@
  * M912 - Clear stepper driver overtemperature pre-warn condition flag. (Requires HAVE_TMC2130 or HAVE_TMC2208)
  * M913 - Set HYBRID_THRESHOLD speed. (Requires HYBRID_THRESHOLD)
  * M914 - Set SENSORLESS_HOMING sensitivity. (Requires SENSORLESS_HOMING)
+ * M916 - Set chopper mode. (Requires HAVE_TMC2130 or HAVE_TMC2208)
  *
  * M360 - SCARA calibration: Move to cal-position ThetaA (0 deg calibration)
  * M361 - SCARA calibration: Move to cal-position ThetaB (90 deg calibration - steps per degree)
@@ -11117,6 +11118,115 @@ inline void gcode_M502() {
     }
   #endif
 
+  /**
+   * M916 -  TMC Change chopper mode
+   * Example :
+   * M916 X0 Y1   - Sets X to spreadCycle and Y to stealthChop
+   */
+  #if ENABLED(HAVE_TMC2130) || ENABLED(HAVE_TMC2208)
+  inline void gcode_M916() {
+    #if ENABLED(X_IS_TMC2130)
+      if (parser.seen(axis_codes[X_AXIS]))
+        if(parser.value_bool())
+          //stealthChop
+          {
+            stepperX.stealth_freq(1); // f_pwm = 2/683 f_clk
+            stepperX.stealth_autoscale(1);
+            stepperX.stealth_gradient(5);
+            stepperX.stealth_amplitude(255);
+            stepperX.stealthChop(1);
+            SERIAL_ECHOLNPGM("\nX axis is now using stealthChop");
+          }
+          //spreadCycle
+        else
+          {
+            stepperX.stealthChop(0);
+            SERIAL_ECHOLNPGM("\nX axis is now using spreadCycle");
+          }
+    #endif
+
+    // Y axis
+    #if ENABLED(Y_IS_TMC2130)
+      if (parser.seen(axis_codes[Y_AXIS]))
+        if(parser.value_bool())
+        {
+          stepperY.stealth_freq(1); // f_pwm = 2/683 f_clk
+          stepperY.stealth_autoscale(1);
+          stepperY.stealth_gradient(5);
+          stepperY.stealth_amplitude(255);
+          stepperY.stealthChop(1);
+          SERIAL_ECHOLNPGM("\nY axis is now using stealthChop");
+        }
+        //spreadCycle
+      else
+        {
+          stepperY.stealthChop(0);
+          SERIAL_ECHOLNPGM("\nY axis is now using spreadCycle");
+        }
+    #endif
+
+    // Z axis
+    #if ENABLED(Z_IS_TMC2130)
+      if (parser.seen(axis_codes[Z_AXIS]))
+        if(parser.value_bool())
+        {
+          stepperZ.stealth_freq(1); // f_pwm = 2/683 f_clk
+          stepperZ.stealth_autoscale(1);
+          stepperZ.stealth_gradient(5);
+          stepperZ.stealth_amplitude(255);
+          stepperZ.stealthChop(1);
+          SERIAL_ECHOLNPGM("\nZ axis is now using stealthChop");
+        }
+        //spreadCycle
+      else
+        {
+          stepperZ.stealthChop(0);
+          SERIAL_ECHOLNPGM("\nZ axis is now using spreadCycle");
+        }
+    #endif
+
+    // E0 axis
+    #if ENABLED(E0_IS_TMC2130)
+      if (parser.seen(axis_codes[E_AXIS]))
+        if(parser.value_bool())
+        {
+          stepperE0.stealth_freq(1); // f_pwm = 2/683 f_clk
+          stepperE0.stealth_autoscale(1);
+          stepperE0.stealth_gradient(5);
+          stepperE0.stealth_amplitude(255);
+          stepperE0.stealthChop(1);
+          SERIAL_ECHOLNPGM("\nE0 is now using stealthChop");
+        }
+        //spreadCycle
+      else
+        {
+          stepperE0.stealthChop(0);
+          SERIAL_ECHOLNPGM("\nE0 is now using spreadCycle");
+        }
+    #endif
+
+    // E1 axis
+    #if ENABLED(E1_IS_TMC2130)
+      if (parser.seen(axis_codes[E_AXIS]))
+        if(parser.value_bool())
+        {
+          stepperE1.stealth_freq(1); // f_pwm = 2/683 f_clk
+          stepperE1.stealth_autoscale(1);
+          stepperE1.stealth_gradient(5);
+          stepperE1.stealth_amplitude(255);
+          stepperE1.stealthChop(1);
+          SERIAL_ECHOLNPGM("\nE1 is now using stealthChop");
+        }
+        //spreadCycle
+      else
+        {
+          stepperE1.stealthChop(0);
+          SERIAL_ECHOLNPGM("\nE1 is now using spreadCycle");
+        }
+    #endif
+  }
+  #endif
+
 #endif // HAS_TRINAMIC
 
 /**
@@ -13470,6 +13580,12 @@ void process_parsed_command() {
         #if ENABLED(TMC_Z_CALIBRATION) && (Z_IS_TRINAMIC || Z2_IS_TRINAMIC)
           case 915: // M915: TMC Z axis calibration routine
             gcode_M915();
+            break;
+        #endif
+
+        #if ENABLED(HAVE_TMC2130) || ENABLED(HAVE_TMC2208)
+          case 916: // M914: Set SENSORLESS_HOMING sensitivity.
+            gcode_M916();
             break;
         #endif
       #endif
