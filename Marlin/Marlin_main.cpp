@@ -10798,7 +10798,7 @@ inline void gcode_M502() {
         } else
           report_tmc_status = false;
       } else {
-        SERIAL_ECHOPGM("\t");                 tmc_debug_loop(TMC_CODES);
+        SERIAL_ECHOPGM(" \t\t");                 tmc_debug_loop(TMC_CODES);
         SERIAL_ECHOPGM("Enabled");          tmc_debug_loop(TMC_ENABLED);
         SERIAL_ECHOPGM("Set current");        tmc_debug_loop(TMC_CURRENT);
         SERIAL_ECHOPGM("RMS current");        tmc_debug_loop(TMC_RMS_CURRENT);
@@ -13461,7 +13461,7 @@ void process_parsed_command() {
             break;
         #endif
 
-        #if ENABLED(SENSORLESS_HOMING)
+        #if ENABLED(HAVE_TMC2130)
           case 914: // M914: Set SENSORLESS_HOMING sensitivity.
             gcode_M914();
             break;
