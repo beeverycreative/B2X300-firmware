@@ -5638,7 +5638,11 @@ void lcd_update() {
     if (sd_status != lcd_sd_status && lcd_detected()) {
 
       if (sd_status) {
-        card.initsd();
+        unsigned long slow_card_timeout = millis() + 1000UL;
+        do {
+          card.initsd();
+          thermalManager.manage_heater();
+        } while (!card.cardOK && PENDING(millis(), slow_card_timeout));
         if (lcd_sd_status != 2) LCD_MESSAGEPGM(MSG_SD_INSERTED);
       }
       else {

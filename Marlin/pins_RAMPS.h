@@ -138,7 +138,7 @@
 
   #define X_CS_PIN        59
   #define Y_CS_PIN        64
-  #define Z_CS_PIN        44
+  #define Z_CS_PIN        40
   #define E0_CS_PIN       42
   #define E1_CS_PIN       65
 #endif
@@ -501,7 +501,6 @@
 
       // GLCD features
       //#define LCD_CONTRAST
-	  #define LCD_CONTRAST   255
       // Uncomment screen orientation
       //#define LCD_SCREEN_ROT_90
       //#define LCD_SCREEN_ROT_180
