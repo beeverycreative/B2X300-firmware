@@ -226,7 +226,9 @@
  * M912 - Clear stepper driver overtemperature pre-warn condition flag. (Requires HAVE_TMC2130 or HAVE_TMC2208)
  * M913 - Set HYBRID_THRESHOLD speed. (Requires HYBRID_THRESHOLD)
  * M914 - Set SENSORLESS_HOMING sensitivity. (Requires SENSORLESS_HOMING)
- * M916 - Set chopper mode. (Requires HAVE_TMC2130 or HAVE_TMC2208)
+ * M915 - TMC2130 dual Z calibration
+ * M916 - Set chopping mode (Only works for TMC2130 or TMC2208)
+ * M917 - Read stallGuard2 values
  *
  * M360 - SCARA calibration: Move to cal-position ThetaA (0 deg calibration)
  * M361 - SCARA calibration: Move to cal-position ThetaB (90 deg calibration - steps per degree)
@@ -11225,7 +11227,103 @@ inline void gcode_M502() {
         }
     #endif
   }
-  #endif
+  #endif  //ENABLED(HAVE_TMC2130) || ENABLED(HAVE_TMC2208)
+
+  /**
+   * M917 -  TMC Change chopper mode
+   * Examples :
+   * M917 X Y E   -   Prints X average and current stallGuard2 value for the X, Y and all E axis
+   * M197 X L20   -   Prints X average and current stallGuard2 value for X and loops to find a step loss for 20 seconds
+   */
+  #if ENABLED(HAVE_TMC2130)
+  inline void gcode_M917() {
+    #if ENABLED(X_IS_TMC2130)
+      if (parser.seen(axis_codes[X_AXIS]))
+      {
+        SERIAL_ECHOPAIR("\nX axis stallGuard2 value     :", stepperX.sg_result());
+        SERIAL_ECHOPAIR("\nX axis stallGuard2 triggered :", stepperX.stallguard());
+        //SERIAL_ECHOLNPGM("\nX axis stallGuard2 average   : To be implemented");
+        SERIAL_ECHOPAIR("\nX axis stallGuard2 steps loss:", stepperX.LOST_STEPS());
+
+        // LOOP untill detection of stepp loss
+        if (parser.seen('L'))
+        {
+
+          uint16_t sgvalue = stepperX.sg_result();
+          unsigned long time = millis()+(1000*parser.value_int());
+          uint16_t count = 0;
+
+          do
+          {
+            if (sgvalue < 50)
+              SERIAL_ECHOPAIR("\n", sgvalue);
+
+            sgvalue = stepperX.sg_result();
+
+            count++;
+
+            if (destination[X_AXIS] == current_position[X_AXIS])
+              {
+                if (destination[X_AXIS] == 0)
+                  destination[X_AXIS] = 300;
+                else
+                  destination[X_AXIS] = 0;
+
+                buffer_line_to_destination(50);
+              }
+          }
+          while(millis() < time);
+
+          SERIAL_ECHOPAIR("\nXNumber of stallGuard2 detections bellow 50    :", count);
+        }
+      }
+    #endif
+
+    // Y axis
+    #if ENABLED(Y_IS_TMC2130)
+      if (parser.seen(axis_codes[Y_AXIS]))
+      {
+        SERIAL_ECHOPAIR("\nY axis stallGuard2 value     :", stepperY.sg_result());
+        SERIAL_ECHOPAIR("\nY axis stallGuard2 triggered :", stepperY.stallguard());
+        //SERIAL_ECHOLNPGM("\nY axis stallGuard2 average   : To be implemented");
+        SERIAL_ECHOPAIR("\nY axis stallGuard2 steps loss:", stepperY.LOST_STEPS());
+      }
+    #endif
+
+    // Z axis
+    #if ENABLED(Z_IS_TMC2130)
+      if (parser.seen(axis_codes[Z_AXIS]))
+      {
+        SERIAL_ECHOPAIR("\nZ axis stallGuard2 value     :", stepperZ.sg_result());
+        SERIAL_ECHOPAIR("\nZ axis stallGuard2 triggered :", stepperZ.stallguard());
+        //SERIAL_ECHOLNPGM("\nZ axis stallGuard2 average   : To be implemented");
+        SERIAL_ECHOPAIR("\nZ axis stallGuard2 steps loss:", stepperZ.LOST_STEPS());
+      }
+    #endif
+
+    // E0 axis
+    #if ENABLED(E0_IS_TMC2130)
+      if (parser.seen(axis_codes[E_AXIS]))
+      {
+        SERIAL_ECHOPAIR("\nE0 axis stallGuard2 value     :", stepperE0.sg_result());
+        SERIAL_ECHOPAIR("\nE0 axis stallGuard2 triggered :", stepperE0.stallguard());
+        //SERIAL_ECHOLNPGM("\nE0 axis stallGuard2 average   : To be implemented");
+        SERIAL_ECHOPAIR("\nE0 axis stallGuard2 steps loss:", stepperE0.LOST_STEPS());
+      }
+    #endif
+
+    // E1 axis
+    #if ENABLED(E1_IS_TMC2130)
+      if (parser.seen(axis_codes[E_AXIS]))
+      {
+        SERIAL_ECHOPAIR("\nE1 axis stallGuard2 value     :", stepperE1.sg_result());
+        SERIAL_ECHOPAIR("\nE1 axis stallGuard2 triggered :", stepperE1.stallguard());
+        //SERIAL_ECHOLNPGM("\nE1 axis stallGuard2 average   : To be implemented");
+        SERIAL_ECHOPAIR("\nE1 axis stallGuard2 steps loss:", stepperE1.LOST_STEPS());
+      }
+    #endif
+  }
+  #endif  //ENABLED(HAVE_TMC2130) || ENABLED(HAVE_TMC2208)
 
 #endif // HAS_TRINAMIC
 
@@ -13584,8 +13682,14 @@ void process_parsed_command() {
         #endif
 
         #if ENABLED(HAVE_TMC2130) || ENABLED(HAVE_TMC2208)
-          case 916: // M914: Set SENSORLESS_HOMING sensitivity.
+          case 916: // M916: Set chopping mode
             gcode_M916();
+            break;
+        #endif
+
+        #if ENABLED(HAVE_TMC2130)
+          case 917: // M917: Read stallGuard2 values
+            gcode_M917();
             break;
         #endif
       #endif

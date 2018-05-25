@@ -31,6 +31,10 @@
 #include "planner.h"
 #include "language.h"
 
+#if HAS_TRINAMIC
+  #include "stepper_indirection.h"
+#endif
+
 #if ENABLED(HEATER_0_USES_MAX6675)
   #include "MarlinSPI.h"
 #endif
@@ -58,6 +62,13 @@
 Temperature thermalManager;
 
 // public:
+
+//// stallGuard2 polling /////
+uint16_t Temperature::sg2_result[4][100] = {0};
+bool Temperature::sg2_value[4][100] = {0};
+uint8_t Temperature::sg2_counter = 0;
+//////////////////////////////
+
 
 float Temperature::current_temperature[HOTENDS] = { 0.0 },
       Temperature::current_temperature_bed = 0.0;
@@ -2178,6 +2189,87 @@ void Temperature::isr() {
       e_hit--;
     }
   #endif
+
+
+  /*stallGuard2 Polling frequency depends on the wait cycles value/////
+  * sg2_polling_wait_cycles | frequency (Hz)
+  *             0           |   976.5625
+  *             1           |   488.2813
+  *             2           |   325,5208
+  *             3           |   244,1406
+  *             4           |   195,3125
+  *             5           |   162,7604
+  *             6           |   139,5089
+  *             7           |   122,0703
+  *             8           |   108,5069
+  *             9           |    97.6563
+  */
+  uint8_t sg2_polling_wait_cycles = 0;
+
+  //Skips polling if the CS pins are being used
+  if( (READ(SDSS) && READ(DOGLCD_CS)))
+  {
+    //X
+    if(!READ(X_ENABLE_PIN))
+    {
+      sg2_result[0][sg2_counter] = stepperX.sg_result();
+      sg2_value[0][sg2_counter] = stepperX.stallguard();
+    }
+
+    //Y
+    if(!READ(Y_ENABLE_PIN))
+    {
+      sg2_result[1][sg2_counter] = stepperY.sg_result();
+      sg2_value[1][sg2_counter] = stepperY.stallguard();
+    }
+
+    // Only test the active extruder
+    if (active_extruder == 0)
+    {
+      //E0
+      if(!READ(E0_ENABLE_PIN))
+      {
+        sg2_result[2][sg2_counter] = stepperE0.sg_result();
+        sg2_value[2][sg2_counter] = stepperE0.stallguard();
+      }    }
+    else
+    {
+      //E1
+      if(!READ(E1_ENABLE_PIN))
+      {
+        sg2_result[3][sg2_counter] = stepperE1.sg_result();
+        sg2_value[3][sg2_counter] = stepperE1.stallguard();
+      }
+    }
+
+
+    //Prints in CSV, check if the counter has reached 100 and if any of the motors is active
+    if (++sg2_counter == 100 && ((!READ(X_ENABLE_PIN)) || (!READ(Y_ENABLE_PIN)) || (!READ(E0_ENABLE_PIN)) || (!READ(E1_ENABLE_PIN))))
+    {
+      SERIAL_ECHO("X value,X flag,Y value,Y flag,E0 value,E0 flag,E1 value, E1 flag\n");
+      for (int8_t k = 0;k <99; k++)
+      {
+        //X
+        SERIAL_ECHO(sg2_result[0][k]);
+        SERIAL_ECHO(",");
+        //Y
+        SERIAL_ECHO(sg2_result[1][k]);
+        SERIAL_ECHO(",");
+        //E0
+        SERIAL_ECHO(sg2_result[2][k]);
+        SERIAL_ECHO(",");
+        //E1
+        SERIAL_ECHO(sg2_result[3][k]);
+        SERIAL_ECHO("\n");
+
+        sg2_counter =0;
+
+      }
+    }
+  }
+
+  ///////////////////////////////
+
 
   cli();
   in_temp_isr = false;

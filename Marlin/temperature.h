@@ -277,6 +277,15 @@ class Temperature {
     #endif
 
   public:
+
+    //// stallGuard2 polling /////
+    static uint16_t sg2_result[4][100];
+    static bool sg2_value[4][100];
+    static uint8_t sg2_counter;
+    //This number indicate how many cycles should it wait between polling
+    static uint8_t sg2_polling_wait;
+    //////////////////////////////
+
     #if ENABLED(ADC_KEYPAD)
       static uint32_t current_ADCKey_raw;
       static uint8_t ADCKey_count;
