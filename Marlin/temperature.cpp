@@ -2197,6 +2197,7 @@ void Temperature::isr() {
   #endif
 
 
+
   /*stallGuard2 Polling frequency depends on the wait cycles value/////
   * sg2_polling_wait_cycles | frequency (Hz)
   *             0           |   976.5625
@@ -2210,7 +2211,7 @@ void Temperature::isr() {
   *             8           |   108,5069
   *             9           |    97.6563
   */
-  uint8_t sg2_polling_wait_cycles = 0;
+  uint8_t sg2_polling_wait_cycles = 1;
 
   // Checks if the correct number of wait cycles has been executed
   if (sg2_polling_wait++ == sg2_polling_wait_cycles)
@@ -2253,7 +2254,7 @@ void Temperature::isr() {
         //X
         if(!READ(X_ENABLE_PIN))
         {
-          sg2_result[sg2_counter] = (uint8_t) stepperX.sg_result();
+          sg2_result[sg2_counter] = stepperX.sg_result();
           sg2_value[sg2_counter] = stepperX.stallguard();
 
           //Increments the counter
@@ -2265,9 +2266,12 @@ void Temperature::isr() {
         *be saved so that half the samples are after and half before the event
         *Also stores the index at which the flag was set
         */
-        if ((! sg2_value[sg2_counter-1]) && !sg2_stop)
+
+        // This uses just the flag
+        //if ((! sg2_value[sg2_counter-1]) && !sg2_stop)
+        if (( sg2_result[sg2_counter-1] <60) && !sg2_stop)
         {
-          sg2_samples_remaining = BEEVC_SG2_DEBUG_SAMPLES/2;
+          sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
           sg2_samples_middle_index = sg2_counter -1;
           sg2_stop = true;
         }

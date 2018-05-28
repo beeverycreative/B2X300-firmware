@@ -37,7 +37,7 @@
 // #define BEEVC_TMC2130XY
 //
 //
-#define BEEVC_SG2_DEBUG_SAMPLES 800
+#define BEEVC_SG2_DEBUG_SAMPLES 400
 //
 //===========================================================================
 //============================= B2X300 re-define ============================
@@ -56,3 +56,7 @@
 #define FILAMENT_RUNOUT_DUAL
 //#define BEEVC_Restore_Move_X
 #define BEEVC_Restore_Move_Y
+
+
+
+#define BEEVC_SG2_DEBUG_HALF_SAMPLES (BEEVC_SG2_DEBUG_SAMPLES/2)
