@@ -11268,10 +11268,16 @@ inline void gcode_M502() {
 
             //Prints in CSV
               SERIAL_ECHO("X value,X flag\n");
+
+              SERIAL_ECHO("\nSg2_flag: ");
+              SERIAL_ECHO(thermalManager.sg2_stop);
+              SERIAL_ECHO("\nSg2_middle: ");
+              SERIAL_ECHO(thermalManager.sg2_samples_middle_index);
+
               for (uint16_t k = 0;k <BEEVC_SG2_DEBUG_SAMPLES; k++)
               {
                 //Finds the correct index on which to read
-                int16_t index = (thermalManager.sg2_samples_middle_index +k) - (BEEVC_SG2_DEBUG_SAMPLES/2);
+                int16_t index = (thermalManager.sg2_samples_middle_index +k) - (BEEVC_SG2_DEBUG_HALF_SAMPLES);
                 if (index < 0)
                   index = BEEVC_SG2_DEBUG_SAMPLES + index;
 
@@ -11283,13 +11289,28 @@ inline void gcode_M502() {
               }
 
             SERIAL_ECHO("\nEND\n");
+            SERIAL_ECHO("\nSg2_flag: ");
+            SERIAL_ECHO(thermalManager.sg2_stop);
+            SERIAL_ECHO("\nSg2_middle: ");
+            SERIAL_ECHO(thermalManager.sg2_samples_middle_index);
+            SERIAL_ECHO("\nSg2_remaining: ");
+            SERIAL_ECHO(thermalManager.sg2_samples_remaining);
+
 
             // Clears the sg2_counter value
-            thermalManager.sg2_counter = 0;
+            //thermalManager.sg2_counter = 0;
 
             // Re-enables interrupts
             sei();
 
+          }
+
+          // Resets the information flags
+          if (parser.seen('R'))
+          {
+            thermalManager.sg2_samples_remaining = 0;
+            thermalManager.sg2_samples_middle_index = 0;
+            thermalManager.sg2_stop = false;
           }
 
         else

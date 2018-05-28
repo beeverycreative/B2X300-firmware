@@ -64,7 +64,7 @@ Temperature thermalManager;
 // public:
 
 //// stallGuard2 polling /////
-uint16_t Temperature::sg2_result[BEEVC_SG2_DEBUG_SAMPLES] = {0};
+uint16_t Temperature::sg2_result[BEEVC_SG2_DEBUG_SAMPLES] = {999};
 bool Temperature::sg2_value[BEEVC_SG2_DEBUG_SAMPLES] = {0};
 uint16_t Temperature::sg2_counter = 0;
 bool Temperature::sg2_stop = false;
@@ -2249,7 +2249,7 @@ void Temperature::isr() {
       */
 
       //Checks if a read is possible
-      if( (READ(SDSS) && READ(DOGLCD_CS)) && (!sg2_stop || (sg2_samples_remaining > 0)))
+      if( (READ(SDSS) && READ(DOGLCD_CS)) && (!sg2_stop || (sg2_samples_remaining > 1)))
       {
         //X
         if(!READ(X_ENABLE_PIN))
@@ -2259,6 +2259,20 @@ void Temperature::isr() {
 
           //Increments the counter
           sg2_counter++;
+
+          // This uses just the flag
+          //if ((! sg2_value[sg2_counter-1]) && !sg2_stop)
+          if (( sg2_result[sg2_counter-1] <80) && !sg2_stop)
+          {
+            sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
+            sg2_samples_middle_index = sg2_counter -1;
+            sg2_stop = true;
+          }
+
+
+          //Decreases the ammount of remaining samples after stop
+          if (sg2_samples_remaining > 1)
+            sg2_samples_remaining --;
         }
 
         /*
@@ -2267,19 +2281,7 @@ void Temperature::isr() {
         *Also stores the index at which the flag was set
         */
 
-        // This uses just the flag
-        //if ((! sg2_value[sg2_counter-1]) && !sg2_stop)
-        if (( sg2_result[sg2_counter-1] <60) && !sg2_stop)
-        {
-          sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
-          sg2_samples_middle_index = sg2_counter -1;
-          sg2_stop = true;
-        }
 
-
-        //Decreases the ammount of remaining samples after stop
-        if (sg2_samples_remaining > 1)
-          sg2_samples_remaining --;
 
 
         //Resets the counter if it is full
