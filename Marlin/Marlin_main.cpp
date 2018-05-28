@@ -11230,51 +11230,74 @@ inline void gcode_M502() {
   #endif  //ENABLED(HAVE_TMC2130) || ENABLED(HAVE_TMC2208)
 
   /**
-   * M917 -  TMC Change chopper mode
+   * M917 -  Read stallGuard value
    * Examples :
    * M917 X Y E   -   Prints X average and current stallGuard2 value for the X, Y and all E axis
-   * M197 X L20   -   Prints X average and current stallGuard2 value for X and loops to find a step loss for 20 seconds
+   * M917 X L     -   Prints X log for the last 4s
+   * M917 X F1    -   Activates stallGuard2 filter on the X axis
+   * M917 X F0    -   Deactivates stallGuard2 filter on the X axis
    */
   #if ENABLED(HAVE_TMC2130)
   inline void gcode_M917() {
     #if ENABLED(X_IS_TMC2130)
+
       if (parser.seen(axis_codes[X_AXIS]))
       {
-        SERIAL_ECHOPAIR("\nX axis stallGuard2 value     :", stepperX.sg_result());
-        SERIAL_ECHOPAIR("\nX axis stallGuard2 triggered :", stepperX.stallguard());
-        //SERIAL_ECHOLNPGM("\nX axis stallGuard2 average   : To be implemented");
-        SERIAL_ECHOPAIR("\nX axis stallGuard2 steps loss:", stepperX.LOST_STEPS());
+        // Activates or deactivates filter
+        if(parser.seen('F'))
+        {
+          if(parser.value_bool())
+          {
+            stepperX.sg_filter(true);
+            SERIAL_ECHOLNPGM("\nX axis stallGuard2 filter is activated");
+          }
+          else
+          {
+            stepperX.sg_filter(false);
+            SERIAL_ECHOLNPGM("\nX axis stallGuard2 filter is deactivated");
+          }
+        }
 
-        // LOOP untill detection of stepp loss
+        // Prints last 2s of log
         if (parser.seen('L'))
         {
+          // Ensures no new values are written
+          cli();
 
-          uint16_t sgvalue = stepperX.sg_result();
-          unsigned long time = millis()+(1000*parser.value_int());
-          uint16_t count = 0;
+          SERIAL_ECHO("\nSTART\n");
 
-          do
-          {
-            if (sgvalue < 50)
-              SERIAL_ECHOPAIR("\n", sgvalue);
-
-            sgvalue = stepperX.sg_result();
-
-            count++;
-
-            if (destination[X_AXIS] == current_position[X_AXIS])
+            //Prints in CSV
+              SERIAL_ECHO("X value,X flag\n");
+              for (uint16_t k = 0;k <BEEVC_SG2_DEBUG_SAMPLES; k++)
               {
-                if (destination[X_AXIS] == 0)
-                  destination[X_AXIS] = 300;
-                else
-                  destination[X_AXIS] = 0;
+                //Finds the correct index on which to read
+                int16_t index = (thermalManager.sg2_samples_middle_index +k) - (BEEVC_SG2_DEBUG_SAMPLES/2);
+                if (index < 0)
+                  index = BEEVC_SG2_DEBUG_SAMPLES + index;
 
-                buffer_line_to_destination(50);
+                //X
+                SERIAL_ECHO(thermalManager.sg2_result[k]);
+                SERIAL_ECHO(",");
+                SERIAL_ECHO(thermalManager.sg2_value[k]);
+                SERIAL_ECHO("\n");
               }
-          }
-          while(millis() < time);
 
-          SERIAL_ECHOPAIR("\nXNumber of stallGuard2 detections bellow 50    :", count);
+            SERIAL_ECHO("\nEND\n");
+
+            // Clears the sg2_counter value
+            thermalManager.sg2_counter = 0;
+
+            // Re-enables interrupts
+            sei();
+
+          }
+
+        else
+        {
+          SERIAL_ECHOPAIR("\nX axis stallGuard2 value     :", stepperX.sg_result());
+          SERIAL_ECHOPAIR("\nX axis stallGuard2 triggered :", stepperX.stallguard());
+          //SERIAL_ECHOLNPGM("\nX axis stallGuard2 average   : To be implemented");
+          SERIAL_ECHOPAIR("\nX axis stallGuard2 steps loss:", stepperX.LOST_STEPS());
         }
       }
     #endif

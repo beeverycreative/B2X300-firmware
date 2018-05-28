@@ -64,9 +64,15 @@ Temperature thermalManager;
 // public:
 
 //// stallGuard2 polling /////
-uint16_t Temperature::sg2_result[4][100] = {0};
-bool Temperature::sg2_value[4][100] = {0};
-uint8_t Temperature::sg2_counter = 0;
+uint16_t Temperature::sg2_result[BEEVC_SG2_DEBUG_SAMPLES] = {0};
+bool Temperature::sg2_value[BEEVC_SG2_DEBUG_SAMPLES] = {0};
+uint16_t Temperature::sg2_counter = 0;
+bool Temperature::sg2_stop = false;
+uint16_t Temperature::sg2_samples_remaining = 0;
+uint16_t Temperature::sg2_samples_middle_index = 0;
+
+//This number indicate how many cycles should it wait between polling
+uint8_t Temperature::sg2_polling_wait = 0;
 //////////////////////////////
 
 
@@ -2206,67 +2212,107 @@ void Temperature::isr() {
   */
   uint8_t sg2_polling_wait_cycles = 0;
 
-  //Skips polling if the CS pins are being used
-  if( (READ(SDSS) && READ(DOGLCD_CS)))
+  // Checks if the correct number of wait cycles has been executed
+  if (sg2_polling_wait++ == sg2_polling_wait_cycles)
   {
-    //X
-    if(!READ(X_ENABLE_PIN))
-    {
-      sg2_result[0][sg2_counter] = stepperX.sg_result();
-      sg2_value[0][sg2_counter] = stepperX.stallguard();
-    }
+    // Restarts wait variable
+    sg2_polling_wait = 0;
 
-    //Y
-    if(!READ(Y_ENABLE_PIN))
-    {
-      sg2_result[1][sg2_counter] = stepperY.sg_result();
-      sg2_value[1][sg2_counter] = stepperY.stallguard();
-    }
-
-    // Only test the active extruder
-    if (active_extruder == 0)
-    {
-      //E0
-      if(!READ(E0_ENABLE_PIN))
+    //Skips polling if the CS pins are being used
+      /* Reducing memory usage
+      //Y
+      if(!READ(Y_ENABLE_PIN))
       {
-        sg2_result[2][sg2_counter] = stepperE0.sg_result();
-        sg2_value[2][sg2_counter] = stepperE0.stallguard();
-      }    }
-    else
-    {
-      //E1
-      if(!READ(E1_ENABLE_PIN))
-      {
-        sg2_result[3][sg2_counter] = stepperE1.sg_result();
-        sg2_value[3][sg2_counter] = stepperE1.stallguard();
+        sg2_result[1][sg2_counter] = stepperY.sg_result();
+        sg2_value[1][sg2_counter] = stepperY.stallguard();
       }
-    }
 
+      // Only test the active extruder
+      if (active_extruder == 0)
+      {
+        //E0
+        if(!READ(E0_ENABLE_PIN))
+        {
+          sg2_result[2][sg2_counter] = stepperE0.sg_result();
+          sg2_value[2][sg2_counter] = stepperE0.stallguard();
+        }    }
+      else
+      {
+        //E1
+        if(!READ(E1_ENABLE_PIN))
+        {
+          sg2_result[3][sg2_counter] = stepperE1.sg_result();
+          sg2_value[3][sg2_counter] = stepperE1.stallguard();
+        }
+      }
+      */
 
-    //Prints in CSV, check if the counter has reached 100 and if any of the motors is active
-    if (++sg2_counter == 100 && ((!READ(X_ENABLE_PIN)) || (!READ(Y_ENABLE_PIN)) || (!READ(E0_ENABLE_PIN)) || (!READ(E1_ENABLE_PIN))))
-    {
-      SERIAL_ECHO("X value,X flag,Y value,Y flag,E0 value,E0 flag,E1 value, E1 flag\n");
-      for (int8_t k = 0;k <99; k++)
+      //Checks if a read is possible
+      if( (READ(SDSS) && READ(DOGLCD_CS)) && (!sg2_stop || (sg2_samples_remaining > 0)))
       {
         //X
-        SERIAL_ECHO(sg2_result[0][k]);
-        SERIAL_ECHO(",");
-        //Y
-        SERIAL_ECHO(sg2_result[1][k]);
-        SERIAL_ECHO(",");
-        //E0
-        SERIAL_ECHO(sg2_result[2][k]);
-        SERIAL_ECHO(",");
-        //E1
-        SERIAL_ECHO(sg2_result[3][k]);
-        SERIAL_ECHO("\n");
+        if(!READ(X_ENABLE_PIN))
+        {
+          sg2_result[sg2_counter] = (uint8_t) stepperX.sg_result();
+          sg2_value[sg2_counter] = stepperX.stallguard();
 
-        sg2_counter =0;
+          //Increments the counter
+          sg2_counter++;
+        }
 
+        /*
+        *Activates the SG2_stop flag, calculates how many more samples will be
+        *be saved so that half the samples are after and half before the event
+        *Also stores the index at which the flag was set
+        */
+        if ((! sg2_value[sg2_counter-1]) && !sg2_stop)
+        {
+          sg2_samples_remaining = BEEVC_SG2_DEBUG_SAMPLES/2;
+          sg2_samples_middle_index = sg2_counter -1;
+          sg2_stop = true;
+        }
+
+
+        //Decreases the ammount of remaining samples after stop
+        if (sg2_samples_remaining > 1)
+          sg2_samples_remaining --;
+
+
+        //Resets the counter if it is full
+        if(sg2_counter == BEEVC_SG2_DEBUG_SAMPLES)
+          sg2_counter = 0;
       }
+
+
+      /*
+      //Prints in CSV, check if the counter has reached 100 and if any of the motors is active
+      if (++sg2_counter == 100 && ((!READ(X_ENABLE_PIN)) || (!READ(Y_ENABLE_PIN)) || (!READ(E0_ENABLE_PIN)) || (!READ(E1_ENABLE_PIN))))
+      {
+        SERIAL_ECHO("X value,X flag,Y value,Y flag,E0 value,E0 flag,E1 value, E1 flag\n");
+        for (int8_t k = 0;k <99; k++)
+        {
+          //X
+          SERIAL_ECHO(sg2_result[0][k]);
+          SERIAL_ECHO(",");
+          //Y
+          SERIAL_ECHO(sg2_result[1][k]);
+          SERIAL_ECHO(",");
+          //E0
+          SERIAL_ECHO(sg2_result[2][k]);
+          SERIAL_ECHO(",");
+          //E1
+          SERIAL_ECHO(sg2_result[3][k]);
+          SERIAL_ECHO("\n");
+
+          sg2_counter =0;
+
+        }
+      }
+      */
+
     }
-  }
+
+
 
   ///////////////////////////////
 

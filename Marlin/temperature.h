@@ -279,9 +279,13 @@ class Temperature {
   public:
 
     //// stallGuard2 polling /////
-    static uint16_t sg2_result[4][100];
-    static bool sg2_value[4][100];
-    static uint8_t sg2_counter;
+    static uint16_t sg2_samples_remaining;
+    static uint16_t sg2_samples_middle_index;
+    static uint16_t sg2_result[BEEVC_SG2_DEBUG_SAMPLES];
+    static bool sg2_value[BEEVC_SG2_DEBUG_SAMPLES];
+    static uint16_t sg2_counter;
+    static bool sg2_stop;
+
     //This number indicate how many cycles should it wait between polling
     static uint8_t sg2_polling_wait;
     //////////////////////////////
