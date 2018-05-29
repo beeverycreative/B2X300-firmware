@@ -2260,33 +2260,45 @@ void Temperature::isr() {
           //Increments the counter
           sg2_counter++;
 
-          // This uses just the flag
-          //if ((! sg2_value[sg2_counter-1]) && !sg2_stop)
-          if (( sg2_result[sg2_counter-1] <80) && !sg2_stop)
+          /*
+          *Activates the SG2_stop flag, calculates how many more samples will be
+          *be saved so that half the samples are after and half before the event
+          *Also stores the index at which the flag was set
+          */
+          // This uses just the flag to signal the stop
+          if ((! sg2_value[sg2_counter-1]) && !sg2_stop)
+          // This uses just the result to activate stop
+          //if (( sg2_result[sg2_counter-1] <80) && !sg2_stop)
           {
             sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
             sg2_samples_middle_index = sg2_counter -1;
             sg2_stop = true;
           }
 
-
           //Decreases the ammount of remaining samples after stop
           if (sg2_samples_remaining > 1)
             sg2_samples_remaining --;
         }
 
-        /*
-        *Activates the SG2_stop flag, calculates how many more samples will be
-        *be saved so that half the samples are after and half before the event
-        *Also stores the index at which the flag was set
-        */
+        //Resets the counter if it is full
+        if(sg2_counter == BEEVC_SG2_DEBUG_SAMPLES)
+          sg2_counter = 0;
+      }
 
+      // when the write was impossible
+      else
+      {
+        // Sets dummy values
+        sg2_result[sg2_counter] = 999;
+        sg2_value[sg2_counter] = 0;
 
-
+        //Increments the counter
+        sg2_counter++;
 
         //Resets the counter if it is full
         if(sg2_counter == BEEVC_SG2_DEBUG_SAMPLES)
           sg2_counter = 0;
+
       }
 
 
