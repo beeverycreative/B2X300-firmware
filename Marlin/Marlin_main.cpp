@@ -11272,7 +11272,8 @@ inline void gcode_M502() {
               SERIAL_ECHO("\nSg2_flag: ");
               SERIAL_ECHO(thermalManager.sg2_stop);
               SERIAL_ECHO("\nSg2_middle: ");
-              SERIAL_ECHO(thermalManager.sg2_samples_middle_index);
+              SERIAL_ECHO((uint16_t)thermalManager.sg2_samples_middle_index);
+              SERIAL_ECHO("\n");
 
               for (uint16_t k = 0;k <BEEVC_SG2_DEBUG_SAMPLES; k++)
               {
@@ -11282,9 +11283,9 @@ inline void gcode_M502() {
                   index = BEEVC_SG2_DEBUG_SAMPLES + index;
 
                 //X
-                SERIAL_ECHO(thermalManager.sg2_result[k]);
+                SERIAL_ECHO(thermalManager.sg2_result[index]);
                 SERIAL_ECHO(",");
-                SERIAL_ECHO(thermalManager.sg2_value[k]);
+                SERIAL_ECHO(thermalManager.sg2_value[index]);
                 SERIAL_ECHO("\n");
               }
 

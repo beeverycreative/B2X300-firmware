@@ -2211,7 +2211,7 @@ void Temperature::isr() {
   *             8           |   108,5069
   *             9           |    97.6563
   */
-  uint8_t sg2_polling_wait_cycles = 1;
+  uint8_t sg2_polling_wait_cycles = 3;
 
   // Checks if the correct number of wait cycles has been executed
   if (sg2_polling_wait++ == sg2_polling_wait_cycles)
@@ -2257,50 +2257,48 @@ void Temperature::isr() {
           sg2_result[sg2_counter] = stepperX.sg_result();
           sg2_value[sg2_counter] = stepperX.stallguard();
 
-          //Increments the counter
-          sg2_counter++;
-
           /*
           *Activates the SG2_stop flag, calculates how many more samples will be
           *be saved so that half the samples are after and half before the event
           *Also stores the index at which the flag was set
           */
           // This uses just the flag to signal the stop
-          if ((! sg2_value[sg2_counter-1]) && !sg2_stop)
+          if ((! sg2_value[sg2_counter]) && !sg2_stop)
           // This uses just the result to activate stop
           //if (( sg2_result[sg2_counter-1] <80) && !sg2_stop)
           {
             sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
-            sg2_samples_middle_index = sg2_counter -1;
+            sg2_samples_middle_index = sg2_counter;
             sg2_stop = true;
           }
-
-          //Decreases the ammount of remaining samples after stop
-          if (sg2_samples_remaining > 1)
-            sg2_samples_remaining --;
         }
-
-        //Resets the counter if it is full
-        if(sg2_counter == BEEVC_SG2_DEBUG_SAMPLES)
-          sg2_counter = 0;
+        // Result when read was possible but the motor is off
+        else
+          sg2_result[sg2_counter] = 333;
       }
 
       // when the write was impossible
       else
       {
-        // Sets dummy values
-        sg2_result[sg2_counter] = 999;
+        // Sets debug values
+        if (!READ(SDSS))
+          sg2_result[sg2_counter] = 999;
+        if (!READ(DOGLCD_CS))
+          sg2_result[sg2_counter] = 666;
+
         sg2_value[sg2_counter] = 0;
-
-        //Increments the counter
-        sg2_counter++;
-
-        //Resets the counter if it is full
-        if(sg2_counter == BEEVC_SG2_DEBUG_SAMPLES)
-          sg2_counter = 0;
-
       }
 
+      //Decreases the ammount of remaining samples after stop
+      if (sg2_samples_remaining > 1)
+        sg2_samples_remaining --;
+
+      //Increments the counter
+      sg2_counter++;
+
+      //Resets the counter if it is full
+      if(sg2_counter == BEEVC_SG2_DEBUG_SAMPLES)
+        sg2_counter = 0;
 
       /*
       //Prints in CSV, check if the counter has reached 100 and if any of the motors is active
