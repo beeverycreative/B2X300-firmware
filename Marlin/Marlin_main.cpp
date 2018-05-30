@@ -11283,7 +11283,7 @@ inline void gcode_M502() {
                   index = BEEVC_SG2_DEBUG_SAMPLES + index;
 
                 //X
-                SERIAL_ECHO(thermalManager.sg2_result[index]);
+                SERIAL_ECHO((uint16_t)((thermalManager.sg2_result[index]) & 0x0000FFFF));
                 SERIAL_ECHO(",");
                 SERIAL_ECHO(thermalManager.sg2_value[index]);
                 SERIAL_ECHO("\n");

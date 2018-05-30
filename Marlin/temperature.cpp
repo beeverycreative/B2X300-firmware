@@ -2251,10 +2251,42 @@ void Temperature::isr() {
       //Checks if a read is possible
       if( (READ(SDSS) && READ(DOGLCD_CS)) && (!sg2_stop || (sg2_samples_remaining > 1)))
       {
+        // //E
+        // if(!READ(E0_ENABLE_PIN) || !READ(E1_ENABLE_PIN))
+        // {
+        //   //
+        //   if(active_extruder)
+        //   {
+        //     sg2_result[sg2_counter] = stepperE1.sg_result();
+        //     sg2_value[sg2_counter] = stepperE1.stallguard();
+        //   }
+        //   else
+        //   {
+        //     sg2_result[sg2_counter] = stepperE0.sg_result();
+        //     sg2_value[sg2_counter] = stepperE0.stallguard();
+        //   }
+        //
+        //
+        //   /*
+        //   *Activates the SG2_stop flag, calculates how many more samples will be
+        //   *be saved so that half the samples are after and half before the event
+        //   *Also stores the index at which the flag was set
+        //   */
+        //   // This uses just the flag to signal the stop
+        //   if ((! sg2_value[sg2_counter]) && !sg2_stop)
+        //   // This uses just the result to activate stop
+        //   //if (( sg2_result[sg2_counter-1] <80) && !sg2_stop)
+        //   {
+        //     sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
+        //     sg2_samples_middle_index = sg2_counter;
+        //     sg2_stop = true;
+        //   }
+        // }
+
         //X
         if(!READ(X_ENABLE_PIN))
         {
-          sg2_result[sg2_counter] = stepperX.sg_result();
+          sg2_result[sg2_counter] = (stepperX.sg_result() & 0b0000001111111111);
           sg2_value[sg2_counter] = stepperX.stallguard();
 
           /*
@@ -2299,32 +2331,6 @@ void Temperature::isr() {
       //Resets the counter if it is full
       if(sg2_counter == BEEVC_SG2_DEBUG_SAMPLES)
         sg2_counter = 0;
-
-      /*
-      //Prints in CSV, check if the counter has reached 100 and if any of the motors is active
-      if (++sg2_counter == 100 && ((!READ(X_ENABLE_PIN)) || (!READ(Y_ENABLE_PIN)) || (!READ(E0_ENABLE_PIN)) || (!READ(E1_ENABLE_PIN))))
-      {
-        SERIAL_ECHO("X value,X flag,Y value,Y flag,E0 value,E0 flag,E1 value, E1 flag\n");
-        for (int8_t k = 0;k <99; k++)
-        {
-          //X
-          SERIAL_ECHO(sg2_result[0][k]);
-          SERIAL_ECHO(",");
-          //Y
-          SERIAL_ECHO(sg2_result[1][k]);
-          SERIAL_ECHO(",");
-          //E0
-          SERIAL_ECHO(sg2_result[2][k]);
-          SERIAL_ECHO(",");
-          //E1
-          SERIAL_ECHO(sg2_result[3][k]);
-          SERIAL_ECHO("\n");
-
-          sg2_counter =0;
-
-        }
-      }
-      */
 
     }
 

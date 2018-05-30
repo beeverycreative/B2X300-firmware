@@ -1,14 +1,14 @@
--IC:\Users\drodrigues\Documents\Github\MarlinBEE\.pioenvs\megaatmega2560\src
+-IC:\Users\drodrigues\Documents\GitHub\MarlinBEE\.pioenvs\megaatmega2560\src
 -IC:\Users\drodrigues\.platformio\packages\framework-arduinoavr\cores\arduino
 -IC:\Users\drodrigues\.platformio\packages\framework-arduinoavr\variants\mega
--IC:\Users\drodrigues\Documents\Github\MarlinBEE\Marlin
--IC:\Users\drodrigues\Documents\Github\MarlinBEE\.piolibdeps\U8glib_ID7\src
+-IC:\Users\drodrigues\Documents\GitHub\MarlinBEE\Marlin
+-IC:\Users\drodrigues\Documents\GitHub\MarlinBEE\.piolibdeps\U8glib_ID7\src
 -IC:\Users\drodrigues\.platformio\packages\framework-arduinoavr\libraries\__cores__\arduino\SPI\src
--IC:\Users\drodrigues\Documents\Github\MarlinBEE\.piolibdeps\TMC2130Stepper_ID1493\src
--IC:\Users\drodrigues\Documents\Github\MarlinBEE\.piolibdeps\Adafruit NeoPixel_ID28
+-IC:\Users\drodrigues\Documents\GitHub\MarlinBEE\.piolibdeps\TMC2130Stepper_ID1493\src
+-IC:\Users\drodrigues\Documents\GitHub\MarlinBEE\.piolibdeps\Adafruit NeoPixel_ID28
 -IC:\Users\drodrigues\.platformio\packages\framework-arduinoavr\libraries\__cores__\arduino\Wire\src
--IC:\Users\drodrigues\Documents\Github\MarlinBEE\.piolibdeps\LiquidTWI2
--IC:\Users\drodrigues\Documents\Github\MarlinBEE\.piolibdeps\TMC26XStepper
+-IC:\Users\drodrigues\Documents\GitHub\MarlinBEE\.piolibdeps\LiquidTWI2
+-IC:\Users\drodrigues\Documents\GitHub\MarlinBEE\.piolibdeps\TMC26XStepper
 -IC:\Users\drodrigues\.platformio\packages\framework-arduinoavr\libraries\LiquidCrystal\src
 -IC:\Users\drodrigues\.platformio\packages\framework-arduinoavr\libraries\__cores__\arduino\SoftwareSerial\src
 -IC:\Users\drodrigues\.platformio\lib\TMC2130Stepper_ID1493\src
