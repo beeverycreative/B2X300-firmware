@@ -66,6 +66,7 @@ Temperature thermalManager;
 //// stallGuard2 polling /////
 uint16_t Temperature::sg2_result[BEEVC_SG2_DEBUG_SAMPLES] = {999};
 bool Temperature::sg2_value[BEEVC_SG2_DEBUG_SAMPLES] = {0};
+bool Temperature::sg2_standstill[BEEVC_SG2_DEBUG_SAMPLES] = {0};
 uint16_t Temperature::sg2_counter = 0;
 bool Temperature::sg2_stop = false;
 uint16_t Temperature::sg2_samples_remaining = 0;
@@ -2288,6 +2289,7 @@ void Temperature::isr() {
         {
           sg2_result[sg2_counter] = (stepperX.sg_result() & 0b0000001111111111);
           sg2_value[sg2_counter] = stepperX.stallguard();
+          sg2_standstill[sg2_counter] = stepperX.stst();
 
           /*
           *Activates the SG2_stop flag, calculates how many more samples will be
@@ -2295,9 +2297,9 @@ void Temperature::isr() {
           *Also stores the index at which the flag was set
           */
           // This uses just the flag to signal the stop
-          if ((! sg2_value[sg2_counter]) && !sg2_stop)
+          // if ((! sg2_value[sg2_counter]) && !sg2_stop)
           // This uses just the result to activate stop
-          //if (( sg2_result[sg2_counter-1] <80) && !sg2_stop)
+          if (( sg2_result[sg2_counter-1] <50) && !sg2_stop && !sg2_standstill[sg2_counter])
           {
             sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
             sg2_samples_middle_index = sg2_counter;

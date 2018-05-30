@@ -11262,47 +11262,53 @@ inline void gcode_M502() {
         if (parser.seen('L'))
         {
           // Ensures no new values are written
-          cli();
+          //cli();
 
-          SERIAL_ECHO("\nSTART\n");
+          SERIAL_ECHO("\n=============\n");
 
-            //Prints in CSV
-              SERIAL_ECHO("X value,X flag\n");
+          // SERIAL_ECHO("X value,X flag\n");
+          // SERIAL_ECHO("\nSg2_flag: ");
+          // SERIAL_ECHO(thermalManager.sg2_stop);
+          // SERIAL_ECHO("\nSg2_middle: ");
+          // SERIAL_ECHO((uint16_t)thermalManager.sg2_samples_middle_index);
+          // SERIAL_ECHO("\n");
 
-              SERIAL_ECHO("\nSg2_flag: ");
-              SERIAL_ECHO(thermalManager.sg2_stop);
-              SERIAL_ECHO("\nSg2_middle: ");
-              SERIAL_ECHO((uint16_t)thermalManager.sg2_samples_middle_index);
-              SERIAL_ECHO("\n");
-
+            //Prints in TSV (Tab separeted values)
               for (uint16_t k = 0;k <BEEVC_SG2_DEBUG_SAMPLES; k++)
               {
                 //Finds the correct index on which to read
-                int16_t index = (thermalManager.sg2_samples_middle_index +k) - (BEEVC_SG2_DEBUG_HALF_SAMPLES);
+                int16_t index = (thermalManager.sg2_samples_middle_index +k) - BEEVC_SG2_DEBUG_HALF_SAMPLES -1;
                 if (index < 0)
-                  index = BEEVC_SG2_DEBUG_SAMPLES + index;
+                  index += BEEVC_SG2_DEBUG_SAMPLES;
+
+                if(index > 399)
+                  index -= BEEVC_SG2_DEBUG_SAMPLES;
 
                 //X
                 SERIAL_ECHO((uint16_t)((thermalManager.sg2_result[index]) & 0x0000FFFF));
-                SERIAL_ECHO(",");
+                SERIAL_ECHO("\t");
                 SERIAL_ECHO(thermalManager.sg2_value[index]);
+                SERIAL_ECHO("\t");
+                SERIAL_ECHO(thermalManager.sg2_standstill[index]);
+                // SERIAL_ECHO("\t");
+                // SERIAL_ECHO(index);
                 SERIAL_ECHO("\n");
               }
 
-            SERIAL_ECHO("\nEND\n");
-            SERIAL_ECHO("\nSg2_flag: ");
-            SERIAL_ECHO(thermalManager.sg2_stop);
-            SERIAL_ECHO("\nSg2_middle: ");
-            SERIAL_ECHO(thermalManager.sg2_samples_middle_index);
-            SERIAL_ECHO("\nSg2_remaining: ");
-            SERIAL_ECHO(thermalManager.sg2_samples_remaining);
+            SERIAL_ECHO("\n=============\n");
+            // SERIAL_ECHO("\nSg2_flag: ");
+            // SERIAL_ECHO(thermalManager.sg2_stop);
+            // SERIAL_ECHO("\nSg2_middle: ");
+            // SERIAL_ECHO(thermalManager.sg2_samples_middle_index);
+            // SERIAL_ECHO("\nSg2_remaining: ");
+            // SERIAL_ECHO(thermalManager.sg2_samples_remaining);
 
 
             // Clears the sg2_counter value
             //thermalManager.sg2_counter = 0;
 
             // Re-enables interrupts
-            sei();
+            //sei();
 
           }
 
