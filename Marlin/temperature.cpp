@@ -2212,42 +2212,13 @@ void Temperature::isr() {
   *             8           |   108,5069
   *             9           |    97.6563
   */
-  uint8_t sg2_polling_wait_cycles = 3;
+  uint8_t sg2_polling_wait_cycles = 1;
 
   // Checks if the correct number of wait cycles has been executed
   if (sg2_polling_wait++ == sg2_polling_wait_cycles)
   {
     // Restarts wait variable
     sg2_polling_wait = 0;
-
-    //Skips polling if the CS pins are being used
-      /* Reducing memory usage
-      //Y
-      if(!READ(Y_ENABLE_PIN))
-      {
-        sg2_result[1][sg2_counter] = stepperY.sg_result();
-        sg2_value[1][sg2_counter] = stepperY.stallguard();
-      }
-
-      // Only test the active extruder
-      if (active_extruder == 0)
-      {
-        //E0
-        if(!READ(E0_ENABLE_PIN))
-        {
-          sg2_result[2][sg2_counter] = stepperE0.sg_result();
-          sg2_value[2][sg2_counter] = stepperE0.stallguard();
-        }    }
-      else
-      {
-        //E1
-        if(!READ(E1_ENABLE_PIN))
-        {
-          sg2_result[3][sg2_counter] = stepperE1.sg_result();
-          sg2_value[3][sg2_counter] = stepperE1.stallguard();
-        }
-      }
-      */
 
       //Checks if a read is possible
       if( (READ(SDSS) && READ(DOGLCD_CS)) && (!sg2_stop || (sg2_samples_remaining > 1)))
@@ -2299,7 +2270,7 @@ void Temperature::isr() {
           // This uses just the flag to signal the stop
           // if ((! sg2_value[sg2_counter]) && !sg2_stop)
           // This uses just the result to activate stop
-          if (( sg2_result[sg2_counter-1] <50) && !sg2_stop && !sg2_standstill[sg2_counter])
+          if (( sg2_result[sg2_counter] <10) && !sg2_stop && !sg2_standstill[sg2_counter])
           {
             sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
             sg2_samples_middle_index = sg2_counter;
@@ -2308,7 +2279,11 @@ void Temperature::isr() {
         }
         // Result when read was possible but the motor is off
         else
+        {
           sg2_result[sg2_counter] = 333;
+          sg2_value[sg2_counter] = 0;
+          sg2_standstill[sg2_counter] = 1;
+        }
       }
 
       // when the write was impossible
@@ -2316,10 +2291,16 @@ void Temperature::isr() {
       {
         // Sets debug values
         if (!READ(SDSS))
+        {
           sg2_result[sg2_counter] = 999;
-        if (!READ(DOGLCD_CS))
-          sg2_result[sg2_counter] = 666;
+          sg2_standstill[sg2_counter] = 1;
+        }
 
+        if (!READ(DOGLCD_CS))
+        {
+          sg2_result[sg2_counter] = 666;
+          sg2_standstill[sg2_counter] = 1;
+        }
         sg2_value[sg2_counter] = 0;
       }
 
