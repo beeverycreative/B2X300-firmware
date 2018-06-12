@@ -11285,7 +11285,7 @@ inline void gcode_M502() {
                   index -= BEEVC_SG2_DEBUG_SAMPLES;
 
                 //X
-                SERIAL_ECHO((uint16_t)((thermalManager.sg2_result[index]) & 0x0000FFFF));
+                SERIAL_ECHO((uint16_t)((thermalManager.sg2_result[index])));
                 SERIAL_ECHO("\t");
                 SERIAL_ECHO(thermalManager.sg2_value[index]);
                 SERIAL_ECHO("\t");
@@ -15988,6 +15988,8 @@ void setup() {
 
 	#endif
 	///////////////////////////////////////////////////////
+
+  uint32_t readLoss = millis() +500;
 }
 
 #ifdef BEEVC_Restore
@@ -16519,6 +16521,23 @@ void loop() {
 
       process_next_command();
 
+
+      if (thermalManager.sg2_stop && card.sdprinting && (readLoss >= millis()))
+      {
+        thermalManager.sg2_stop = 0;
+        readLoss = millis() +500;
+
+        card.pauseSDPrint();
+        print_job_timer.pause();
+
+        SERIAL_ECHOLN("Stepp Loss");
+        enqueue_and_echo_commands(PSTR("G28"));
+
+        card.startFileprint();
+        print_job_timer.start();
+        lcd_reset_status();
+      }
+
     #endif // SDSUPPORT
 
     // The queue may be reset by a command handler or by code invoked by idle() within a handler
@@ -16529,4 +16548,5 @@ void loop() {
   }
   endstops.report_state();
   idle();
+
 }
