@@ -1573,15 +1573,17 @@ void MarlinSettings::reset() {
     stepperE4.setCurrent(E4_CURRENT, R_SENSE, HOLD_MULTIPLIER);
   #endif
 
+  #if ENABLED(X_IS_TMC2130)
+    stepperX.sgt(X_HOMING_SENSITIVITY);
+  #endif
+
+  #if ENABLED(Y_IS_TMC2130)
+    stepperY.sgt(Y_HOMING_SENSITIVITY);
+  #endif
+
   #if ENABLED(SENSORLESS_HOMING)
-    #if ENABLED(X_IS_TMC2130)
-      stepperX.sgt(X_HOMING_SENSITIVITY);
-    #endif
     #if ENABLED(X2_IS_TMC2130)
       stepperX2.sgt(X_HOMING_SENSITIVITY);
-    #endif
-    #if ENABLED(Y_IS_TMC2130)
-      stepperY.sgt(Y_HOMING_SENSITIVITY);
     #endif
     #if ENABLED(Y2_IS_TMC2130)
       stepperY2.sgt(Y_HOMING_SENSITIVITY);

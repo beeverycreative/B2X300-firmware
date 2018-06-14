@@ -287,6 +287,10 @@ class Temperature {
     static uint16_t sg2_counter;
     static bool sg2_stop;
 
+    static bool sg2_x_limit_hit;
+    static bool sg2_y_limit_hit;
+    static bool sg2_z_limit_hit;
+
     //This number indicate how many cycles should it wait between polling
     static uint8_t sg2_polling_wait;
     static uint8_t sg2_polling_wait_cycles;

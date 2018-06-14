@@ -4077,7 +4077,7 @@ inline void gcode_G4() {
  */
 inline void gcode_G28(const bool always_home_all) {
 
-thermalManager.sg2sg2_polling_wait_cycles = 0; // Sets the read speed to maximum to allow endstop detection
+thermalManager.sg2_polling_wait_cycles = 0; // Sets the read speed to maximum to allow endstop detection
 
   #if ENABLED(DEBUG_LEVELING_FEATURE)
     if (DEBUGGING(LEVELING)) {
@@ -4181,6 +4181,7 @@ thermalManager.sg2sg2_polling_wait_cycles = 0; // Sets the read speed to maximum
 
     // Home X
     if (home_all || homeX) {
+      thermalManager.sg2_x_limit_hit = 0;
 
       #if ENABLED(DUAL_X_CARRIAGE)
 
@@ -4209,15 +4210,19 @@ thermalManager.sg2sg2_polling_wait_cycles = 0; // Sets the read speed to maximum
       #if ENABLED(DEBUG_LEVELING_FEATURE)
         if (DEBUGGING(LEVELING)) DEBUG_POS("> homeX", current_position);
       #endif
+
+      thermalManager.sg2_x_limit_hit = 1;
     }
 
     #if DISABLED(HOME_Y_BEFORE_X)
       // Home Y
       if (home_all || homeY) {
+        thermalManager.sg2_y_limit_hit = 0;
         HOMEAXIS(Y);
         #if ENABLED(DEBUG_LEVELING_FEATURE)
           if (DEBUGGING(LEVELING)) DEBUG_POS("> homeY", current_position);
         #endif
+        thermalManager.sg2_y_limit_hit = 1;
       }
     #endif
 
@@ -4279,7 +4284,7 @@ thermalManager.sg2sg2_polling_wait_cycles = 0; // Sets the read speed to maximum
     if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("<<< gcode_G28");
   #endif
 
-  thermalManager.sg2sg2_polling_wait_cycles = 5; // Sets the read speed to normal to allow stall detect
+  thermalManager.sg2_polling_wait_cycles = 5; // Sets the read speed to normal to allow stall detect
 } // G28
 
 void home_all_axes() { gcode_G28(true); }

@@ -38,8 +38,8 @@
 //
 //
 #define BEEVC_SG2_DEBUG_SAMPLES 400
-#define BEEVC_SG2_DEBUG_STEPPER_X
-//#define BEEVC_SG2_DEBUG_STEPPER_Y
+//#define BEEVC_SG2_DEBUG_STEPPER_X
+#define BEEVC_SG2_DEBUG_STEPPER_Y
 //#define BEEVC_SG2_DEBUG_STEPPER_E
 //
 //===========================================================================

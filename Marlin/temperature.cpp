@@ -76,6 +76,12 @@ bool Temperature::sg2_stop = false;
 uint16_t Temperature::sg2_samples_remaining = 0;
 uint16_t Temperature::sg2_samples_middle_index = 0;
 
+//end_stops
+// Pre-set to 1 so no false detections are made when not homing
+bool Temperature::sg2_x_limit_hit = 1;
+bool Temperature::sg2_y_limit_hit = 1;
+bool Temperature::sg2_z_limit_hit = 1;
+
 //This number indicate how many cycles should it wait between polling
   /*stallGuard2 Polling frequency depends on the wait cycles value/////
   * sg2_polling_wait_cycles | frequency (Hz)
@@ -2274,10 +2280,12 @@ void Temperature::isr() {
            temp_standstill = stepperX.stst();
 
           //Triggers the endstop if the result is low and the motor is moving (REQUIRES TUNED TRHESHOLD)
-          if (temp_result == 0 && ! temp_standstill)
+          if (temp_result == 0 && ! temp_standstill && sg2_x_limit_hit == 0)
           {
             stepper.endstop_triggered(X_AXIS);
             SBI(endstops.endstop_hit_bits, X_MIN);
+            // Stops further endstop detection
+            sg2_x_limit_hit = 1;
           }
 
           #if ENABLED (BEEVC_SG2_DEBUG_STEPPER_X)
@@ -2311,17 +2319,20 @@ void Temperature::isr() {
           }
         #endif
         //Y
-        else if(!READ(Y_ENABLE_PIN))
+
+        if(!READ(Y_ENABLE_PIN))
         {
           //Reads the values
            temp_result = (stepperY.sg_result() & 0b0000001111111111);
            temp_standstill = stepperY.stst();
 
           //Triggers the endstop if the result is low and the motor is moving (REQUIRES TUNED TRHESHOLD)
-          if (temp_result == 0 && ! temp_standstill)
+          if (temp_result == 0 && ! temp_standstill && sg2_y_limit_hit == 0)
           {
             stepper.endstop_triggered(Y_AXIS);
             SBI(endstops.endstop_hit_bits, Y_MIN);
+            // Stops further endstop detection
+            sg2_y_limit_hit = 1;
           }
 
           #if ENABLED (BEEVC_SG2_DEBUG_STEPPER_Y)
