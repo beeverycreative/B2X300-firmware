@@ -2330,7 +2330,7 @@ void Temperature::isr() {
           if (temp_result == 0 && ! temp_standstill && sg2_y_limit_hit == 0)
           {
             stepper.endstop_triggered(Y_AXIS);
-            SBI(endstops.endstop_hit_bits, Y_MIN);
+            SBI(endstops.endstop_hit_bits, Y_MAX);
             // Stops further endstop detection
             sg2_y_limit_hit = 1;
           }

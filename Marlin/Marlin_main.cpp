@@ -4077,11 +4077,13 @@ inline void gcode_G4() {
  */
 inline void gcode_G28(const bool always_home_all) {
 
-// Sets the read speed to maximum to allow endstop detection
-thermalManager.sg2_polling_wait_cycles = 0;
 // Ensures the stepper have been preactivated to avoid eroneous detection
 enable_all_steppers();
-delay(1000);
+
+uint8_t temp_x_max = X_MAX_POS;
+uint8_t temp_y_max = Y_MAX_POS;
+// Moves Y a little away from limit to avoid eroneous detections
+do_blocking_move_to_xy((current_position[X_AXIS] <temp_x_max ? current_position[X_AXIS]+20 : current_position[X_AXIS]),(current_position[Y_AXIS] <temp_y_max ? current_position[Y_AXIS]-20 : current_position[Y_AXIS]));
 
   #if ENABLED(DEBUG_LEVELING_FEATURE)
     if (DEBUGGING(LEVELING)) {
@@ -4183,6 +4185,9 @@ delay(1000);
 
     #endif
 
+    // Sets the read speed to maximum to allow endstop detection
+    thermalManager.sg2_polling_wait_cycles = 0;
+
     // Home X
     if (home_all || homeX) {
       thermalManager.sg2_x_limit_hit = 0;
@@ -4216,8 +4221,6 @@ delay(1000);
       #endif
 
       thermalManager.sg2_x_limit_hit = 1;
-      // Moves X a little away from limit to avoid eroneous detections
-      do_blocking_move_to_xy(5,current_position[Y_AXIS]);
     }
 
 
@@ -4230,12 +4233,10 @@ delay(1000);
           if (DEBUGGING(LEVELING)) DEBUG_POS("> homeY", current_position);
         #endif
         thermalManager.sg2_y_limit_hit = 1;
-        // Moves Y a little away from limit to avoid eroneous detections
-        do_blocking_move_to_xy(current_position[X_AXIS],197);
       }
     #endif
 
-
+      thermalManager.sg2_polling_wait_cycles = 255; // Temporarily increases the polling frequency to the lowest possible to avoid problems with homing Z
 
     // Home Z last if homing towards the bed
     #if Z_HOME_DIR < 0
@@ -4297,6 +4298,7 @@ delay(1000);
 
   thermalManager.sg2_polling_wait_cycles = 5; // Sets the read speed to normal to allow stall detect
 } // G28
+
 
 void home_all_axes() { gcode_G28(true); }
 
@@ -4375,6 +4377,8 @@ void home_all_axes() { gcode_G28(true); }
    */
   inline void gcode_G29() {
 
+  // Temporarily increases the polling frequency to the lowest possible to avoid problems with homing Z
+  thermalManager.sg2_polling_wait_cycles = 255;
 
 	//DR-Stores the extruder and changes to E0
 	uint8_t extruderNumber = active_extruder;
@@ -5455,6 +5459,9 @@ void home_all_axes() { gcode_G28(true); }
 
 	// DR-Restores to the previous extruder
 	tool_change(extruderNumber);
+
+  // Restores the polling frequency to normal
+  thermalManager.sg2_polling_wait_cycles = 5;
 
   }
 

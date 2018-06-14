@@ -1179,8 +1179,8 @@
    */
   //#define SENSORLESS_HOMING // TMC2130 only
 
-    #define X_HOMING_SENSITIVITY  8
-    #define Y_HOMING_SENSITIVITY  6
+    #define X_HOMING_SENSITIVITY  10
+    #define Y_HOMING_SENSITIVITY  8
 
   /**
    * Enable M122 debugging command for TMC stepper drivers.
