@@ -31,6 +31,10 @@
 #include "planner.h"
 #include "language.h"
 
+// Stallguard 2 endstop triggering
+#include "endstops.h"
+#include "stepper.h"
+
 #if HAS_TRINAMIC
   #include "stepper_indirection.h"
 #endif
@@ -2270,11 +2274,21 @@ void Temperature::isr() {
           // This uses just the flag to signal the stop
           // if ((! sg2_value[sg2_counter]) && !sg2_stop)
           // This uses just the result to activate stop
-          if (( sg2_result[sg2_counter] <10) && !sg2_stop && !sg2_standstill[sg2_counter])
+          if( sg2_result[sg2_counter] <2 && !sg2_standstill[sg2_counter])
           {
-            sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
-            sg2_samples_middle_index = sg2_counter;
-            sg2_stop = true;
+            // trigger as a endstop detection for Sensorless homing endstops.cpp
+            // _ENDSTOP_HIT(AXIS, MINMAX);
+            // UPDATE_ENDSTOP(X, MIN);
+            //SBI(endstops.endstop_hit_bits, X_MIN);
+            stepper.endstop_triggered(X_AXIS);
+            //SET_BIT(current_endstop_bits, X_MIN, 0)
+
+            if (!sg2_stop)
+            {
+              sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
+              sg2_samples_middle_index = sg2_counter;
+              sg2_stop = true;
+            }
           }
         }
         // Result when read was possible but the motor is off

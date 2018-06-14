@@ -16522,21 +16522,21 @@ void loop() {
       process_next_command();
 
 
-      if (thermalManager.sg2_stop && card.sdprinting && (readLoss >= millis()))
-      {
-        thermalManager.sg2_stop = 0;
-        readLoss = millis() +500;
-
-        card.pauseSDPrint();
-        print_job_timer.pause();
-
-        SERIAL_ECHOLN("Stepp Loss");
-        enqueue_and_echo_commands(PSTR("G28"));
-
-        card.startFileprint();
-        print_job_timer.start();
-        lcd_reset_status();
-      }
+      // if (thermalManager.sg2_stop && card.sdprinting && (readLoss >= millis()))
+      // {
+      //   thermalManager.sg2_stop = 0;
+      //   readLoss = millis() +500;
+      //
+      //   card.pauseSDPrint();
+      //   print_job_timer.pause();
+      //
+      //   SERIAL_ECHOLN("Stepp Loss");
+      //   enqueue_and_echo_commands(PSTR("G28"));
+      //
+      //   card.startFileprint();
+      //   print_job_timer.start();
+      //   lcd_reset_status();
+      // }
 
     #endif // SDSUPPORT
 
