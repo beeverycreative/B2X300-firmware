@@ -289,6 +289,7 @@ class Temperature {
 
     //This number indicate how many cycles should it wait between polling
     static uint8_t sg2_polling_wait;
+    static uint8_t sg2_polling_wait_cycles;
     //////////////////////////////
 
     #if ENABLED(ADC_KEYPAD)

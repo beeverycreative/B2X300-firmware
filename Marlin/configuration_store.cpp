@@ -675,9 +675,6 @@ void MarlinSettings::postprocess() {
       thrs = 0;
     #endif
     EEPROM_WRITE(thrs);
-    #else
-    thrs = 0;
-    for (uint8_t q = 2; q--;) EEPROM_WRITE(thrs);
 
     //
     // Linear Advance

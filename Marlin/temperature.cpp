@@ -77,7 +77,21 @@ uint16_t Temperature::sg2_samples_remaining = 0;
 uint16_t Temperature::sg2_samples_middle_index = 0;
 
 //This number indicate how many cycles should it wait between polling
+  /*stallGuard2 Polling frequency depends on the wait cycles value/////
+  * sg2_polling_wait_cycles | frequency (Hz)
+  *             0           |   976.5625
+  *             1           |   488.2813
+  *             2           |   325,5208
+  *             3           |   244,1406
+  *             4           |   195,3125
+  *             5           |   162,7604
+  *             6           |   139,5089
+  *             7           |   122,0703
+  *             8           |   108,5069
+  *             9           |    97.6563
+  */
 uint8_t Temperature::sg2_polling_wait = 0;
+uint8_t Temperature::sg2_polling_wait_cycles = 5; //163HZ reading for stepp loss
 //////////////////////////////
 
 
@@ -2202,21 +2216,7 @@ void Temperature::isr() {
   #endif
 
 
-
-  /*stallGuard2 Polling frequency depends on the wait cycles value/////
-  * sg2_polling_wait_cycles | frequency (Hz)
-  *             0           |   976.5625
-  *             1           |   488.2813
-  *             2           |   325,5208
-  *             3           |   244,1406
-  *             4           |   195,3125
-  *             5           |   162,7604
-  *             6           |   139,5089
-  *             7           |   122,0703
-  *             8           |   108,5069
-  *             9           |    97.6563
-  */
-  uint8_t sg2_polling_wait_cycles = 1;
+///////////////////////////////
 
   // Checks if the correct number of wait cycles has been executed
   if (sg2_polling_wait++ == sg2_polling_wait_cycles)
@@ -2226,6 +2226,10 @@ void Temperature::isr() {
 
     // Sets a flag if the read values are to be stored
     bool to_write = !sg2_stop || (sg2_samples_remaining > 1);
+
+    // Temporary variables
+    uint16_t temp_result;
+    bool temp_standstill;
 
       //Checks if a read is possible
       if( (READ(SDSS) && READ(DOGLCD_CS)))
@@ -2266,53 +2270,93 @@ void Temperature::isr() {
         if(!READ(X_ENABLE_PIN))
         {
           //Reads the values
-           uint16_t temp_result = (stepperX.sg_result() & 0b0000001111111111);
-           bool temp_standstill = stepperX.stst();
+           temp_result = (stepperX.sg_result() & 0b0000001111111111);
+           temp_standstill = stepperX.stst();
 
           //Triggers the endstop if the result is low and the motor is moving (REQUIRES TUNED TRHESHOLD)
           if (temp_result == 0 && ! temp_standstill)
           {
             stepper.endstop_triggered(X_AXIS);
             SBI(endstops.endstop_hit_bits, X_MIN);
-            // trigger as a endstop detection for Sensorless homing endstops.cpp
-            // _ENDSTOP_HIT(AXIS, MINMAX);
-            // UPDATE_ENDSTOP(X, MIN);
-            //SET_BIT(current_endstop_bits, X_MIN, 0)
           }
 
-          // Makes sures the required conditions exist for the value to be stored
-          if (to_write)
-          {
-            sg2_result[sg2_counter] = temp_result;
-            sg2_standstill[sg2_counter] = temp_standstill;
-            sg2_value[sg2_counter] = stepperX.stallguard();
-          }
+          #if ENABLED (BEEVC_SG2_DEBUG_STEPPER_X)
+            // Makes sures the required conditions exist for the value to be stored
+            if (to_write)
+            {
+              sg2_result[sg2_counter] = temp_result;
+              sg2_standstill[sg2_counter] = temp_standstill;
+              sg2_value[sg2_counter] = stepperX.stallguard();
+            }
+          #endif
 
-          /*
-          *Activates the SG2_stop flag, calculates how many more samples will be
+          /*Activates the SG2_stop flag, calculates how many more samples will be
           *be saved so that half the samples are after and half before the event
-          *Also stores the index at which the flag was set
-          */
-          // This uses just the flag to signal the stop
-          // if ((! sg2_value[sg2_counter]) && !sg2_stop)
+          *Also stores the index at which the flag was set*/
           // This uses just the result to activate stop
-          if( !sg2_stop && sg2_result[sg2_counter] <2 && !sg2_standstill[sg2_counter])
+          if( !sg2_stop && sg2_result[sg2_counter] == 0 && !sg2_standstill[sg2_counter])
           {
               sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
               sg2_samples_middle_index = sg2_counter;
               sg2_stop = true;
           }
         }
-        // Result when read was possible but the motor is off
-        else if(to_write)
+        #if ENABLED (BEEVC_SG2_DEBUG_STEPPER_X)
+          // Result when read was possible but the X motor is off
+          else if(to_write)
+          {
+            sg2_result[sg2_counter] = 333;
+            sg2_value[sg2_counter] = 0;
+            sg2_standstill[sg2_counter] = 1;
+          }
+        #endif
+        //Y
+        else if(!READ(Y_ENABLE_PIN))
         {
-          sg2_result[sg2_counter] = 333;
-          sg2_value[sg2_counter] = 0;
-          sg2_standstill[sg2_counter] = 1;
+          //Reads the values
+           temp_result = (stepperY.sg_result() & 0b0000001111111111);
+           temp_standstill = stepperY.stst();
+
+          //Triggers the endstop if the result is low and the motor is moving (REQUIRES TUNED TRHESHOLD)
+          if (temp_result == 0 && ! temp_standstill)
+          {
+            stepper.endstop_triggered(Y_AXIS);
+            SBI(endstops.endstop_hit_bits, Y_MIN);
+          }
+
+          #if ENABLED (BEEVC_SG2_DEBUG_STEPPER_Y)
+            // Makes sures the required conditions exist for the value to be stored
+            if (to_write)
+            {
+              sg2_result[sg2_counter] = temp_result;
+              sg2_standstill[sg2_counter] = temp_standstill;
+              sg2_value[sg2_counter] = stepperY.stallguard();
+            }
+          #endif
+
+          /*Activates the SG2_stop flag, calculates how many more samples will be
+          *be saved so that half the samples are after and half before the event
+          *Also stores the index at which the flag was set*/
+          // This uses just the result to activate stop
+          if( !sg2_stop && sg2_result[sg2_counter] == 0 && !sg2_standstill[sg2_counter])
+          {
+              sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
+              sg2_samples_middle_index = sg2_counter;
+              sg2_stop = true;
+          }
         }
+        #if ENABLED (BEEVC_SG2_DEBUG_STEPPER_Y)
+          // Result when read was possible but the Y motor is off
+          else if(to_write)
+          {
+            sg2_result[sg2_counter] = 333;
+            sg2_value[sg2_counter] = 0;
+            sg2_standstill[sg2_counter] = 1;
+          }
+        #endif
       }
 
-      // when the write was impossible
+      // when the read was impossible
       else if(to_write)
       {
         // Sets debug values

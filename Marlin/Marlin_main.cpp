@@ -4077,6 +4077,8 @@ inline void gcode_G4() {
  */
 inline void gcode_G28(const bool always_home_all) {
 
+thermalManager.sg2sg2_polling_wait_cycles = 0; // Sets the read speed to maximum to allow endstop detection
+
   #if ENABLED(DEBUG_LEVELING_FEATURE)
     if (DEBUGGING(LEVELING)) {
       SERIAL_ECHOLNPGM(">>> gcode_G28");
@@ -4276,6 +4278,8 @@ inline void gcode_G28(const bool always_home_all) {
   #if ENABLED(DEBUG_LEVELING_FEATURE)
     if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("<<< gcode_G28");
   #endif
+
+  thermalManager.sg2sg2_polling_wait_cycles = 5; // Sets the read speed to normal to allow stall detect
 } // G28
 
 void home_all_axes() { gcode_G28(true); }
