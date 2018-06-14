@@ -2224,8 +2224,11 @@ void Temperature::isr() {
     // Restarts wait variable
     sg2_polling_wait = 0;
 
+    // Sets a flag if the read values are to be stored
+    bool to_write = !sg2_stop || (sg2_samples_remaining > 1);
+
       //Checks if a read is possible
-      if( (READ(SDSS) && READ(DOGLCD_CS)) && (!sg2_stop || (sg2_samples_remaining > 1)))
+      if( (READ(SDSS) && READ(DOGLCD_CS)))
       {
         // //E
         // if(!READ(E0_ENABLE_PIN) || !READ(E1_ENABLE_PIN))
@@ -2262,9 +2265,28 @@ void Temperature::isr() {
         //X
         if(!READ(X_ENABLE_PIN))
         {
-          sg2_result[sg2_counter] = (stepperX.sg_result() & 0b0000001111111111);
-          sg2_value[sg2_counter] = stepperX.stallguard();
-          sg2_standstill[sg2_counter] = stepperX.stst();
+          //Reads the values
+           uint16_t temp_result = (stepperX.sg_result() & 0b0000001111111111);
+           bool temp_standstill = stepperX.stst();
+
+          //Triggers the endstop if the result is low and the motor is moving (REQUIRES TUNED TRHESHOLD)
+          if (temp_result == 0 && ! temp_standstill)
+          {
+            stepper.endstop_triggered(X_AXIS);
+            SBI(endstops.endstop_hit_bits, X_MIN);
+            // trigger as a endstop detection for Sensorless homing endstops.cpp
+            // _ENDSTOP_HIT(AXIS, MINMAX);
+            // UPDATE_ENDSTOP(X, MIN);
+            //SET_BIT(current_endstop_bits, X_MIN, 0)
+          }
+
+          // Makes sures the required conditions exist for the value to be stored
+          if (to_write)
+          {
+            sg2_result[sg2_counter] = temp_result;
+            sg2_standstill[sg2_counter] = temp_standstill;
+            sg2_value[sg2_counter] = stepperX.stallguard();
+          }
 
           /*
           *Activates the SG2_stop flag, calculates how many more samples will be
@@ -2274,25 +2296,15 @@ void Temperature::isr() {
           // This uses just the flag to signal the stop
           // if ((! sg2_value[sg2_counter]) && !sg2_stop)
           // This uses just the result to activate stop
-          if( sg2_result[sg2_counter] <2 && !sg2_standstill[sg2_counter])
+          if( !sg2_stop && sg2_result[sg2_counter] <2 && !sg2_standstill[sg2_counter])
           {
-            // trigger as a endstop detection for Sensorless homing endstops.cpp
-            // _ENDSTOP_HIT(AXIS, MINMAX);
-            // UPDATE_ENDSTOP(X, MIN);
-            //SBI(endstops.endstop_hit_bits, X_MIN);
-            stepper.endstop_triggered(X_AXIS);
-            //SET_BIT(current_endstop_bits, X_MIN, 0)
-
-            if (!sg2_stop)
-            {
               sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
               sg2_samples_middle_index = sg2_counter;
               sg2_stop = true;
-            }
           }
         }
         // Result when read was possible but the motor is off
-        else
+        else if(to_write)
         {
           sg2_result[sg2_counter] = 333;
           sg2_value[sg2_counter] = 0;
@@ -2301,7 +2313,7 @@ void Temperature::isr() {
       }
 
       // when the write was impossible
-      else
+      else if(to_write)
       {
         // Sets debug values
         if (!READ(SDSS))
@@ -2318,16 +2330,19 @@ void Temperature::isr() {
         sg2_value[sg2_counter] = 0;
       }
 
-      //Decreases the ammount of remaining samples after stop
-      if (sg2_samples_remaining > 1)
-        sg2_samples_remaining --;
+      if(to_write)
+      {
+        //Decreases the ammount of remaining samples after stop
+        if (sg2_samples_remaining > 1)
+          sg2_samples_remaining --;
 
-      //Increments the counter
-      sg2_counter++;
+        //Increments the counter
+        sg2_counter++;
 
-      //Resets the counter if it is full
-      if(sg2_counter == BEEVC_SG2_DEBUG_SAMPLES)
-        sg2_counter = 0;
+        //Resets the counter if it is full
+        if(sg2_counter == BEEVC_SG2_DEBUG_SAMPLES)
+          sg2_counter = 0;
+      }
 
     }
 
