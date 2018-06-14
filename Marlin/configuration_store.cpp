@@ -663,23 +663,21 @@ void MarlinSettings::postprocess() {
     // TMC2130 Sensorless homing threshold
     //
     int16_t thrs;
-    #if ENABLED(SENSORLESS_HOMING)
-      #if ENABLED(X_IS_TMC2130)
-        thrs = stepperX.sgt();
-      #else
-        thrs = 0;
-      #endif
-      EEPROM_WRITE(thrs);
-      #if ENABLED(Y_IS_TMC2130)
-        thrs = stepperY.sgt();
-      #else
-        thrs = 0;
-      #endif
-      EEPROM_WRITE(thrs);
+    #if ENABLED(X_IS_TMC2130)
+      thrs = stepperX.sgt();
     #else
       thrs = 0;
-      for (uint8_t q = 2; q--;) EEPROM_WRITE(thrs);
     #endif
+    EEPROM_WRITE(thrs);
+    #if ENABLED(Y_IS_TMC2130)
+      thrs = stepperY.sgt();
+    #else
+      thrs = 0;
+    #endif
+    EEPROM_WRITE(thrs);
+    #else
+    thrs = 0;
+    for (uint8_t q = 2; q--;) EEPROM_WRITE(thrs);
 
     //
     // Linear Advance
