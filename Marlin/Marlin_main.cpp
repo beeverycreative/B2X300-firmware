@@ -4077,7 +4077,11 @@ inline void gcode_G4() {
  */
 inline void gcode_G28(const bool always_home_all) {
 
-thermalManager.sg2_polling_wait_cycles = 0; // Sets the read speed to maximum to allow endstop detection
+// Sets the read speed to maximum to allow endstop detection
+thermalManager.sg2_polling_wait_cycles = 0;
+// Ensures the stepper have been preactivated to avoid eroneous detection
+enable_all_steppers();
+delay(1000);
 
   #if ENABLED(DEBUG_LEVELING_FEATURE)
     if (DEBUGGING(LEVELING)) {
@@ -4212,7 +4216,10 @@ thermalManager.sg2_polling_wait_cycles = 0; // Sets the read speed to maximum to
       #endif
 
       thermalManager.sg2_x_limit_hit = 1;
+      // Moves X a little away from limit to avoid eroneous detections
+      do_blocking_move_to_xy(5,current_position[Y_AXIS]);
     }
+
 
     #if DISABLED(HOME_Y_BEFORE_X)
       // Home Y
@@ -4223,8 +4230,12 @@ thermalManager.sg2_polling_wait_cycles = 0; // Sets the read speed to maximum to
           if (DEBUGGING(LEVELING)) DEBUG_POS("> homeY", current_position);
         #endif
         thermalManager.sg2_y_limit_hit = 1;
+        // Moves Y a little away from limit to avoid eroneous detections
+        do_blocking_move_to_xy(current_position[X_AXIS],197);
       }
     #endif
+
+
 
     // Home Z last if homing towards the bed
     #if Z_HOME_DIR < 0
