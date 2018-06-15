@@ -67,38 +67,40 @@ Temperature thermalManager;
 
 // public:
 
-//// stallGuard2 polling /////
-uint16_t Temperature::sg2_result[BEEVC_SG2_DEBUG_SAMPLES] = {999};
-bool Temperature::sg2_value[BEEVC_SG2_DEBUG_SAMPLES] = {0};
-bool Temperature::sg2_standstill[BEEVC_SG2_DEBUG_SAMPLES] = {0};
-uint16_t Temperature::sg2_counter = 0;
-bool Temperature::sg2_stop = false;
-uint16_t Temperature::sg2_samples_remaining = 0;
-uint16_t Temperature::sg2_samples_middle_index = 0;
+#ifdef BEEVC_TMC2130READSG
+  //// stallGuard2 polling /////
+  uint16_t Temperature::sg2_result[BEEVC_SG2_DEBUG_SAMPLES] = {999};
+  bool Temperature::sg2_value[BEEVC_SG2_DEBUG_SAMPLES] = {0};
+  bool Temperature::sg2_standstill[BEEVC_SG2_DEBUG_SAMPLES] = {0};
+  uint16_t Temperature::sg2_counter = 0;
+  bool Temperature::sg2_stop = false;
+  uint16_t Temperature::sg2_samples_remaining = 0;
+  uint16_t Temperature::sg2_samples_middle_index = 0;
 
-//end_stops
-// Pre-set to 1 so no false detections are made when not homing
-bool Temperature::sg2_x_limit_hit = 1;
-bool Temperature::sg2_y_limit_hit = 1;
-bool Temperature::sg2_z_limit_hit = 1;
+  //end_stops
+  // Pre-set to 1 so no false detections are made when not homing
+  bool Temperature::sg2_x_limit_hit = 1;
+  bool Temperature::sg2_y_limit_hit = 1;
+  bool Temperature::sg2_z_limit_hit = 1;
 
-//This number indicate how many cycles should it wait between polling
-  /*stallGuard2 Polling frequency depends on the wait cycles value/////
-  * sg2_polling_wait_cycles | frequency (Hz)
-  *             0           |   976.5625
-  *             1           |   488.2813
-  *             2           |   325,5208
-  *             3           |   244,1406
-  *             4           |   195,3125
-  *             5           |   162,7604
-  *             6           |   139,5089
-  *             7           |   122,0703
-  *             8           |   108,5069
-  *             9           |    97.6563
-  */
-uint8_t Temperature::sg2_polling_wait = 0;
-uint8_t Temperature::sg2_polling_wait_cycles = 5; //163HZ reading for stepp loss
-//////////////////////////////
+  //This number indicate how many cycles should it wait between polling
+    /*stallGuard2 Polling frequency depends on the wait cycles value/////
+    * sg2_polling_wait_cycles | frequency (Hz)
+    *             0           |   976.5625
+    *             1           |   488.2813
+    *             2           |   325,5208
+    *             3           |   244,1406
+    *             4           |   195,3125
+    *             5           |   162,7604
+    *             6           |   139,5089
+    *             7           |   122,0703
+    *             8           |   108,5069
+    *             9           |    97.6563
+    */
+  uint8_t Temperature::sg2_polling_wait = 0;
+  uint8_t Temperature::sg2_polling_wait_cycles = 5; //163HZ reading for stepp loss
+  //////////////////////////////
+#endif //BEEVC_TMC2130READSG
 
 
 float Temperature::current_temperature[HOTENDS] = { 0.0 },
@@ -2221,190 +2223,188 @@ void Temperature::isr() {
     }
   #endif
 
+  #ifdef BEEVC_TMC2130READSG
+    ///////////////////////////////
+    //////stallGuard2 Polling//////
+    ///////////////////////////////
+    // Checks if the correct number of wait cycles has been executed
+    if (sg2_polling_wait++ == sg2_polling_wait_cycles)
+    {
+      // Restarts wait variable
+      sg2_polling_wait = 0;
 
-///////////////////////////////
+      // Sets a flag if the read values are to be stored
+      bool to_write = !sg2_stop || (sg2_samples_remaining > 1);
 
-  // Checks if the correct number of wait cycles has been executed
-  if (sg2_polling_wait++ == sg2_polling_wait_cycles)
-  {
-    // Restarts wait variable
-    sg2_polling_wait = 0;
+      // Temporary variables
+      uint16_t temp_result;
+      bool temp_standstill;
 
-    // Sets a flag if the read values are to be stored
-    bool to_write = !sg2_stop || (sg2_samples_remaining > 1);
-
-    // Temporary variables
-    uint16_t temp_result;
-    bool temp_standstill;
-
-      //Checks if a read is possible
-      if( (READ(SDSS) && READ(DOGLCD_CS)))
-      {
-        // //E
-        // if(!READ(E0_ENABLE_PIN) || !READ(E1_ENABLE_PIN))
-        // {
-        //   //
-        //   if(active_extruder)
-        //   {
-        //     sg2_result[sg2_counter] = stepperE1.sg_result();
-        //     sg2_value[sg2_counter] = stepperE1.stallguard();
-        //   }
-        //   else
-        //   {
-        //     sg2_result[sg2_counter] = stepperE0.sg_result();
-        //     sg2_value[sg2_counter] = stepperE0.stallguard();
-        //   }
-        //
-        //
-        //   /*
-        //   *Activates the SG2_stop flag, calculates how many more samples will be
-        //   *be saved so that half the samples are after and half before the event
-        //   *Also stores the index at which the flag was set
-        //   */
-        //   // This uses just the flag to signal the stop
-        //   if ((! sg2_value[sg2_counter]) && !sg2_stop)
-        //   // This uses just the result to activate stop
-        //   //if (( sg2_result[sg2_counter-1] <80) && !sg2_stop)
-        //   {
-        //     sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
-        //     sg2_samples_middle_index = sg2_counter;
-        //     sg2_stop = true;
-        //   }
-        // }
-
-        //X
-        if(!READ(X_ENABLE_PIN))
+        //Checks if a read is possible
+        if( (READ(SDSS) && READ(DOGLCD_CS)))
         {
-          //Reads the values
-           temp_result = (stepperX.sg_result() & 0b0000001111111111);
-           temp_standstill = stepperX.stst();
+          // //E
+          // if(!READ(E0_ENABLE_PIN) || !READ(E1_ENABLE_PIN))
+          // {
+          //   //
+          //   if(active_extruder)
+          //   {
+          //     sg2_result[sg2_counter] = stepperE1.sg_result();
+          //     sg2_value[sg2_counter] = stepperE1.stallguard();
+          //   }
+          //   else
+          //   {
+          //     sg2_result[sg2_counter] = stepperE0.sg_result();
+          //     sg2_value[sg2_counter] = stepperE0.stallguard();
+          //   }
+          //
+          //
+          //   /*
+          //   *Activates the SG2_stop flag, calculates how many more samples will be
+          //   *be saved so that half the samples are after and half before the event
+          //   *Also stores the index at which the flag was set
+          //   */
+          //   // This uses just the flag to signal the stop
+          //   if ((! sg2_value[sg2_counter]) && !sg2_stop)
+          //   // This uses just the result to activate stop
+          //   //if (( sg2_result[sg2_counter-1] <80) && !sg2_stop)
+          //   {
+          //     sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
+          //     sg2_samples_middle_index = sg2_counter;
+          //     sg2_stop = true;
+          //   }
+          // }
 
-          //Triggers the endstop if the result is low and the motor is moving (REQUIRES TUNED TRHESHOLD)
-          if (temp_result == 0 && ! temp_standstill && sg2_x_limit_hit == 0)
+          //X
+          if(!READ(X_ENABLE_PIN))
           {
-            stepper.endstop_triggered(X_AXIS);
-            SBI(endstops.endstop_hit_bits, X_MIN);
-            // Stops further endstop detection
-            sg2_x_limit_hit = 1;
-          }
+            //Reads the values
+             temp_result = (stepperX.sg_result() & 0b0000001111111111);
+             temp_standstill = stepperX.stst();
 
-          #if ENABLED (BEEVC_SG2_DEBUG_STEPPER_X)
-            // Makes sures the required conditions exist for the value to be stored
-            if (to_write)
+            //Triggers the endstop if the result is low and the motor is moving (REQUIRES TUNED TRHESHOLD)
+            if (temp_result == 0 && ! temp_standstill && sg2_x_limit_hit == 0)
             {
-              sg2_result[sg2_counter] = temp_result;
-              sg2_standstill[sg2_counter] = temp_standstill;
-              sg2_value[sg2_counter] = stepperX.stallguard();
+              stepper.endstop_triggered(X_AXIS);
+              SBI(endstops.endstop_hit_bits, X_MIN);
+              // Stops further endstop detection
+              sg2_x_limit_hit = 1;
             }
-          #endif
 
-          /*Activates the SG2_stop flag, calculates how many more samples will be
-          *be saved so that half the samples are after and half before the event
-          *Also stores the index at which the flag was set*/
-          // This uses just the result to activate stop
-          if( !sg2_stop && sg2_result[sg2_counter] == 0 && !sg2_standstill[sg2_counter])
-          {
-              sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
-              sg2_samples_middle_index = sg2_counter;
-              sg2_stop = true;
+            #ifdef BEEVC_SG2_DEBUG_STEPPER_X
+              // Makes sures the required conditions exist for the value to be stored, also only sets the debug flag and samples if writing
+              if (to_write)
+              {
+                sg2_result[sg2_counter] = temp_result;
+                sg2_standstill[sg2_counter] = temp_standstill;
+                sg2_value[sg2_counter] = stepperX.stallguard();
+              }
+
+            /*Activates the SG2_stop flag, calculates how many more samples will be
+            *be saved so that half the samples are after and half before the event
+            *Also stores the index at which the flag was set*/
+            // This uses just the result to activate stop
+            if( !sg2_stop && sg2_result[sg2_counter] == 0 && !sg2_standstill[sg2_counter])
+            {
+                sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
+                sg2_samples_middle_index = sg2_counter;
+                sg2_stop = true;
+            }
+            #endif //BEEVC_SG2_DEBUG_STEPPER_X
           }
+          #ifdef BEEVC_SG2_DEBUG_STEPPER_X
+            // Result when read was possible but the X motor is off
+            else if(to_write)
+            {
+              sg2_result[sg2_counter] = 333;
+              sg2_value[sg2_counter] = 0;
+              sg2_standstill[sg2_counter] = 1;
+            }
+          #endif //BEEVC_SG2_DEBUG_STEPPER_X
+          //Y
+
+          if(!READ(Y_ENABLE_PIN))
+          {
+            //Reads the values
+             temp_result = (stepperY.sg_result() & 0b0000001111111111);
+             temp_standstill = stepperY.stst();
+
+            //Triggers the endstop if the result is low and the motor is moving (REQUIRES TUNED TRHESHOLD)
+            if (temp_result == 0 && ! temp_standstill && sg2_y_limit_hit == 0)
+            {
+              stepper.endstop_triggered(Y_AXIS);
+              SBI(endstops.endstop_hit_bits, Y_MAX);
+              // Stops further endstop detection
+              sg2_y_limit_hit = 1;
+            }
+
+            #ifdef BEEVC_SG2_DEBUG_STEPPER_Y
+              // Makes sures the required conditions exist for the value to be stored
+              if (to_write)
+              {
+                sg2_result[sg2_counter] = temp_result;
+                sg2_standstill[sg2_counter] = temp_standstill;
+                sg2_value[sg2_counter] = stepperY.stallguard();
+              }
+
+            /*Activates the SG2_stop flag, calculates how many more samples will be
+            *be saved so that half the samples are after and half before the event
+            *Also stores the index at which the flag was set*/
+            // This uses just the result to activate stop
+            if( !sg2_stop && sg2_result[sg2_counter] == 0 && !sg2_standstill[sg2_counter])
+            {
+                sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
+                sg2_samples_middle_index = sg2_counter;
+                sg2_stop = true;
+            }
+            #endif //BEEVC_SG2_DEBUG_STEPPER_Y
+          }
+          #ifdef BEEVC_SG2_DEBUG_STEPPER_Y
+            // Result when read was possible but the Y motor is off
+            else if(to_write)
+            {
+              sg2_result[sg2_counter] = 333;
+              sg2_value[sg2_counter] = 0;
+              sg2_standstill[sg2_counter] = 1;
+            }
+          #endif //BEEVC_SG2_DEBUG_STEPPER_Y
         }
-        #if ENABLED (BEEVC_SG2_DEBUG_STEPPER_X)
-          // Result when read was possible but the X motor is off
+        #if (ENABLED(BEEVC_SG2_DEBUG_STEPPER_Y) || ENABLED(BEEVC_SG2_DEBUG_STEPPER_X))
+          // when the read was impossible
           else if(to_write)
           {
-            sg2_result[sg2_counter] = 333;
-            sg2_value[sg2_counter] = 0;
-            sg2_standstill[sg2_counter] = 1;
-          }
-        #endif
-        //Y
-
-        if(!READ(Y_ENABLE_PIN))
-        {
-          //Reads the values
-           temp_result = (stepperY.sg_result() & 0b0000001111111111);
-           temp_standstill = stepperY.stst();
-
-          //Triggers the endstop if the result is low and the motor is moving (REQUIRES TUNED TRHESHOLD)
-          if (temp_result == 0 && ! temp_standstill && sg2_y_limit_hit == 0)
-          {
-            stepper.endstop_triggered(Y_AXIS);
-            SBI(endstops.endstop_hit_bits, Y_MAX);
-            // Stops further endstop detection
-            sg2_y_limit_hit = 1;
-          }
-
-          #if ENABLED (BEEVC_SG2_DEBUG_STEPPER_Y)
-            // Makes sures the required conditions exist for the value to be stored
-            if (to_write)
+            // Sets debug values
+            if (!READ(SDSS))
             {
-              sg2_result[sg2_counter] = temp_result;
-              sg2_standstill[sg2_counter] = temp_standstill;
-              sg2_value[sg2_counter] = stepperY.stallguard();
+              sg2_result[sg2_counter] = 999;
+              sg2_standstill[sg2_counter] = 1;
             }
-          #endif
 
-          /*Activates the SG2_stop flag, calculates how many more samples will be
-          *be saved so that half the samples are after and half before the event
-          *Also stores the index at which the flag was set*/
-          // This uses just the result to activate stop
-          if( !sg2_stop && sg2_result[sg2_counter] == 0 && !sg2_standstill[sg2_counter])
-          {
-              sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
-              sg2_samples_middle_index = sg2_counter;
-              sg2_stop = true;
-          }
-        }
-        #if ENABLED (BEEVC_SG2_DEBUG_STEPPER_Y)
-          // Result when read was possible but the Y motor is off
-          else if(to_write)
-          {
-            sg2_result[sg2_counter] = 333;
+            if (!READ(DOGLCD_CS))
+            {
+              sg2_result[sg2_counter] = 666;
+              sg2_standstill[sg2_counter] = 1;
+            }
             sg2_value[sg2_counter] = 0;
-            sg2_standstill[sg2_counter] = 1;
           }
-        #endif
+
+          if(to_write)
+          {
+            //Decreases the ammount of remaining samples after stop
+            if (sg2_samples_remaining > 1)
+              sg2_samples_remaining --;
+
+            //Increments the counter
+            sg2_counter++;
+
+            //Resets the counter if it is full
+            if(sg2_counter == BEEVC_SG2_DEBUG_SAMPLES)
+              sg2_counter = 0;
+          }
+        #endif // ENABLED(BEEVC_SG2_DEBUG_STEPPER_Y) || NABLED(BEEVC_SG2_DEBUG_STEPPER_X)
       }
-
-      // when the read was impossible
-      else if(to_write)
-      {
-        // Sets debug values
-        if (!READ(SDSS))
-        {
-          sg2_result[sg2_counter] = 999;
-          sg2_standstill[sg2_counter] = 1;
-        }
-
-        if (!READ(DOGLCD_CS))
-        {
-          sg2_result[sg2_counter] = 666;
-          sg2_standstill[sg2_counter] = 1;
-        }
-        sg2_value[sg2_counter] = 0;
-      }
-
-      if(to_write)
-      {
-        //Decreases the ammount of remaining samples after stop
-        if (sg2_samples_remaining > 1)
-          sg2_samples_remaining --;
-
-        //Increments the counter
-        sg2_counter++;
-
-        //Resets the counter if it is full
-        if(sg2_counter == BEEVC_SG2_DEBUG_SAMPLES)
-          sg2_counter = 0;
-      }
-
-    }
-
-
-
-  ///////////////////////////////
-
+    ///////////////////////////////
+  #endif //BEEVC_TMC2130READSG
 
   cli();
   in_temp_isr = false;
