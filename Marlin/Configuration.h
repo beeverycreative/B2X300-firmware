@@ -702,7 +702,7 @@
  * Override with M201
  *                                      X, Y, Z, E0 [, E1[, E2[, E3[, E4]]]]
  */
-	#define DEFAULT_MAX_ACCELERATION      { 3000, 3000, 300, 10000 }
+	#define DEFAULT_MAX_ACCELERATION      { 3000, 3000, 50, 10000 }
 
 /**
  * Default Acceleration (change/s) change = mm/s
@@ -1078,10 +1078,10 @@
  * For other boards you may need to define FIL_RUNOUT_PIN.
  * By default the firmware assumes HIGH = has filament, LOW = ran out
  */
- //#define FILAMENT_RUNOUT_SENSOR
+ #define FILAMENT_RUNOUT_SENSOR
 
  // Enables dual filament runout sensor
- //#define FILAMENT_RUNOUT_DUAL
+ #define FILAMENT_RUNOUT_DUAL
 
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)
   #define FIL_RUNOUT_INVERTING false // set to true to invert the logic of the sensor.

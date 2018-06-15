@@ -1485,7 +1485,6 @@ static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool u
 		enqueue_and_echo_commands_P(PSTR("T1"));
 		active_extruder=1;
 	}
-
 	else
 	{
 		enqueue_and_echo_commands_P(PSTR("T0"));
@@ -1506,44 +1505,40 @@ static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool u
       HOTEND_LOOP() thermalManager.setTargetHotend(changetemp, extruder);
   }
 
-    //Disables the timeout to status screen
+  //Disables the timeout to status screen
   defer_return_to_status = true;
 
 	// Show "wait for heating"
   lcd_goto_screen(lcd_filament_change_hotendStatus);
 
+  // Prepares the temporary variables
   unsigned long next_update = millis() + 200;
   bool update = true;
 
   //This helps to speed up the temperature stabilization process without changing the PID
   changetemp -= 5;
 
-
-  while (update){
-   if (next_update < millis()) {
-
-	  update = false;
-
-
-	  // é necessario para mostrar updates no ecra?? e aquecer
-	  idle(true);
-
-	  HOTEND_LOOP() {
-        if (abs(thermalManager.degHotend(extruder) - changetemp) > 10) {
-          update = true;
-          break;
+    while (update)
+    {
+       if (next_update < millis())
+       {
+    	   update = false;
+    	   idle(true);
+    	   HOTEND_LOOP()
+         {
+           if (abs(thermalManager.degHotend(extruder) - changetemp) > 10)
+           {
+             update = true;
+             break;
+           }
+    	   }
+         // updates the lcd in each cycle
+    	   lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+    	   // sets next screen update
+         next_update = millis() + 200;
         }
-	  }
 
-    // updates the lcd in each cycle
-	lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
-
-	// sets next screen update
-    next_update = millis() + 200;
-
-   }
-  }
-
+    }
 
 	//Shows "Press to continue" and beeps while waiting
 	lcd_goto_screen(lcd_filament_change_press);
@@ -1557,21 +1552,6 @@ static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool u
   			#if HAS_BUZZER
   			   buzzer.tone(100, 2000);
   			#endif
-
-        // Detects if the filament sensor is activated
-        if (extruder)
-          // E0
-          {
-            if (!(READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING))
-              break;
-          }
-        else
-          // E1
-          {
-            if (!(READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING))
-              break;
-          }
-
   			idle(true);
   			next_update = millis() + 1000;
   		}
@@ -1588,76 +1568,21 @@ static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool u
 	for(unsigned long k = millis()+500; k > millis();)
 		idle(true);
 
-
-  //enqueue_and_echo_commands_P(PSTR("G92 E0"));
-
-		//load
+	//load
 	if (unload_load)
 		enqueue_and_echo_commands_P(PSTR("M620 S1 U0"));
 
-		//unload
+	//unload
 	else
-		{
 		enqueue_and_echo_commands_P(PSTR("M620 S1 U1"));
 
-		/* Disabled for now
-
-		//Pause for click
-		//show press to continue
-		lcd_goto_screen(lcd_filament_change_press);
-
-		//Beep while waiting for button press
-		KEEPALIVE_STATE(PAUSED_FOR_USER);
-		wait_for_user = true;    // LCD click or M108 will clear this
-		next_update = millis() + 100;
-
-		while (wait_for_user )
-		{
-			if(next_update < millis())
-			{
-				#if HAS_BUZZER
-				buzzer.tone(100, 2000);
-				#endif
-				idle(true);
-				next_update = millis() + 1000;
-			}
-		}
-
-		// Check if you want to load filament after unload
-
-		// Sets the value so that the loop runs
-	    defer_return_to_status = true;
-        advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
-        lcd_goto_screen(lcd_filament_change_unload_menu);
-		advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
-
-
-		// loop while waiting to continue
-		KEEPALIVE_STATE(PAUSED_FOR_USER);
-		wait_for_user = false;
-		while(advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
-		KEEPALIVE_STATE(IN_HANDLER);
-
-		if (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE)
-			enqueue_and_echo_commands_P(PSTR("M620 S1 U0"));
-
-		*/
-
-		}
-
-  //enqueue_and_echo_commands_P(PSTR("G92 E0"));
-
   enqueue_and_echo_commands_P(PSTR("T0"));
-
 
 // update LCD and return
   lcdDrawUpdate = 2;
 
 //Enables the status screen
 	defer_return_to_status = false;
-
-
-
 
   if (extruder)
   {
