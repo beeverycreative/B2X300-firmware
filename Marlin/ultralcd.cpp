@@ -1558,19 +1558,22 @@ static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool u
   			   buzzer.tone(100, 2000);
   			#endif
 
+        // Deactivated for now
         // Detects if the filament sensor is activated
-        if (extruder)
-          // E0
-          {
-            if (!(READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING))
-              break;
-          }
-        else
-          // E1
-          {
-            if (!(READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING))
-              break;
-          }
+        // #ifdef FILAMENT_RUNOUT_DUAL
+        //   if (extruder)
+        //     // E0
+        //     {
+        //       if (!(READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING))
+        //         break;
+        //     }
+        //   else
+        //     // E1
+        //     {
+        //       if (!(READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING))
+        //         break;
+        //     }
+        // #endif //FILAMENT_RUNOUT_DUAL
 
   			idle(true);
   			next_update = millis() + 1000;
