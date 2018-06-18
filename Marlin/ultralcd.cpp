@@ -5446,8 +5446,11 @@ void lcd_enqueue_filament_change() {
       UNUSED(longFilename);
       card.openAndPrintFile(filename);
 
-      //Starting a new print so recovered files can be deleted
-      toRecover = false;
+      #ifdef BEEVC_Restore
+        //Starting a new print so recovered files can be deleted
+        toRecover = false;
+    	#endif
+
 
       enqueue_and_echo_commands_P(PSTR("M712"));
 
