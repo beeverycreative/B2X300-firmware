@@ -4080,10 +4080,12 @@ inline void gcode_G28(const bool always_home_all) {
 // Ensures the stepper have been preactivated to avoid eroneous detection
 enable_all_steppers();
 
-uint8_t temp_x_max = X_MAX_POS;
-uint8_t temp_y_max = Y_MAX_POS;
-// Moves Y a little away from limit to avoid eroneous detections
-do_blocking_move_to_xy((current_position[X_AXIS] <temp_x_max ? current_position[X_AXIS]+20 : current_position[X_AXIS]),(current_position[Y_AXIS] <temp_y_max ? current_position[Y_AXIS]-20 : current_position[Y_AXIS]));
+#ifdef BEEVC_TMC2130READSG
+  uint8_t temp_x_max = X_MAX_POS;
+  uint8_t temp_y_max = Y_MAX_POS;
+  // Moves Y a little away from limit to avoid eroneous detections
+  do_blocking_move_to_xy((current_position[X_AXIS] <temp_x_max ? current_position[X_AXIS]+20 : current_position[X_AXIS]),(current_position[Y_AXIS] <=temp_y_max ? current_position[Y_AXIS]-20 : current_position[Y_AXIS]),25);
+#endif // BEEVC_TMC2130READSG
 
   #if ENABLED(DEBUG_LEVELING_FEATURE)
     if (DEBUGGING(LEVELING)) {
