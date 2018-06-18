@@ -226,6 +226,9 @@
  * M912 - Clear stepper driver overtemperature pre-warn condition flag. (Requires HAVE_TMC2130 or HAVE_TMC2208)
  * M913 - Set HYBRID_THRESHOLD speed. (Requires HYBRID_THRESHOLD)
  * M914 - Set SENSORLESS_HOMING sensitivity. (Requires SENSORLESS_HOMING)
+ * M915 - TMC2130 dual Z calibration
+ * M916 - Set chopping mode (Only works for TMC2130 or TMC2208)
+ * M917 - Read stallGuard2 values
  *
  * M360 - SCARA calibration: Move to cal-position ThetaA (0 deg calibration)
  * M361 - SCARA calibration: Move to cal-position ThetaB (90 deg calibration - steps per degree)
@@ -4074,6 +4077,16 @@ inline void gcode_G4() {
  */
 inline void gcode_G28(const bool always_home_all) {
 
+// Ensures the stepper have been preactivated to avoid eroneous detection
+enable_all_steppers();
+
+#ifdef BEEVC_TMC2130READSG
+  uint8_t temp_x_max = X_MAX_POS;
+  uint8_t temp_y_max = Y_MAX_POS;
+  // Moves Y a little away from limit to avoid eroneous detections
+  do_blocking_move_to_xy((current_position[X_AXIS] <temp_x_max ? current_position[X_AXIS]+20 : current_position[X_AXIS]),(current_position[Y_AXIS] <=temp_y_max ? current_position[Y_AXIS]-20 : current_position[Y_AXIS]),25);
+#endif // BEEVC_TMC2130READSG
+
   #if ENABLED(DEBUG_LEVELING_FEATURE)
     if (DEBUGGING(LEVELING)) {
       SERIAL_ECHOLNPGM(">>> gcode_G28");
@@ -4174,8 +4187,16 @@ inline void gcode_G28(const bool always_home_all) {
 
     #endif
 
+    #ifdef BEEVC_TMC2130READSG
+    // Sets the read speed to maximum to allow endstop detection
+    thermalManager.sg2_polling_wait_cycles = 0;
+    #endif // BEEVC_TMC2130READSG
+
     // Home X
     if (home_all || homeX) {
+      #ifdef BEEVC_TMC2130READSG
+      thermalManager.sg2_x_limit_hit = 0;
+      #endif // BEEVC_TMC2130READSG
 
       #if ENABLED(DUAL_X_CARRIAGE)
 
@@ -4204,17 +4225,36 @@ inline void gcode_G28(const bool always_home_all) {
       #if ENABLED(DEBUG_LEVELING_FEATURE)
         if (DEBUGGING(LEVELING)) DEBUG_POS("> homeX", current_position);
       #endif
+
+      #ifdef BEEVC_TMC2130READSG
+      thermalManager.sg2_x_limit_hit = 1;
+      #endif // BEEVC_TMC2130READSG
     }
+
 
     #if DISABLED(HOME_Y_BEFORE_X)
       // Home Y
       if (home_all || homeY) {
+
+        #ifdef BEEVC_TMC2130READSG
+        thermalManager.sg2_y_limit_hit = 0;
+        #endif // BEEVC_TMC2130READSG
+
         HOMEAXIS(Y);
         #if ENABLED(DEBUG_LEVELING_FEATURE)
           if (DEBUGGING(LEVELING)) DEBUG_POS("> homeY", current_position);
         #endif
+
+        #ifdef BEEVC_TMC2130READSG
+        thermalManager.sg2_x_limit_hit = 1;
+        #endif // BEEVC_TMC2130READSG
       }
     #endif
+
+    #ifdef BEEVC_TMC2130READSG
+    thermalManager.sg2_polling_wait_cycles = 255; // Temporarily increases the polling frequency to the lowest possible to avoid problems with homing Z
+    #endif // BEEVC_TMC2130READSG
+
 
     // Home Z last if homing towards the bed
     #if Z_HOME_DIR < 0
@@ -4273,7 +4313,13 @@ inline void gcode_G28(const bool always_home_all) {
   #if ENABLED(DEBUG_LEVELING_FEATURE)
     if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("<<< gcode_G28");
   #endif
+
+  #ifdef BEEVC_TMC2130READSG
+  thermalManager.sg2_polling_wait_cycles = 5; // Sets the read speed to normal to allow stall detect
+  #endif // BEEVC_TMC2130READSG
+
 } // G28
+
 
 void home_all_axes() { gcode_G28(true); }
 
@@ -4352,6 +4398,9 @@ void home_all_axes() { gcode_G28(true); }
    */
   inline void gcode_G29() {
 
+  #ifdef BEEVC_TMC2130READSG
+  thermalManager.sg2_polling_wait_cycles = 255; // Temporarily increases the polling frequency to the lowest possible to avoid problems with homing Z
+  #endif // BEEVC_TMC2130READSG
 
 	//DR-Stores the extruder and changes to E0
 	uint8_t extruderNumber = active_extruder;
@@ -4507,6 +4556,10 @@ void home_all_axes() { gcode_G28(true); }
 	//DR-Restores to the previous extruder
 		tool_change(extruderNumber);
 
+    #ifdef BEEVC_TMC2130READSG
+    thermalManager.sg2_polling_wait_cycles = 5; // Restores the polling frequency to normal 200Hz to allow step loss detection
+    #endif // BEEVC_TMC2130READSG
+
   }
 
 #elif OLDSCHOOL_ABL
@@ -4598,6 +4651,10 @@ void home_all_axes() { gcode_G28(true); }
    *
    */
   inline void gcode_G29() {
+
+    #ifdef BEEVC_TMC2130READSG
+    thermalManager.sg2_polling_wait_cycles = 255; // Temporarily increases the polling frequency to the lowest possible to avoid problems with homing Z
+    #endif // BEEVC_TMC2130READSG
 
 	  //DR-Stores the extruder and changes to E0
 	uint8_t extruderNumber = active_extruder;
@@ -5432,6 +5489,10 @@ void home_all_axes() { gcode_G28(true); }
 
 	// DR-Restores to the previous extruder
 	tool_change(extruderNumber);
+
+  #ifdef BEEVC_TMC2130READSG
+  thermalManager.sg2_polling_wait_cycles = 5; // Restores the polling frequency to normal 200Hz to allow step loss detection
+  #endif // BEEVC_TMC2130READSG
 
   }
 
@@ -10798,33 +10859,34 @@ inline void gcode_M502() {
         } else
           report_tmc_status = false;
       } else {
-        SERIAL_ECHOPGM("\t");                 tmc_debug_loop(TMC_CODES);
-        SERIAL_ECHOPGM("Enabled\t");          tmc_debug_loop(TMC_ENABLED);
+        SERIAL_ECHOPGM(" \t\t");                 tmc_debug_loop(TMC_CODES);
+        SERIAL_ECHOPGM("Enabled");          tmc_debug_loop(TMC_ENABLED);
         SERIAL_ECHOPGM("Set current");        tmc_debug_loop(TMC_CURRENT);
         SERIAL_ECHOPGM("RMS current");        tmc_debug_loop(TMC_RMS_CURRENT);
         SERIAL_ECHOPGM("MAX current");        tmc_debug_loop(TMC_MAX_CURRENT);
         SERIAL_ECHOPGM("Run current");        tmc_debug_loop(TMC_IRUN);
         SERIAL_ECHOPGM("Hold current");       tmc_debug_loop(TMC_IHOLD);
-        SERIAL_ECHOPGM("CS actual\t");        tmc_debug_loop(TMC_CS_ACTUAL);
+        SERIAL_ECHOPGM("CS actual");        tmc_debug_loop(TMC_CS_ACTUAL);
         SERIAL_ECHOPGM("PWM scale");          tmc_debug_loop(TMC_PWM_SCALE);
         SERIAL_ECHOPGM("vsense\t");           tmc_debug_loop(TMC_VSENSE);
         SERIAL_ECHOPGM("stealthChop");        tmc_debug_loop(TMC_STEALTHCHOP);
         SERIAL_ECHOPGM("msteps\t");           tmc_debug_loop(TMC_MICROSTEPS);
         SERIAL_ECHOPGM("tstep\t");            tmc_debug_loop(TMC_TSTEP);
-        SERIAL_ECHOPGM("pwm\nthreshold\t");   tmc_debug_loop(TMC_TPWMTHRS);
+        SERIAL_ECHOPGM("pwm\nthreshold");   tmc_debug_loop(TMC_TPWMTHRS);
         SERIAL_ECHOPGM("[mm/s]\t");           tmc_debug_loop(TMC_TPWMTHRS_MMS);
         SERIAL_ECHOPGM("OT prewarn");         tmc_debug_loop(TMC_OTPW);
-        SERIAL_ECHOPGM("OT prewarn has\nbeen triggered"); tmc_debug_loop(TMC_OTPW_TRIGGERED);
-        SERIAL_ECHOPGM("off time\t");         tmc_debug_loop(TMC_TOFF);
+        SERIAL_ECHOPGM("OT prewarn T"); tmc_debug_loop(TMC_OTPW_TRIGGERED);
+        SERIAL_ECHOPGM("off time");         tmc_debug_loop(TMC_TOFF);
         SERIAL_ECHOPGM("blank time");         tmc_debug_loop(TMC_TBL);
         SERIAL_ECHOPGM("hysterisis\n-end\t"); tmc_debug_loop(TMC_HEND);
         SERIAL_ECHOPGM("-start\t");           tmc_debug_loop(TMC_HSTRT);
-        SERIAL_ECHOPGM("Stallguard thrs");    tmc_debug_loop(TMC_SGT);
+        SERIAL_ECHOPGM("SG thrs");            tmc_debug_loop(TMC_SGT);
 
         SERIAL_ECHOPGM("DRVSTATUS");          drv_status_loop(TMC_DRV_CODES);
         #if ENABLED(HAVE_TMC2130)
           SERIAL_ECHOPGM("stallguard\t");     drv_status_loop(TMC_STALLGUARD);
-          SERIAL_ECHOPGM("sg_result\t");      drv_status_loop(TMC_SG_RESULT);
+          SERIAL_ECHOPGM("SG_Value");      drv_status_loop(TMC_SG_RESULT);
+          SERIAL_ECHOPGM("SG_result");      drv_status_loop(TMC_SG_RESULT);
           SERIAL_ECHOPGM("fsactive\t");       drv_status_loop(TMC_FSACTIVE);
         #endif
         SERIAL_ECHOPGM("stst\t");             drv_status_loop(TMC_STST);
@@ -11060,7 +11122,7 @@ inline void gcode_M502() {
   /**
    * M914: Set SENSORLESS_HOMING sensitivity.
    */
-  #if ENABLED(SENSORLESS_HOMING)
+  #if ENABLED(HAVE_TMC2130)
     inline void gcode_M914() {
       #if ENABLED(X_IS_TMC2130) || ENABLED(IS_TRAMS)
         if (parser.seen(axis_codes[X_AXIS])) tmc_set_sgt(stepperX, extended_axis_codes[TMC_X], parser.value_int());
@@ -11115,6 +11177,262 @@ inline void gcode_M502() {
       home_z_safely();
     }
   #endif
+
+  /**
+   * M916 -  TMC Change chopper mode
+   * Example :
+   * M916 X0 Y1   - Sets X to spreadCycle and Y to stealthChop
+   */
+  #if ENABLED(HAVE_TMC2130) || ENABLED(HAVE_TMC2208)
+  inline void gcode_M916() {
+    #if ENABLED(X_IS_TMC2130)
+      if (parser.seen(axis_codes[X_AXIS]))
+        if(parser.value_bool())
+          //stealthChop
+          {
+            stepperX.stealth_freq(1); // f_pwm = 2/683 f_clk
+            stepperX.stealth_autoscale(1);
+            stepperX.stealth_gradient(5);
+            stepperX.stealth_amplitude(255);
+            stepperX.stealthChop(1);
+            SERIAL_ECHOLNPGM("\nX axis is now using stealthChop");
+          }
+          //spreadCycle
+        else
+          {
+            stepperX.stealthChop(0);
+            SERIAL_ECHOLNPGM("\nX axis is now using spreadCycle");
+          }
+    #endif
+
+    // Y axis
+    #if ENABLED(Y_IS_TMC2130)
+      if (parser.seen(axis_codes[Y_AXIS]))
+        if(parser.value_bool())
+        {
+          stepperY.stealth_freq(1); // f_pwm = 2/683 f_clk
+          stepperY.stealth_autoscale(1);
+          stepperY.stealth_gradient(5);
+          stepperY.stealth_amplitude(255);
+          stepperY.stealthChop(1);
+          SERIAL_ECHOLNPGM("\nY axis is now using stealthChop");
+        }
+        //spreadCycle
+      else
+        {
+          stepperY.stealthChop(0);
+          SERIAL_ECHOLNPGM("\nY axis is now using spreadCycle");
+        }
+    #endif
+
+    // Z axis
+    #if ENABLED(Z_IS_TMC2130)
+      if (parser.seen(axis_codes[Z_AXIS]))
+        if(parser.value_bool())
+        {
+          stepperZ.stealth_freq(1); // f_pwm = 2/683 f_clk
+          stepperZ.stealth_autoscale(1);
+          stepperZ.stealth_gradient(5);
+          stepperZ.stealth_amplitude(255);
+          stepperZ.stealthChop(1);
+          SERIAL_ECHOLNPGM("\nZ axis is now using stealthChop");
+        }
+        //spreadCycle
+      else
+        {
+          stepperZ.stealthChop(0);
+          SERIAL_ECHOLNPGM("\nZ axis is now using spreadCycle");
+        }
+    #endif
+
+    // E0 axis
+    #if ENABLED(E0_IS_TMC2130)
+      if (parser.seen(axis_codes[E_AXIS]))
+        if(parser.value_bool())
+        {
+          stepperE0.stealth_freq(1); // f_pwm = 2/683 f_clk
+          stepperE0.stealth_autoscale(1);
+          stepperE0.stealth_gradient(5);
+          stepperE0.stealth_amplitude(255);
+          stepperE0.stealthChop(1);
+          SERIAL_ECHOLNPGM("\nE0 is now using stealthChop");
+        }
+        //spreadCycle
+      else
+        {
+          stepperE0.stealthChop(0);
+          SERIAL_ECHOLNPGM("\nE0 is now using spreadCycle");
+        }
+    #endif
+
+    // E1 axis
+    #if ENABLED(E1_IS_TMC2130)
+      if (parser.seen(axis_codes[E_AXIS]))
+        if(parser.value_bool())
+        {
+          stepperE1.stealth_freq(1); // f_pwm = 2/683 f_clk
+          stepperE1.stealth_autoscale(1);
+          stepperE1.stealth_gradient(5);
+          stepperE1.stealth_amplitude(255);
+          stepperE1.stealthChop(1);
+          SERIAL_ECHOLNPGM("\nE1 is now using stealthChop");
+        }
+        //spreadCycle
+      else
+        {
+          stepperE1.stealthChop(0);
+          SERIAL_ECHOLNPGM("\nE1 is now using spreadCycle");
+        }
+    #endif
+  }
+  #endif  //ENABLED(HAVE_TMC2130) || ENABLED(HAVE_TMC2208)
+
+  /**
+   * M917 -  Read stallGuard value
+   * Examples :
+   * M917 X Y E   -   Prints X average and current stallGuard2 value for the X, Y and all E axis
+   * M917 X L     -   Prints X log for the last 4s
+   * M917 X F1    -   Activates stallGuard2 filter on the X axis
+   * M917 X F0    -   Deactivates stallGuard2 filter on the X axis
+   */
+  #if ENABLED(HAVE_TMC2130)
+  inline void gcode_M917() {
+    #if ENABLED(X_IS_TMC2130)
+
+      if (parser.seen(axis_codes[X_AXIS]))
+      {
+        // Activates or deactivates filter
+        if(parser.seen('F'))
+        {
+          if(parser.value_bool())
+          {
+            stepperX.sg_filter(true);
+            SERIAL_ECHOLNPGM("\nX axis stallGuard2 filter is activated");
+          }
+          else
+          {
+            stepperX.sg_filter(false);
+            SERIAL_ECHOLNPGM("\nX axis stallGuard2 filter is deactivated");
+          }
+        }
+
+        // Prints last 2s of log
+        if (parser.seen('L'))
+        {
+          // Ensures no new values are written
+          //cli();
+
+          SERIAL_ECHO("\n=============\n");
+
+          // SERIAL_ECHO("X value,X flag\n");
+          // SERIAL_ECHO("\nSg2_flag: ");
+          // SERIAL_ECHO(thermalManager.sg2_stop);
+          // SERIAL_ECHO("\nSg2_middle: ");
+          // SERIAL_ECHO((uint16_t)thermalManager.sg2_samples_middle_index);
+          // SERIAL_ECHO("\n");
+
+            //Prints in TSV (Tab separeted values)
+              for (uint16_t k = 0;k <BEEVC_SG2_DEBUG_SAMPLES; k++)
+              {
+                //Finds the correct index on which to read
+                int16_t index = (thermalManager.sg2_samples_middle_index +k) - BEEVC_SG2_DEBUG_HALF_SAMPLES -1;
+                if (index < 0)
+                  index += BEEVC_SG2_DEBUG_SAMPLES;
+
+                if(index > 399)
+                  index -= BEEVC_SG2_DEBUG_SAMPLES;
+
+                //X
+                SERIAL_ECHO((uint16_t)((thermalManager.sg2_result[index])));
+                SERIAL_ECHO("\t");
+                SERIAL_ECHO(thermalManager.sg2_value[index]);
+                SERIAL_ECHO("\t");
+                SERIAL_ECHO(thermalManager.sg2_standstill[index]);
+                // SERIAL_ECHO("\t");
+                // SERIAL_ECHO(index);
+                SERIAL_ECHO("\n");
+              }
+
+            SERIAL_ECHO("\n=============\n");
+            // SERIAL_ECHO("\nSg2_flag: ");
+            // SERIAL_ECHO(thermalManager.sg2_stop);
+            // SERIAL_ECHO("\nSg2_middle: ");
+            // SERIAL_ECHO(thermalManager.sg2_samples_middle_index);
+            // SERIAL_ECHO("\nSg2_remaining: ");
+            // SERIAL_ECHO(thermalManager.sg2_samples_remaining);
+
+
+            // Clears the sg2_counter value
+            //thermalManager.sg2_counter = 0;
+
+            // Re-enables interrupts
+            //sei();
+
+          }
+
+          // Resets the information flags
+          if (parser.seen('R'))
+          {
+            thermalManager.sg2_samples_remaining = 0;
+            thermalManager.sg2_samples_middle_index = 0;
+            thermalManager.sg2_stop = false;
+          }
+
+        else
+        {
+          SERIAL_ECHOPAIR("\nX axis stallGuard2 value     :", stepperX.sg_result());
+          SERIAL_ECHOPAIR("\nX axis stallGuard2 triggered :", stepperX.stallguard());
+          //SERIAL_ECHOLNPGM("\nX axis stallGuard2 average   : To be implemented");
+          SERIAL_ECHOPAIR("\nX axis stallGuard2 steps loss:", stepperX.LOST_STEPS());
+        }
+      }
+    #endif
+
+    // Y axis
+    #if ENABLED(Y_IS_TMC2130)
+      if (parser.seen(axis_codes[Y_AXIS]))
+      {
+        SERIAL_ECHOPAIR("\nY axis stallGuard2 value     :", stepperY.sg_result());
+        SERIAL_ECHOPAIR("\nY axis stallGuard2 triggered :", stepperY.stallguard());
+        //SERIAL_ECHOLNPGM("\nY axis stallGuard2 average   : To be implemented");
+        SERIAL_ECHOPAIR("\nY axis stallGuard2 steps loss:", stepperY.LOST_STEPS());
+      }
+    #endif
+
+    // Z axis
+    #if ENABLED(Z_IS_TMC2130)
+      if (parser.seen(axis_codes[Z_AXIS]))
+      {
+        SERIAL_ECHOPAIR("\nZ axis stallGuard2 value     :", stepperZ.sg_result());
+        SERIAL_ECHOPAIR("\nZ axis stallGuard2 triggered :", stepperZ.stallguard());
+        //SERIAL_ECHOLNPGM("\nZ axis stallGuard2 average   : To be implemented");
+        SERIAL_ECHOPAIR("\nZ axis stallGuard2 steps loss:", stepperZ.LOST_STEPS());
+      }
+    #endif
+
+    // E0 axis
+    #if ENABLED(E0_IS_TMC2130)
+      if (parser.seen(axis_codes[E_AXIS]))
+      {
+        SERIAL_ECHOPAIR("\nE0 axis stallGuard2 value     :", stepperE0.sg_result());
+        SERIAL_ECHOPAIR("\nE0 axis stallGuard2 triggered :", stepperE0.stallguard());
+        //SERIAL_ECHOLNPGM("\nE0 axis stallGuard2 average   : To be implemented");
+        SERIAL_ECHOPAIR("\nE0 axis stallGuard2 steps loss:", stepperE0.LOST_STEPS());
+      }
+    #endif
+
+    // E1 axis
+    #if ENABLED(E1_IS_TMC2130)
+      if (parser.seen(axis_codes[E_AXIS]))
+      {
+        SERIAL_ECHOPAIR("\nE1 axis stallGuard2 value     :", stepperE1.sg_result());
+        SERIAL_ECHOPAIR("\nE1 axis stallGuard2 triggered :", stepperE1.stallguard());
+        //SERIAL_ECHOLNPGM("\nE1 axis stallGuard2 average   : To be implemented");
+        SERIAL_ECHOPAIR("\nE1 axis stallGuard2 steps loss:", stepperE1.LOST_STEPS());
+      }
+    #endif
+  }
+  #endif  //ENABLED(HAVE_TMC2130) || ENABLED(HAVE_TMC2208)
 
 #endif // HAS_TRINAMIC
 
@@ -13460,7 +13778,7 @@ void process_parsed_command() {
             break;
         #endif
 
-        #if ENABLED(SENSORLESS_HOMING)
+        #if ENABLED(HAVE_TMC2130)
           case 914: // M914: Set SENSORLESS_HOMING sensitivity.
             gcode_M914();
             break;
@@ -13469,6 +13787,18 @@ void process_parsed_command() {
         #if ENABLED(TMC_Z_CALIBRATION) && (Z_IS_TRINAMIC || Z2_IS_TRINAMIC)
           case 915: // M915: TMC Z axis calibration routine
             gcode_M915();
+            break;
+        #endif
+
+        #if ENABLED(HAVE_TMC2130) || ENABLED(HAVE_TMC2208)
+          case 916: // M916: Set chopping mode
+            gcode_M916();
+            break;
+        #endif
+
+        #if ENABLED(HAVE_TMC2130)
+          case 917: // M917: Read stallGuard2 values
+            gcode_M917();
             break;
         #endif
       #endif
@@ -15716,6 +16046,8 @@ void setup() {
 
 	#endif
 	///////////////////////////////////////////////////////
+
+  uint32_t readLoss = millis() +500;
 }
 
 #ifdef BEEVC_Restore
@@ -16247,6 +16579,23 @@ void loop() {
 
       process_next_command();
 
+
+      // if (thermalManager.sg2_stop && card.sdprinting && (readLoss >= millis()))
+      // {
+      //   thermalManager.sg2_stop = 0;
+      //   readLoss = millis() +500;
+      //
+      //   card.pauseSDPrint();
+      //   print_job_timer.pause();
+      //
+      //   SERIAL_ECHOLN("Stepp Loss");
+      //   enqueue_and_echo_commands(PSTR("G28"));
+      //
+      //   card.startFileprint();
+      //   print_job_timer.start();
+      //   lcd_reset_status();
+      // }
+
     #endif // SDSUPPORT
 
     // The queue may be reset by a command handler or by code invoked by idle() within a handler
@@ -16257,4 +16606,5 @@ void loop() {
   }
   endstops.report_state();
   idle();
+
 }

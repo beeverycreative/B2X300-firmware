@@ -41,26 +41,70 @@
  // Trinamic stepper drivers use 16 microsteps like the A4988 we need to make this configuration
  #ifdef BEEVC_TMC2208ext
  	#define BEEVC_A4988ext
- 	#define BEEVC_ReverseE
- #endif
 
- #ifdef BEEVC_TMC2208all
+  // Makes sure to reverse E no matter the former state
+  #ifdef BEEVC_ReverseE
+    #undef BEEVC_ReverseE
+  #else
+    #define BEEVC_ReverseE
+  #endif  //BEEVC_ReverseE
+ #endif //BEEVC_TMC2208ext
+
+ #if (ENABLED(BEEVC_TMC2208all) || ENABLED(BEEVC_TMC2130))
  	#define BEEVC_A4988all
- 	#define BEEVC_ReverseE
- 	#define BEEVC_ReverseX
- 	#define BEEVC_ReverseY
- 	#define BEEVC_ReverseZ
- #endif
+
+  // Makes sure to reverse E no matter the former state
+  #ifdef BEEVC_ReverseE
+    #undef BEEVC_ReverseE
+  #else
+    #define BEEVC_ReverseE
+  #endif
+
+  // Makes sure to reverse X no matter the former state
+  #ifdef BEEVC_ReverseX
+    #undef BEEVC_ReverseX
+  #else
+    #define BEEVC_ReverseX
+  #endif
+
+  // Makes sure to reverse Y no matter the former state
+  #ifdef BEEVC_ReverseY
+    #undef BEEVC_ReverseY
+  #else
+    #define BEEVC_ReverseY
+  #endif
+
+  // Makes sure to reverse Z no matter the former state
+  #ifdef BEEVC_ReverseZ
+    #undef BEEVC_ReverseZ
+  #else
+    #define BEEVC_ReverseZ
+  #endif
+ #endif //BEEVC_TMC2208all
+
+ #ifdef BEEVC_TMC2130XY
+    #define BEEVC_A4988all
+
+    // Makes sure to reverse X no matter the former state
+    #ifdef BEEVC_ReverseX
+      #undef BEEVC_ReverseX
+    #else
+      #define BEEVC_ReverseX
+    #endif
+
+    // Makes sure to reverse Y no matter the former state
+    #ifdef BEEVC_ReverseY
+      #undef BEEVC_ReverseY
+    #else
+      #define BEEVC_ReverseY
+    #endif
+
+ #endif //BEEVC_TMC2130XY
 
  // Power Restore defines
  #ifdef BEEVC_Restore
- 	#ifdef BEEVC_Trapezoidal
- 		//#define BEEVC_Restore_LiftZ 2000
- 	#else
- 		#define BEEVC_Restore_LiftZ 600
- 	#endif
  	//#define SERIAL_DEBUG
- #endif
+ #endif //BEEVC_Restore
 
 //===========================================================================
 //===========================================================================
@@ -724,10 +768,10 @@
  * When changing speed and direction, if the difference is less than the
  * value set here, it may happen instantaneously.
  */
-#define DEFAULT_XJERK                  5.0
-#define DEFAULT_YJERK                  5.0
-#define DEFAULT_ZJERK                  0.5
-#define DEFAULT_EJERK                  5.0
+#define DEFAULT_XJERK                  10.0
+#define DEFAULT_YJERK                  10.0
+#define DEFAULT_ZJERK                  0.4
+#define DEFAULT_EJERK                  2.5
 
 //===========================================================================
 //============================= Z Probe Options =============================
@@ -1635,7 +1679,7 @@
  * Enable one of the following items for a slower SPI transfer speed.
  * This may be required to resolve "volume init" errors.
  */
-//#define SPI_SPEED SPI_HALF_SPEED
+#define SPI_SPEED SPI_HALF_SPEED
 //#define SPI_SPEED SPI_QUARTER_SPEED
 //#define SPI_SPEED SPI_EIGHTH_SPEED
 

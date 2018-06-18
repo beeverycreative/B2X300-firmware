@@ -28,6 +28,19 @@
 // #define BEEVC_TMC2208all
 //
 //
+// If your B2X300 has Trinamic TMC2130 stepper drivers please uncomment the correct line
+//
+// -Trinamic TMC2130 on all axis
+ #define BEEVC_TMC2130
+//
+// -Trinamic TMC2130 only on XY
+// #define BEEVC_TMC2130XY
+//
+//
+#define BEEVC_SG2_DEBUG_SAMPLES 300
+//#define BEEVC_SG2_DEBUG_STEPPER_X
+#define BEEVC_SG2_DEBUG_STEPPER_Y
+//#define BEEVC_SG2_DEBUG_STEPPER_E
 //
 //===========================================================================
 //============================= B2X300 re-define ============================
@@ -46,3 +59,11 @@
 #define FILAMENT_RUNOUT_DUAL
 //#define BEEVC_Restore_Move_X
 #define BEEVC_Restore_Move_Y
+
+#if ENABLED(BEEVC_TMC2130) || ENABLED(BEEVC_TMC2130XY)
+  #define BEEVC_TMC2130READSG
+#endif
+
+
+
+#define BEEVC_SG2_DEBUG_HALF_SAMPLES (BEEVC_SG2_DEBUG_SAMPLES/2)

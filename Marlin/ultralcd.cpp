@@ -1552,6 +1552,24 @@ static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool u
   			#if HAS_BUZZER
   			   buzzer.tone(100, 2000);
   			#endif
+
+        // Deactivated for now
+        // Detects if the filament sensor is activated
+        // #ifdef FILAMENT_RUNOUT_DUAL
+        //   if (extruder)
+        //     // E0
+        //     {
+        //       if (!(READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING))
+        //         break;
+        //     }
+        //   else
+        //     // E1
+        //     {
+        //       if (!(READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING))
+        //         break;
+        //     }
+        // #endif //FILAMENT_RUNOUT_DUAL
+
   			idle(true);
   			next_update = millis() + 1000;
   		}
@@ -5371,8 +5389,11 @@ void lcd_enqueue_filament_change() {
       UNUSED(longFilename);
       card.openAndPrintFile(filename);
 
-      //Starting a new print so recovered files can be deleted
-      toRecover = false;
+      #ifdef BEEVC_Restore
+        //Starting a new print so recovered files can be deleted
+        toRecover = false;
+    	#endif
+
 
       enqueue_and_echo_commands_P(PSTR("M712"));
 
@@ -5563,7 +5584,11 @@ void lcd_update() {
     if (sd_status != lcd_sd_status && lcd_detected()) {
 
       if (sd_status) {
-        card.initsd();
+        unsigned long slow_card_timeout = millis() + 1000UL;
+        do {
+          card.initsd();
+          thermalManager.manage_heater();
+        } while (!card.cardOK && PENDING(millis(), slow_card_timeout));
         if (lcd_sd_status != 2) LCD_MESSAGEPGM(MSG_SD_INSERTED);
       }
       else {

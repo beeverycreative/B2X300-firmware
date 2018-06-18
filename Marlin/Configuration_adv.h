@@ -349,11 +349,11 @@
 // @section homing
 
 // Homing hits each endstop, retracts by these distances, then does a slower bump.
-#define X_HOME_BUMP_MM 5
-#define Y_HOME_BUMP_MM 5
+#define X_HOME_BUMP_MM 0
+#define Y_HOME_BUMP_MM 0
 #define Z_HOME_BUMP_MM 1
 #define HOMING_BUMP_DIVISOR { 4, 4, 4 }  // Re-Bump Speed Divisor (Divides the Homing Feedrate)
-#define QUICK_HOME                     // If homing includes X and Y, do a diagonal move initially
+//#define QUICK_HOME                     // If homing includes X and Y, do a diagonal move initially
 
 // When G28 is called, this option will make Y home before X
 //#define HOME_Y_BEFORE_X
@@ -690,7 +690,7 @@
 		#else
 			#define LIN_ADVANCE_K 40
 		#endif
-		
+
 	#else
 		#define LIN_ADVANCE_K 0
 	#endif
@@ -1023,7 +1023,9 @@
  * the hardware SPI interface on your board and define the required CS pins
  * in your `pins_MYBOARD.h` file. (e.g., RAMPS 1.4 uses AUX3 pins `X_CS_PIN 53`, `Y_CS_PIN 49`, etc.).
  */
-//#define HAVE_TMC2130
+#if (ENABLED(BEEVC_TMC2130) || ENABLED(BEEVC_TMC2130XY))
+  #define HAVE_TMC2130
+#endif
 
 /**
  * Enable this for SilentStepStick Trinamic TMC2208 UART-configurable stepper drivers.
@@ -1038,6 +1040,19 @@
 //#define HAVE_TMC2208
 
 #if ENABLED(HAVE_TMC2130) || ENABLED(HAVE_TMC2208)
+
+  #ifdef BEEVC_TMC2130
+    #define X_IS_TMC2130
+    #define Y_IS_TMC2130
+    #define Z_IS_TMC2130
+    #define E0_IS_TMC2130
+    #define E1_IS_TMC2130
+  #endif
+
+  #ifdef BEEVC_TMC2130XY
+    #define X_IS_TMC2130
+    #define Y_IS_TMC2130
+  #endif
 
   // CHOOSE YOUR MOTORS HERE, THIS IS MANDATORY
   //#define X_IS_TMC2130
@@ -1109,7 +1124,7 @@
    * Use Trinamic's ultra quiet stepping mode.
    * When disabled, Marlin will use spreadCycle stepping mode.
    */
-  #define STEALTHCHOP
+  //#define STEALTHCHOP
 
   /**
    * Monitor Trinamic TMC2130 and TMC2208 drivers for error conditions,
@@ -1164,16 +1179,14 @@
    */
   //#define SENSORLESS_HOMING // TMC2130 only
 
-  #if ENABLED(SENSORLESS_HOMING)
-    #define X_HOMING_SENSITIVITY  8
+    #define X_HOMING_SENSITIVITY  10
     #define Y_HOMING_SENSITIVITY  8
-  #endif
 
   /**
    * Enable M122 debugging command for TMC stepper drivers.
    * M122 S0/1 will enable continous reporting.
    */
-  //#define TMC_DEBUG
+  #define TMC_DEBUG
 
   /**
    * You can set your own advanced settings by filling in predefined functions.
@@ -1187,7 +1200,10 @@
    *   stepperY.interpolate(0); \
    * }
    */
-  #define  TMC_ADV() {  }
+  #define  TMC_ADV() { \
+    stepperX.sgt(X_HOMING_SENSITIVITY); \
+    stepperY.sgt(Y_HOMING_SENSITIVITY); \
+    }
 
 #endif // TMC2130 || TMC2208
 

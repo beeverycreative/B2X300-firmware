@@ -128,6 +128,21 @@
 #define E1_ENABLE_PIN      30
 #define E1_CS_PIN          44
 
+// TMC2130 defines, makes sure the correct ports are selected for SPI
+#if (ENABLED(BEEVC_TMC2130) || ENABLED(BEEVC_TMC2130XY))
+  #undef X_CS_PIN
+  #undef Y_CS_PIN
+  #undef Z_CS_PIN
+  #undef E0_CS_PIN
+  #undef E1_CS_PIN
+
+  #define X_CS_PIN        59
+  #define Y_CS_PIN        64
+  #define Z_CS_PIN        40
+  #define E0_CS_PIN       42
+  #define E1_CS_PIN       65
+#endif
+
 
 #if ENABLED(HAVE_TMC2208)
   /**
@@ -486,7 +501,6 @@
 
       // GLCD features
       //#define LCD_CONTRAST
-	  #define LCD_CONTRAST   255
       // Uncomment screen orientation
       //#define LCD_SCREEN_ROT_90
       //#define LCD_SCREEN_ROT_180
