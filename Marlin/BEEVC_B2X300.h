@@ -31,7 +31,7 @@
 // If your B2X300 has Trinamic TMC2130 stepper drivers please uncomment the correct line
 //
 // -Trinamic TMC2130 on all axis
-// #define BEEVC_TMC2130
+ #define BEEVC_TMC2130
 //
 // -Trinamic TMC2130 only on XY
 // #define BEEVC_TMC2130XY
