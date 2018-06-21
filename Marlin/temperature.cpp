@@ -34,6 +34,7 @@
 // Stallguard 2 endstop triggering
 #include "endstops.h"
 #include "stepper.h"
+#include "cardreader.h"
 
 #if HAS_TRINAMIC
   #include "stepper_indirection.h"
@@ -2238,8 +2239,10 @@ void Temperature::isr() {
       // Restarts wait variable
       sg2_polling_wait = 0;
 
-      // Sets a flag if the read values are to be stored
-      bool to_write = !sg2_stop || (sg2_samples_remaining > 1);
+      #if ( ENABLED(BEEVC_SG2_DEBUG_STEPPER_X) || ENABLED(BEEVC_SG2_DEBUG_STEPPER_Y) || ENABLED(BEEVC_SG2_DEBUG_STEPPER_E))
+        // Sets a flag if the read values are to be stored
+        bool to_write = !sg2_stop || (sg2_samples_remaining > 1);
+      #endif // BEEVC_SG2_DEBUG_STEPPER_X or Y or E
 
       // Temporary variables
       uint16_t temp_result;
@@ -2294,6 +2297,11 @@ void Temperature::isr() {
               //SBI(endstops.hit_state, X_MIN);
               // Stops further endstop detection
               sg2_x_limit_hit = 1;
+            }
+            // Checks for step loss
+            else if (temp_result == 0 && ! temp_standstill && IS_SD_PRINTING)
+            {
+              sg2_stop = true;
             }
 
             #ifdef BEEVC_SG2_DEBUG_STEPPER_X

@@ -15700,6 +15700,24 @@ void idle(
       lastUpdateMillis = millis();
     }
   #endif
+
+  #ifdef BEEVC_TMC2130READSG
+    if (thermalManager.sg2_stop)
+    {
+      // Injects the command to home XY before continuing print
+      enqueue_and_echo_commands_P(PSTR("G28 X Y"));
+
+      // Forces the execution of 10 buffered commands ASAP
+      for(int k = 10; k != 0; k--)
+      {
+          drain_injected_commands_P();
+      }
+
+      // Turns flag off
+      thermalManager.sg2_stop = false;
+    }
+  #endif //BEEVC_TMC2130READSG
+
 }
 
 /**
