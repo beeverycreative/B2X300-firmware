@@ -69,9 +69,14 @@ Temperature thermalManager;
 
 #ifdef BEEVC_TMC2130READSG
   //// stallGuard2 polling /////
-  uint16_t Temperature::sg2_result[BEEVC_SG2_DEBUG_SAMPLES] = {999};
-  bool Temperature::sg2_value[BEEVC_SG2_DEBUG_SAMPLES] = {0};
-  bool Temperature::sg2_standstill[BEEVC_SG2_DEBUG_SAMPLES] = {0};
+
+  // Only available when debugging
+  #ifdef BEEVC_SG2_DEBUG_SAMPLES
+    uint16_t Temperature::sg2_result[BEEVC_SG2_DEBUG_SAMPLES] = {999};
+    bool Temperature::sg2_value[BEEVC_SG2_DEBUG_SAMPLES] = {0};
+    bool Temperature::sg2_standstill[BEEVC_SG2_DEBUG_SAMPLES] = {0};
+  #endif // BEEVC_SG2_DEBUG_SAMPLES
+
   uint16_t Temperature::sg2_counter = 0;
   bool Temperature::sg2_stop = false;
   uint16_t Temperature::sg2_samples_remaining = 0;
@@ -2286,7 +2291,7 @@ void Temperature::isr() {
             if (temp_result == 0 && ! temp_standstill && sg2_x_limit_hit == 0)
             {
               stepper.endstop_triggered(X_AXIS);
-              SBI(endstops.endstop_hit_bits, X_MIN);
+              //SBI(endstops.hit_state, X_MIN);
               // Stops further endstop detection
               sg2_x_limit_hit = 1;
             }
@@ -2333,7 +2338,7 @@ void Temperature::isr() {
             if (temp_result == 0 && ! temp_standstill && sg2_y_limit_hit == 0)
             {
               stepper.endstop_triggered(Y_AXIS);
-              SBI(endstops.endstop_hit_bits, Y_MAX);
+              //SBI(endstops.hit_state, Y_MAX);
               // Stops further endstop detection
               sg2_y_limit_hit = 1;
             }

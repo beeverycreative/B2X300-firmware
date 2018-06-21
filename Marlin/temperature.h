@@ -282,9 +282,13 @@ class Temperature {
       //// stallGuard2 polling /////
       static uint16_t sg2_samples_remaining;
       static uint16_t sg2_samples_middle_index;
-      static uint16_t sg2_result[BEEVC_SG2_DEBUG_SAMPLES];
-      static bool sg2_value[BEEVC_SG2_DEBUG_SAMPLES];
-      static bool sg2_standstill[BEEVC_SG2_DEBUG_SAMPLES];
+
+      // Only available when debugging
+      #ifdef BEEVC_SG2_DEBUG_SAMPLES
+        static uint16_t sg2_result[BEEVC_SG2_DEBUG_SAMPLES];
+        static bool sg2_value[BEEVC_SG2_DEBUG_SAMPLES];
+        static bool sg2_standstill[BEEVC_SG2_DEBUG_SAMPLES];
+      #endif
       static uint16_t sg2_counter;
       static bool sg2_stop;
 
