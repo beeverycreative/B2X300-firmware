@@ -49,7 +49,7 @@
 #define BEEVC_ReverseX
 #define BEEVC_ReverseY
 #define BEEVC_Trapezoidal
-#define BEEVC_Extendedbed
+//#define BEEVC_Addon_bed
 #define BEEVC_Autolevel
 #define BEEVC_Bowden
 #define BEEVC_MKS_MINI_12864
