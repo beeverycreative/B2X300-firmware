@@ -1053,13 +1053,22 @@
   #define Y_MAX_POS 217
   #define Y_BED_SIZE 200
   #define Z_MAX_POS 300
-// The size of the printbed for B2X300 with Y+ endstop
-#elif ENABLED(BEEVC_B2X300)
+// The size of the printbed for B2X300 with the addon 300x200 hotbed
+#elif ENABLED(BEEVC_Addon_bed)
   #define X_MIN_POS -20
   #define X_MAX_POS 310
   #define X_BED_SIZE 300
   #define Y_MIN_POS -21
   #define Y_MAX_POS 203
+  #define Y_BED_SIZE 200
+  #define Z_MAX_POS 300
+// The size of the printbed for B2X300 with Y+ endstop
+#elif ENABLED(BEEVC_B2X300)
+  #define X_MIN_POS -16
+  #define X_MAX_POS 306
+  #define X_BED_SIZE 300
+  #define Y_MIN_POS -17
+  #define Y_MAX_POS 222
   #define Y_BED_SIZE 200
   #define Z_MAX_POS 300
 // The size of the printbed for helloBEEprusa with extended bed
