@@ -890,23 +890,26 @@
  *    (0,0)
  */
 
- //hBp - Checks if there is autoleveling
- #ifndef BEEVC_Autolevel
- // no leveling so no changes
- #else
-	 #ifndef BEEVC_Bowden
-		// direct drive
-		#define X_PROBE_OFFSET_FROM_EXTRUDER 37  // X offset: -left  +right  [of the nozzle]
-		#define Y_PROBE_OFFSET_FROM_EXTRUDER 33  // Y offset: -front +behind [the nozzle]
-		#define Z_PROBE_OFFSET_FROM_EXTRUDER -9   // Z offset: -below +above  [the nozzle]
+//hBp - Checks if there is autoleveling
+#ifndef BEEVC_Autolevel
+  // no leveling so no changes
+#elif (ENABLED(BEEVC_B2X300))
+  //B2X300
+  #define X_PROBE_OFFSET_FROM_EXTRUDER 4  // X offset: -left  +right  [of the nozzle]
+  #define Y_PROBE_OFFSET_FROM_EXTRUDER 41  // Y offset: -front +behind [the nozzle]
+  #define Z_PROBE_OFFSET_FROM_EXTRUDER -9   // Z offset: -below +above  [the nozzle]
 
-	#else
-		// bowden
-		#define X_PROBE_OFFSET_FROM_EXTRUDER 7  // X offset: -left  +right  [of the nozzle]
-		#define Y_PROBE_OFFSET_FROM_EXTRUDER 39  // Y offset: -front +behind [the nozzle]
-		#define Z_PROBE_OFFSET_FROM_EXTRUDER -9   // Z offset: -below +above  [the nozzle]
+#elif (ENABLED(BEEVC_Bowden))
+  // bowden
+  #define X_PROBE_OFFSET_FROM_EXTRUDER 7  // X offset: -left  +right  [of the nozzle]
+  #define Y_PROBE_OFFSET_FROM_EXTRUDER 39  // Y offset: -front +behind [the nozzle]
+  #define Z_PROBE_OFFSET_FROM_EXTRUDER -9   // Z offset: -below +above  [the nozzle]
 
-	#endif
+#else
+  // direct drive
+  #define X_PROBE_OFFSET_FROM_EXTRUDER 37  // X offset: -left  +right  [of the nozzle]
+  #define Y_PROBE_OFFSET_FROM_EXTRUDER 33  // Y offset: -front +behind [the nozzle]
+  #define Z_PROBE_OFFSET_FROM_EXTRUDER -9   // Z offset: -below +above  [the nozzle]
 #endif
 
 
