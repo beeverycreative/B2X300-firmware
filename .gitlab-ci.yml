@@ -1,0 +1,17 @@
+before_script:
+    - echo "--------------------------------"
+    - ARDUINO_VERSION="arduino-1.8.5"
+    - ARDUINO_PATH="/arduino/$ARDUINO_VERSION"
+    - export PATH=./buildroot/bin/:/arduino/$ARDUINO_VERSION:$PATH
+    #- mkdir build -p -v
+    #- echo "--------------------------------"
+
+build:
+    script:
+        - build_marlin
+
+#    artifacts:
+#        name: "samplecicd-$CI_COMMIT_REF_NAME"
+#        paths:
+#            - build/*.hex
+#        expire_in: 1 week
