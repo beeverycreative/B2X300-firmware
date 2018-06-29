@@ -16,7 +16,7 @@ build:
         
 
     artifacts:
-        name: "marlin-bvc-$CI_COMMIT_REF_NAME-$commit_sha"
+        name: "marlin-bvc-$CI_COMMIT_REF_NAME-$CI_COMMIT_SHA"
         paths:
             - build/*.hex
         expire_in: 1 week
