@@ -12,9 +12,10 @@ build:
     script:
         - build_marlin
         - pwd && ls
+        - commit_sha=$(echo $CI_COMMIT_SHA | cut -c 1-8)
 
     artifacts:
-        name: "marlin-bvc-$CI_COMMIT_REF_NAME-"$(echo $CI_COMMIT_SHA | cut -c 1-8)
+        name: "marlin-bvc-$CI_COMMIT_REF_NAME-$commit_sha"
         paths:
             - build/*.hex
         expire_in: 1 week
