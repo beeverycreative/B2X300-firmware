@@ -11,9 +11,7 @@ before_script:
 build:
     script:
         - build_marlin
-        - pwd
-        - cd buildroot
-        - ls
+        - pwd && ls
 
     artifacts:
         name: "marlin-bvc-$CI_COMMIT_REF_NAME"
