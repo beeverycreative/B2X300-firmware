@@ -2,8 +2,10 @@ before_script:
     - echo "--------------------------------"
     #- ARDUINO_VERSION="arduino-1.8.5"
     - ARDUINO_PATH="/arduino/"
-    - export PATH=./buildroot/bin/:$ARDUINO_PATH:$PATH
-    #- mkdir build -p -v
+    - pwd
+    - WD=$(pwd)
+    - export PATH=$WD/buildroot/bin/:$ARDUINO_PATH:$PATH
+    - mkdir build -p -v
     #- echo "--------------------------------"
 
 build:
