@@ -10,8 +10,8 @@ build:
     script:
         - build_marlin
 
-#    artifacts:
-#        name: "samplecicd-$CI_COMMIT_REF_NAME"
-#        paths:
-#            - build/*.hex
-#        expire_in: 1 week
+    artifacts:
+        name: "marlin-bvc-$CI_COMMIT_REF_NAME"
+        paths:
+            - build/*.hex
+        expire_in: 1 week
