@@ -8,6 +8,7 @@ before_script:
     - mkdir build -p -v
     #- echo "--------------------------------"
     - export commit_sha=$(echo $CI_COMMIT_SHA | cut -c 1-8)
+    #- install_libs
 
 build:
     script:
