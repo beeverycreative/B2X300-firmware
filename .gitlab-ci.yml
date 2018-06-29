@@ -14,7 +14,7 @@ build:
         - pwd && ls
 
     artifacts:
-        name: "marlin-bvc-$CI_COMMIT_REF_NAME-$CI_COMMIT_SHA"
+        name: "marlin-bvc-$CI_COMMIT_REF_NAME-"$(echo $CI_COMMIT_SHA | cut -c 1-8)
         paths:
             - build/*.hex
         expire_in: 1 week
