@@ -7,12 +7,13 @@ before_script:
     - export PATH=$WD/buildroot/bin/:$ARDUINO_PATH:$PATH
     - mkdir build -p -v
     #- echo "--------------------------------"
+    - export commit_sha=$(echo $CI_COMMIT_SHA | cut -c 1-8)
 
 build:
     script:
         - build_marlin
         - pwd && ls
-        - commit_sha=$(echo $CI_COMMIT_SHA | cut -c 1-8)
+        
 
     artifacts:
         name: "marlin-bvc-$CI_COMMIT_REF_NAME-$commit_sha"
