@@ -1,3 +1,5 @@
+image: ubuntu-bvc-marlin:latest
+
 before_script:
     - echo "--------------------------------"
     #- ARDUINO_VERSION="arduino-1.8.5"
