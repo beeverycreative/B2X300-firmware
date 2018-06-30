@@ -4083,8 +4083,20 @@ enable_all_steppers();
 #ifdef BEEVC_TMC2130READSG
   uint8_t temp_x_max = X_MAX_POS;
   uint8_t temp_y_max = Y_MAX_POS;
-  // Moves Y a little away from limit to avoid eroneous detections
-  do_blocking_move_to_xy((current_position[X_AXIS] <temp_x_max ? current_position[X_AXIS]+20 : current_position[X_AXIS]),(current_position[Y_AXIS] <=temp_y_max ? current_position[Y_AXIS]-20 : current_position[Y_AXIS]),25);
+
+  // Sets homing sensitivity
+  stepperX.sgt(BEEVC_TMC2130HOMESGT);
+  stepperY.sgt(BEEVC_TMC2130HOMESGT);
+
+  // Disables stallGuard2 filter for maximum time precision
+  stepperX.sg_filter(false);
+  stepperY.sg_filter(false);
+
+  // Turns flag off
+  thermalManager.sg2_stop = false;
+
+  // Sets homing flag
+  thermalManager.sg2_homing = true;
 #endif // BEEVC_TMC2130READSG
 
   #if ENABLED(DEBUG_LEVELING_FEATURE)
@@ -4195,7 +4207,10 @@ enable_all_steppers();
     // Home X
     if (home_all || homeX) {
       #ifdef BEEVC_TMC2130READSG
-      thermalManager.sg2_x_limit_hit = 0;
+        // Moves X a little away from limit to avoid eroneous detections
+        do_blocking_move_to_xy((current_position[X_AXIS] <temp_x_max ? current_position[X_AXIS]+20 : current_position[X_AXIS]),current_position[Y_AXIS],25);
+
+        thermalManager.sg2_x_limit_hit = 0;
       #endif // BEEVC_TMC2130READSG
 
       #if ENABLED(DUAL_X_CARRIAGE)
@@ -4237,7 +4252,11 @@ enable_all_steppers();
       if (home_all || homeY) {
 
         #ifdef BEEVC_TMC2130READSG
-        thermalManager.sg2_y_limit_hit = 0;
+          // Moves Y a little away from limit to avoid eroneous detections
+          do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] <=temp_y_max ? current_position[Y_AXIS]-20 : current_position[Y_AXIS]),25);
+
+
+          thermalManager.sg2_y_limit_hit = 0;
         #endif // BEEVC_TMC2130READSG
 
         HOMEAXIS(Y);
@@ -4315,7 +4334,20 @@ enable_all_steppers();
   #endif
 
   #ifdef BEEVC_TMC2130READSG
-  thermalManager.sg2_polling_wait_cycles = 5; // Sets the read speed to normal to allow stall detect
+    thermalManager.sg2_polling_wait_cycles = 5; // Sets the read speed to normal to allow stall detect
+
+    // Sets printing sensitivity
+    stepperX.sgt(BEEVC_TMC2130STEPLOSSSGT);
+    stepperY.sgt(BEEVC_TMC2130STEPLOSSSGT);
+
+    // Turns flag off
+    thermalManager.sg2_stop = false;
+    thermalManager.sg2_homing = false;
+
+    // Enable stallGuard2 filter for a consistent reading
+    stepperX.sg_filter(true);
+    stepperY.sg_filter(true);
+
   #endif // BEEVC_TMC2130READSG
 
 } // G28
@@ -15701,9 +15733,15 @@ void idle(
     }
   #endif
 
-  #ifdef BEEVC_TMC2130READSG
-    if (thermalManager.sg2_stop)
+  #ifdef BEEVS_TMC2130STEPLOSS
+    if (thermalManager.sg2_stop && !thermalManager.sg2_homing)
     {
+      // Sets homing flag so no reaction is taken from now on
+      thermalManager.sg2_homing =  true;
+
+      // Turns flag off
+      thermalManager.sg2_stop = false;
+
       // Injects the command to home XY before continuing print
       enqueue_and_echo_commands_P(PSTR("G28 X Y"));
 
@@ -15715,8 +15753,9 @@ void idle(
 
       // Turns flag off
       thermalManager.sg2_stop = false;
+      thermalManager.sg2_detect_count = 0;
     }
-  #endif //BEEVC_TMC2130READSG
+  #endif //BEEVS_TMC2130STEPLOSS
 
 }
 

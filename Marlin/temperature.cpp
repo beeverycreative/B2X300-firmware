@@ -78,10 +78,12 @@ Temperature thermalManager;
     bool Temperature::sg2_standstill[BEEVC_SG2_DEBUG_SAMPLES] = {0};
   #endif // BEEVC_SG2_DEBUG_SAMPLES
 
-  uint16_t Temperature::sg2_counter = 0;
-  bool Temperature::sg2_stop = false;
-  uint16_t Temperature::sg2_samples_remaining = 0;
-  uint16_t Temperature::sg2_samples_middle_index = 0;
+  uint16_t  Temperature::sg2_counter = 0;
+  bool      Temperature::sg2_stop = false;
+  bool      Temperature::sg2_homing = false; //
+  uint8_t   Temperature::sg2_detect_count = 0;
+  uint16_t  Temperature::sg2_samples_remaining = 0;
+  uint16_t  Temperature::sg2_samples_middle_index = 0;
 
   //end_stops
   // Pre-set to 1 so no false detections are made when not homing
@@ -2291,7 +2293,7 @@ void Temperature::isr() {
              temp_standstill = stepperX.stst();
 
             //Triggers the endstop if the result is low and the motor is moving (REQUIRES TUNED TRHESHOLD)
-            if (temp_result == 0 && ! temp_standstill && sg2_x_limit_hit == 0)
+            if (temp_result < 100 && ! temp_standstill && sg2_x_limit_hit == 0)
             {
               stepper.endstop_triggered(X_AXIS);
               //SBI(endstops.hit_state, X_MIN);
@@ -2299,10 +2301,14 @@ void Temperature::isr() {
               sg2_x_limit_hit = 1;
             }
             // Checks for step loss
-            else if (temp_result == 0 && ! temp_standstill && IS_SD_PRINTING)
+            else if (temp_result < 50 && ! temp_standstill && IS_SD_PRINTING)
             {
-              sg2_stop = true;
+              // Must get 3 consecutive signals to be a step loss
+              if (++sg2_detect_count == 1)
+                sg2_stop = true;
             }
+            else
+              sg2_detect_count = 0;
 
             #ifdef BEEVC_SG2_DEBUG_STEPPER_X
               // Makes sures the required conditions exist for the value to be stored, also only sets the debug flag and samples if writing
@@ -2343,7 +2349,7 @@ void Temperature::isr() {
              temp_standstill = stepperY.stst();
 
             //Triggers the endstop if the result is low and the motor is moving (REQUIRES TUNED TRHESHOLD)
-            if (temp_result == 0 && ! temp_standstill && sg2_y_limit_hit == 0)
+            if (temp_result < 100 && ! temp_standstill && sg2_x_limit_hit == 0)
             {
               stepper.endstop_triggered(Y_AXIS);
               //SBI(endstops.hit_state, Y_MAX);
