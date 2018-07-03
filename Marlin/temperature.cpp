@@ -2232,6 +2232,9 @@ void Temperature::isr() {
   #endif
 
   #ifdef BEEVC_TMC2130READSG
+
+
+
     ///////////////////////////////
     //////stallGuard2 Polling//////
     ///////////////////////////////
@@ -2253,6 +2256,10 @@ void Temperature::isr() {
         //Checks if a read is possible
         if( (READ(SDSS) && READ(DOGLCD_CS)))
         {
+
+          // Avoids any other interrupt colapsing the SPI read
+          cli();
+
           // //E
           // if(!READ(E0_ENABLE_PIN) || !READ(E1_ENABLE_PIN))
           // {
@@ -2387,6 +2394,9 @@ void Temperature::isr() {
               sg2_standstill[sg2_counter] = 1;
             }
           #endif //BEEVC_SG2_DEBUG_STEPPER_Y
+
+          // Re-enables interrupts
+          sei();
         }
         #if (ENABLED(BEEVC_SG2_DEBUG_STEPPER_Y) || ENABLED(BEEVC_SG2_DEBUG_STEPPER_X))
           // when the read was impossible
