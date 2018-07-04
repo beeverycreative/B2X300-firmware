@@ -4053,9 +4053,66 @@ void lcd_enqueue_filament_change() {
 
   #endif
 
+  ////////////    Trinamic stealth mode    //////////////
+  #ifdef HAVE_TMC2130
+  	void disable_silent_mode (void)
+    {
+      #ifdef X_IS_TMC2130
+        stepperX.stealthChop(0);
+      #endif
+      #ifdef Y_IS_TMC2130
+        stepperY.stealthChop(0);
+      #endif
+      #ifdef E0_IS_TMC2130
+        stepperE0.stealthChop(0);
+      #endif
+      #ifdef E1_IS_TMC2130
+        stepperE1.stealthChop(0);
+      #endif
+
+      // Stores the global flag
+      silent_mode = false;
+
+      // Ensures enough time for the stepper drives to stabilize
+      delay(200);
+    }
+
+    void enable_silent_mode (void)
+    {
+      #ifdef X_IS_TMC2130
+        stepperX.stealthChop(1);
+      #endif
+      #ifdef Y_IS_TMC2130
+        stepperY.stealthChop(1);
+      #endif
+      #ifdef E0_IS_TMC2130
+        stepperE0.stealthChop(1);
+      #endif
+      #ifdef E1_IS_TMC2130
+        stepperE1.stealthChop(1);
+      #endif
+
+      // Stores the global flag
+      silent_mode = true;
+
+      // Ensures enough time for the stepper drives to stabilize
+      delay(200);
+    }
+  #endif
+  ///////////////////////////////////////////////////////
+
   void lcd_control_menu() {
     START_MENU();
     MENU_BACK(MSG_MAIN);
+
+    #ifdef HAVE_TMC2130
+      if (silent_mode)
+        MENU_ITEM(function, _UxGT("Disable Silent mode"), disable_silent_mode);
+      else
+        MENU_ITEM(function, _UxGT("Enable Silent mode"), enable_silent_mode);
+    #endif
+
+
     MENU_ITEM(submenu, MSG_TEMPERATURE, lcd_control_temperature_menu);
     MENU_ITEM(submenu, MSG_MOTION, lcd_control_motion_menu);
     MENU_ITEM(submenu, MSG_FILAMENT, lcd_control_filament_menu);

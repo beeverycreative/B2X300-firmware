@@ -729,6 +729,12 @@ XYZ_CONSTS_FROM_CONFIG(signed char, home_dir, HOME_DIR);
 #endif
 ///////////////////////////////////////////////////////
 
+////////////    Trinamic stealth mode    //////////////
+#ifdef HAVE_TMC2130
+	bool silent_mode = (stepperX.stealthChop() ? true :false);
+#endif
+///////////////////////////////////////////////////////
+
 /**
  * ***************************************************************************
  * ******************************** FUNCTIONS ********************************
@@ -4106,6 +4112,8 @@ enable_all_steppers();
       stepperX.coolstep_min_speed(1024UL * 1024UL - 1UL);
       stepperX.stealthChop(0);
       restore_stealthchop_x = true;
+
+      delay(200);
     }
 
     if (stepperY.stealthChop())
@@ -4113,6 +4121,8 @@ enable_all_steppers();
       stepperY.coolstep_min_speed(1024UL * 1024UL - 1UL);
       stepperY.stealthChop(0);
       restore_stealthchop_y = true;
+
+      delay(200);
     }
 
 #endif // BEEVC_TMC2130READSG
