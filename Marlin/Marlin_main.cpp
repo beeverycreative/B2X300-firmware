@@ -4081,8 +4081,8 @@ inline void gcode_G28(const bool always_home_all) {
 enable_all_steppers();
 
 #ifdef BEEVC_TMC2130READSG
-  uint8_t temp_x_max = X_MAX_POS;
-  uint8_t temp_y_max = Y_MAX_POS;
+  uint16_t temp_x_max = X_MAX_POS - 20;
+  uint16_t temp_y_max = Y_MAX_POS - 20;
 
   // Sets homing sensitivity
   stepperX.sgt(BEEVC_TMC2130HOMESGTX);
