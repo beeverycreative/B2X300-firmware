@@ -291,6 +291,7 @@ class Temperature {
       #endif
       static uint16_t   sg2_counter;
       static bool       sg2_stop;
+      static bool       sg2_to_read;
       static bool       sg2_homing;
       static uint8_t    sg2_detect_count;
 

@@ -80,7 +80,8 @@ Temperature thermalManager;
 
   uint16_t  Temperature::sg2_counter = 0;
   bool      Temperature::sg2_stop = false;
-  bool      Temperature::sg2_homing = false; //
+  bool      Temperature::sg2_to_read = false;
+  bool      Temperature::sg2_homing = false;
   uint8_t   Temperature::sg2_detect_count = 0;
   uint16_t  Temperature::sg2_samples_remaining = 0;
   uint16_t  Temperature::sg2_samples_middle_index = 0;
@@ -2240,7 +2241,7 @@ void Temperature::isr() {
     //////stallGuard2 Polling//////
     ///////////////////////////////
     // Checks if the correct number of wait cycles has been executed
-    if (sg2_polling_wait++ == sg2_polling_wait_cycles)
+    if ((sg2_polling_wait++ >= sg2_polling_wait_cycles)  &&  (sg2_to_read))
     {
       // Restarts wait variable
       sg2_polling_wait = 0;
@@ -2300,7 +2301,6 @@ void Temperature::isr() {
             if (temp_result < 100 && ! temp_standstill && sg2_x_limit_hit == 0)
             {
               stepper.endstop_triggered(X_AXIS);
-              //SBI(endstops.hit_state, X_MIN);
               // Stops further endstop detection
               sg2_x_limit_hit = 1;
             }
@@ -2356,8 +2356,6 @@ void Temperature::isr() {
             if (temp_result < 100 && ! temp_standstill && sg2_y_limit_hit == 0)
             {
               stepper.endstop_triggered(Y_AXIS);
-              //SBI(endstops.hit_state, Y_MAX);
-              // Stops further endstop detection
               sg2_y_limit_hit = 1;
             }
 

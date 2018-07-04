@@ -4093,10 +4093,12 @@ enable_all_steppers();
   stepperY.sg_filter(false);
 
   // Turns flag off
-  thermalManager.sg2_stop = false;
+  thermalManager.sg2_stop     = false;
 
-  // Sets homing flag
-  thermalManager.sg2_homing = true;
+  // Sets homing and stallGuard2 reading flag
+  thermalManager.sg2_homing   = true;
+  thermalManager.sg2_to_read  = true;
+
 #endif // BEEVC_TMC2130READSG
 
   #if ENABLED(DEBUG_LEVELING_FEATURE)
@@ -4332,17 +4334,19 @@ enable_all_steppers();
   #endif
 
   #ifdef BEEVC_TMC2130READSG
-    #ifdef BEEVS_TMC2130STEPLOSS
-      thermalManager.sg2_polling_wait_cycles = 5; // Sets the read speed to normal to allow stall detect
-    #else
-      thermalManager.sg2_polling_wait_cycles = 255; // Sets the read speed to minimum to avoid stalling
+
+    #ifndef BEEVS_TMC2130STEPLOSS
+      // Stops further stallGuard2 status reading if step loss detection is inactive
+      thermalManager.sg2_to_read  = false;
     #endif
+
+      thermalManager.sg2_polling_wait_cycles = 5; // Sets the read speed to normal to allow stall detect
 
     // Sets printing sensitivity
     stepperX.sgt(BEEVC_TMC2130STEPLOSSSGT);
     stepperY.sgt(BEEVC_TMC2130STEPLOSSSGT);
 
-    // Turns flag off
+    // Resets flags after homing
     thermalManager.sg2_stop = false;
     thermalManager.sg2_homing = false;
 
