@@ -1201,8 +1201,7 @@
    * }
    */
   #define  TMC_ADV() { \
-    stepperX.sgt(X_HOMING_SENSITIVITY); \
-    stepperY.sgt(Y_HOMING_SENSITIVITY); \
+    stepperZ.stealthChop(1);\
     }
 
 #endif // TMC2130 || TMC2208
