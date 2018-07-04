@@ -16115,8 +16115,6 @@ void setup() {
 
 	#endif
 	///////////////////////////////////////////////////////
-
-  uint32_t readLoss = millis() +500;
 }
 
 #ifdef BEEVC_Restore
