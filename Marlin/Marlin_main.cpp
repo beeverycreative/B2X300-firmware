@@ -4083,6 +4083,7 @@ enable_all_steppers();
 #ifdef BEEVC_TMC2130READSG
   uint16_t temp_x_max = X_MAX_POS - 20;
   uint16_t temp_y_max = Y_MAX_POS - 20;
+  bool restore_stealthchop_x = false, restore_stealthchop_y = false;
 
   // Sets homing sensitivity
   stepperX.sgt(BEEVC_TMC2130HOMESGTX);
@@ -4098,6 +4099,21 @@ enable_all_steppers();
   // Sets homing and stallGuard2 reading flag
   thermalManager.sg2_homing   = true;
   thermalManager.sg2_to_read  = true;
+
+  // Sets spreadCycle if it was not already in use (otherwise stallGuard2 values cant be read)
+    if (stepperX.stealthChop())
+    {
+      stepperX.coolstep_min_speed(1024UL * 1024UL - 1UL);
+      stepperX.stealthChop(0);
+      restore_stealthchop_x = true;
+    }
+
+    if (stepperY.stealthChop())
+    {
+      stepperY.coolstep_min_speed(1024UL * 1024UL - 1UL);
+      stepperY.stealthChop(0);
+      restore_stealthchop_y = true;
+    }
 
 #endif // BEEVC_TMC2130READSG
 
@@ -4353,6 +4369,20 @@ enable_all_steppers();
     // Enable stallGuard2 filter for a consistent reading
     stepperX.sg_filter(true);
     stepperY.sg_filter(true);
+
+    // Restores stealthChop if it was active
+    if (restore_stealthchop_x)
+    {
+      stepperX.coolstep_min_speed(0);
+      stepperX.stealthChop(1);
+    }
+
+    if (restore_stealthchop_y)
+    {
+      stepperY.coolstep_min_speed(0);
+      stepperY.stealthChop(1);
+    }
+
 
   #endif // BEEVC_TMC2130READSG
 

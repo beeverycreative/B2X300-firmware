@@ -183,11 +183,13 @@
     st.hysterisis_start(3);
     st.hysterisis_end(2);
     st.diag1_active_high(1); // For sensorless homing
+
+    st.stealth_freq(1); // f_pwm = 2/683 f_clk
+    st.stealth_autoscale(1);
+    st.stealth_gradient(5);
+    st.stealth_amplitude(255);
+
     #if ENABLED(STEALTHCHOP)
-      st.stealth_freq(1); // f_pwm = 2/683 f_clk
-      st.stealth_autoscale(1);
-      st.stealth_gradient(5);
-      st.stealth_amplitude(255);
       st.stealthChop(1);
       #if ENABLED(HYBRID_THRESHOLD)
         st.stealth_max_speed(12650000UL*microsteps/(256*thrs*spmm));
@@ -535,4 +537,3 @@
   }
 
 #endif // HAVE_L6470DRIVER
-
