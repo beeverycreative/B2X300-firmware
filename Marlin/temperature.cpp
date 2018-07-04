@@ -2233,7 +2233,8 @@ void Temperature::isr() {
 
   #ifdef BEEVC_TMC2130READSG
 
-
+  // Avoids any other interrupt colapsing the SPI read
+  cli();
 
     ///////////////////////////////
     //////stallGuard2 Polling//////
@@ -2256,10 +2257,6 @@ void Temperature::isr() {
         //Checks if a read is possible
         if( (READ(SDSS) && READ(DOGLCD_CS)))
         {
-
-          // Avoids any other interrupt colapsing the SPI read
-          cli();
-
           // //E
           // if(!READ(E0_ENABLE_PIN) || !READ(E1_ENABLE_PIN))
           // {
@@ -2308,7 +2305,7 @@ void Temperature::isr() {
               sg2_x_limit_hit = 1;
             }
             // Checks for step loss
-            else if (temp_result < 50 && ! temp_standstill && IS_SD_PRINTING)
+            else if (temp_result < 30 && ! temp_standstill && IS_SD_PRINTING)
             {
               // Must get 3 consecutive signals to be a step loss
               if (++sg2_detect_count == 1)
@@ -2356,7 +2353,7 @@ void Temperature::isr() {
              temp_standstill = stepperY.stst();
 
             //Triggers the endstop if the result is low and the motor is moving (REQUIRES TUNED TRHESHOLD)
-            if (temp_result < 100 && ! temp_standstill && sg2_x_limit_hit == 0)
+            if (temp_result < 100 && ! temp_standstill && sg2_y_limit_hit == 0)
             {
               stepper.endstop_triggered(Y_AXIS);
               //SBI(endstops.hit_state, Y_MAX);
@@ -2395,8 +2392,7 @@ void Temperature::isr() {
             }
           #endif //BEEVC_SG2_DEBUG_STEPPER_Y
 
-          // Re-enables interrupts
-          sei();
+
         }
         #if (ENABLED(BEEVC_SG2_DEBUG_STEPPER_Y) || ENABLED(BEEVC_SG2_DEBUG_STEPPER_X))
           // when the read was impossible
@@ -2433,6 +2429,10 @@ void Temperature::isr() {
         #endif // ENABLED(BEEVC_SG2_DEBUG_STEPPER_Y) || NABLED(BEEVC_SG2_DEBUG_STEPPER_X)
       }
     ///////////////////////////////
+
+    // Re-enables interrupts
+    sei();
+
   #endif //BEEVC_TMC2130READSG
 
   cli();

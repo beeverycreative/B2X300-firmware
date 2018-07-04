@@ -4085,8 +4085,8 @@ enable_all_steppers();
   uint8_t temp_y_max = Y_MAX_POS;
 
   // Sets homing sensitivity
-  stepperX.sgt(BEEVC_TMC2130HOMESGT);
-  stepperY.sgt(BEEVC_TMC2130HOMESGT);
+  stepperX.sgt(BEEVC_TMC2130HOMESGTX);
+  stepperY.sgt(BEEVC_TMC2130HOMESGTY);
 
   // Disables stallGuard2 filter for maximum time precision
   stepperX.sg_filter(false);
@@ -4254,8 +4254,6 @@ enable_all_steppers();
         #ifdef BEEVC_TMC2130READSG
           // Moves Y a little away from limit to avoid eroneous detections
           do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] <=temp_y_max ? current_position[Y_AXIS]-20 : current_position[Y_AXIS]),25);
-
-
           thermalManager.sg2_y_limit_hit = 0;
         #endif // BEEVC_TMC2130READSG
 
@@ -4265,7 +4263,7 @@ enable_all_steppers();
         #endif
 
         #ifdef BEEVC_TMC2130READSG
-        thermalManager.sg2_x_limit_hit = 1;
+        thermalManager.sg2_y_limit_hit = 1;
         #endif // BEEVC_TMC2130READSG
       }
     #endif
@@ -4334,7 +4332,11 @@ enable_all_steppers();
   #endif
 
   #ifdef BEEVC_TMC2130READSG
-    thermalManager.sg2_polling_wait_cycles = 5; // Sets the read speed to normal to allow stall detect
+    #ifdef BEEVS_TMC2130STEPLOSS
+      thermalManager.sg2_polling_wait_cycles = 5; // Sets the read speed to normal to allow stall detect
+    #else
+      thermalManager.sg2_polling_wait_cycles = 255; // Sets the read speed to minimum to avoid stalling
+    #endif
 
     // Sets printing sensitivity
     stepperX.sgt(BEEVC_TMC2130STEPLOSSSGT);
@@ -4589,7 +4591,11 @@ void home_all_axes() { gcode_G28(true); }
 		tool_change(extruderNumber);
 
     #ifdef BEEVC_TMC2130READSG
-    thermalManager.sg2_polling_wait_cycles = 5; // Restores the polling frequency to normal 200Hz to allow step loss detection
+      #ifdef BEEVS_TMC2130STEPLOSS
+        thermalManager.sg2_polling_wait_cycles = 5; // Sets the read speed to normal to allow stall detect
+      #else
+        thermalManager.sg2_polling_wait_cycles = 255; // Sets the read speed to minimum to avoid stalling
+      #endif
     #endif // BEEVC_TMC2130READSG
 
   }
