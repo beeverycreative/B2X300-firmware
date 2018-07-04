@@ -860,8 +860,13 @@ void kill_screen(const char* lcd_msg) {
 	  lcd_setstatusPGM(PSTR(MSG_PRINT_ABORTED), -1);
       lcd_return_to_status();
 
+    // Lifts the Z axis a bit to avoid colisions with bed springs
+    enqueue_and_echo_commands_P(PSTR("G91"));
+    enqueue_and_echo_commands_P(PSTR("G1 Z5"));
+    enqueue_and_echo_commands_P(PSTR("G90"));
+
 	  // Moves X and Y so the nozzle doesn't stick to the printed part
-	  enqueue_and_echo_commands_P(PSTR("G1 X-100 Y300 F3000"));
+	  enqueue_and_echo_commands_P(PSTR("G1 X-10 Y300 F3000"));
 
 	  // Ensures the steppers are disabled
 	  enqueue_and_echo_commands_P(PSTR("M84"));
