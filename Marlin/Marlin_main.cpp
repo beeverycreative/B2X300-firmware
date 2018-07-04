@@ -4210,7 +4210,7 @@ enable_all_steppers();
     if (home_all || homeX) {
       #ifdef BEEVC_TMC2130READSG
         // Moves X a little away from limit to avoid eroneous detections
-        do_blocking_move_to_xy((current_position[X_AXIS] <temp_x_max ? current_position[X_AXIS]+20 : current_position[X_AXIS]),current_position[Y_AXIS],25);
+        do_blocking_move_to_xy((current_position[X_AXIS] < temp_x_max ? current_position[X_AXIS]+20 : current_position[X_AXIS]),current_position[Y_AXIS],25);
 
         thermalManager.sg2_x_limit_hit = 0;
       #endif // BEEVC_TMC2130READSG
@@ -4255,7 +4255,7 @@ enable_all_steppers();
 
         #ifdef BEEVC_TMC2130READSG
           // Moves Y a little away from limit to avoid eroneous detections
-          do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] <=temp_y_max ? current_position[Y_AXIS]-20 : current_position[Y_AXIS]),25);
+          do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] < temp_y_max ? current_position[Y_AXIS]-20 : current_position[Y_AXIS]),25);
           thermalManager.sg2_y_limit_hit = 0;
         #endif // BEEVC_TMC2130READSG
 
@@ -11229,6 +11229,7 @@ inline void gcode_M502() {
   inline void gcode_M916() {
     #if ENABLED(X_IS_TMC2130)
       if (parser.seen(axis_codes[X_AXIS]))
+      {
         if(parser.value_bool())
           //stealthChop
           {
@@ -11245,11 +11246,13 @@ inline void gcode_M502() {
             stepperX.stealthChop(0);
             SERIAL_ECHOLNPGM("\nX axis is now using spreadCycle");
           }
+      }  
     #endif
 
     // Y axis
     #if ENABLED(Y_IS_TMC2130)
       if (parser.seen(axis_codes[Y_AXIS]))
+      {
         if(parser.value_bool())
         {
           stepperY.stealth_freq(1); // f_pwm = 2/683 f_clk
@@ -11260,16 +11263,18 @@ inline void gcode_M502() {
           SERIAL_ECHOLNPGM("\nY axis is now using stealthChop");
         }
         //spreadCycle
-      else
+        else
         {
           stepperY.stealthChop(0);
           SERIAL_ECHOLNPGM("\nY axis is now using spreadCycle");
         }
+      }
     #endif
 
     // Z axis
     #if ENABLED(Z_IS_TMC2130)
       if (parser.seen(axis_codes[Z_AXIS]))
+      {
         if(parser.value_bool())
         {
           stepperZ.stealth_freq(1); // f_pwm = 2/683 f_clk
@@ -11280,11 +11285,12 @@ inline void gcode_M502() {
           SERIAL_ECHOLNPGM("\nZ axis is now using stealthChop");
         }
         //spreadCycle
-      else
+        else
         {
           stepperZ.stealthChop(0);
           SERIAL_ECHOLNPGM("\nZ axis is now using spreadCycle");
         }
+      }
     #endif
 
     // E0 axis
