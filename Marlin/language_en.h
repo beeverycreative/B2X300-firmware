@@ -569,10 +569,10 @@
   #define MSG_ESTEPS                          _UxGT("Esteps/mm")
 #endif
 #ifndef MSG_E1STEPS
-  #define MSG_E1STEPS                         _UxGT("E1steps/mm")
+  #define MSG_E1STEPS                         _UxGT("E0steps/mm")
 #endif
 #ifndef MSG_E2STEPS
-  #define MSG_E2STEPS                         _UxGT("E2steps/mm")
+  #define MSG_E2STEPS                         _UxGT("E1steps/mm")
 #endif
 #ifndef MSG_E3STEPS
   #define MSG_E3STEPS                         _UxGT("E3steps/mm")

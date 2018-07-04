@@ -7848,7 +7848,7 @@ inline void gcode_M104() {
     #endif
 
     if (parser.value_celsius() > thermalManager.degHotend(target_extruder))
-      lcd_status_printf_P(0, PSTR("E%i %s"), target_extruder + 1, MSG_HEATING);
+      lcd_status_printf_P(0, PSTR("E%i %s"), target_extruder, MSG_HEATING);
   }
 
   #if ENABLED(AUTOTEMP)
@@ -8005,7 +8005,7 @@ inline void gcode_M109() {
         print_job_timer.start();
     #endif
 
-    if (thermalManager.isHeatingHotend(target_extruder)) lcd_status_printf_P(0, PSTR("E%i %s"), target_extruder + 1, MSG_HEATING);
+    if (thermalManager.isHeatingHotend(target_extruder)) lcd_status_printf_P(0, PSTR("E%i %s"), target_extruder, MSG_HEATING);
   }
   else return;
 
@@ -11246,7 +11246,7 @@ inline void gcode_M502() {
             stepperX.stealthChop(0);
             SERIAL_ECHOLNPGM("\nX axis is now using spreadCycle");
           }
-      }  
+      }
     #endif
 
     // Y axis
