@@ -731,7 +731,7 @@ XYZ_CONSTS_FROM_CONFIG(signed char, home_dir, HOME_DIR);
 
 ////////////    Trinamic stealth mode    //////////////
 #ifdef HAVE_TMC2130
-	bool silent_mode = (stepperX.stealthChop() ? true :false);
+	bool silent_mode = false;
 #endif
 ///////////////////////////////////////////////////////
 
