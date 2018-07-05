@@ -67,7 +67,7 @@ void manage_inactivity(bool ignore_stepper_queue = false);
 
 ////////////    Trinamic stealth mode    //////////////
 #ifdef HAVE_TMC2130
-	extern bool silent_mode;
+	extern uint8_t silent_mode;
 #endif
 ///////////////////////////////////////////////////////
 
