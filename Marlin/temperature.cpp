@@ -70,6 +70,7 @@ Temperature thermalManager;
 
 #ifdef BEEVC_TMC2130READSG
   //// stallGuard2 polling /////
+  #define SPI_DRV_STATUS 0x6F
 
   // Only available when debugging
   #ifdef BEEVC_SG2_DEBUG_SAMPLES
@@ -78,19 +79,21 @@ Temperature thermalManager;
     bool Temperature::sg2_standstill[BEEVC_SG2_DEBUG_SAMPLES] = {0};
   #endif // BEEVC_SG2_DEBUG_SAMPLES
 
-  uint16_t  Temperature::sg2_counter = 0;
-  bool      Temperature::sg2_stop = false;
-  bool      Temperature::sg2_to_read = false;
-  bool      Temperature::sg2_homing = false;
-  uint8_t   Temperature::sg2_detect_count = 0;
-  uint16_t  Temperature::sg2_samples_remaining = 0;
+  uint16_t  Temperature::sg2_counter              = 0;
+  bool      Temperature::sg2_stop                 = false;
+  bool      Temperature::sg2_to_read              = false;
+  bool      Temperature::sg2_homing               = false;
+  bool      Temperature::sg2_runout               = false;
+  uint16_t  Temperature::sg2_e_average            = 0;
+  uint8_t   Temperature::sg2_detect_count         = 0;
+  uint16_t  Temperature::sg2_samples_remaining    = 0;
   uint16_t  Temperature::sg2_samples_middle_index = 0;
 
   //end_stops
   // Pre-set to 1 so no false detections are made when not homing
-  bool Temperature::sg2_x_limit_hit = 1;
-  bool Temperature::sg2_y_limit_hit = 1;
-  bool Temperature::sg2_z_limit_hit = 1;
+  bool      Temperature::sg2_x_limit_hit          = 1;
+  bool      Temperature::sg2_y_limit_hit          = 1;
+  bool      Temperature::sg2_z_limit_hit          = 1;
 
   //This number indicate how many cycles should it wait between polling
     /*stallGuard2 Polling frequency depends on the wait cycles value/////
@@ -107,8 +110,250 @@ Temperature thermalManager;
     *             9           |    97.6563
     */
   uint8_t Temperature::sg2_polling_wait = 0;
-  uint8_t Temperature::sg2_polling_wait_cycles = 5; //163HZ reading for stepp loss
+  uint8_t Temperature::sg2_polling_wait_cycles = 0; //163HZ reading for stepp loss
   //////////////////////////////
+
+  // Axuiliary binary print functions
+void print_binary8(uint8_t data) {
+  for (int j = 0; j <8; j++)
+  {
+    SERIAL_ECHO((data & (0b10000000 >> j)) >> (7-j) );
+  }
+}
+
+void println_binary8(uint8_t data) {
+  print_binary8(data);
+  SERIAL_ECHO("\n");
+}
+
+
+  void tmc_start_spi (void)
+  {
+    // Set MOSI, SCK as Output
+    DDRB=(1 << 2)|(1 << 1);
+
+    // Sets SPI speed to 4Mhz and SPI mode to 3 as Master
+    SPCR = (1 << SPE) | (1 << MSTR) | (1 << CPOL) | (1 << CPHA);
+
+    // Sets the stepper driver ports as output
+    // X
+    DDRD |= (1 << 7);
+    DDRF |= (1 << 5);
+    // Y
+    DDRF |= (1 << 2);
+    DDRK |= (1 << 2);
+    // E0
+    DDRA |= (1 << 2);
+    DDRL |= (1 << 7);
+
+    // Pull the CS lines high
+    // X
+    PORTF |= (1 << 5);
+    // Y
+    PORTK |= (1 << 2);
+    // E0
+    PORTL |= (1 << 7);
+  }
+
+  void tmc_read_atomic_all (uint8_t *output) {
+  // Toggles the timing port on
+  #ifdef DEBUG_SPI_TOGGLE_PIN_COMMAND
+    PORTG |= (1 << 5);
+  #endif
+
+  //tmc_start_spi();
+
+  // X
+  if(!READ(X_ENABLE_PIN)) {
+    // Pulls X CS line low
+    PORTF &= ~(1 << 5);
+
+    // Send address and receives the SPI_STATUS
+    // Load data into the buffer
+    SPDR = SPI_DRV_STATUS;
+    //Wait until transmission complete
+    while(!(SPSR & (1<<SPIF) ));
+
+    // Receive the first package;
+    SPDR = 0;
+    //Wait until transmission complete
+    while(!(SPSR & (1<<SPIF) ));
+    output[0] = SPDR;
+
+    // Receive the second package;
+    SPDR = 0;
+    //Wait until transmission complete
+    while(!(SPSR & (1<<SPIF) ));
+    output[1] = SPDR;
+
+    // Receive the third package;
+    SPDR = 0;
+    //Wait until transmission complete
+    while(!(SPSR & (1<<SPIF) ));
+    output[2] = SPDR;
+
+    // Receive the fourth package;
+    SPDR = 0;
+    //Wait until transmission complete
+    while(!(SPSR & (1<<SPIF) ));
+    output[3] = SPDR;
+
+    // SERIAL_ECHO("X:");
+    // println_binary8(output[3]);
+
+    // Pulls X CS line high
+    PORTF |= (1 << 5);
+    }
+  else{
+    output[0] = 0xFF;
+    output[1] = 0x00;
+    output[2] = 0x00;
+    output[3] = 0x00;
+  }
+
+  // Y
+  if(!READ(Y_ENABLE_PIN)) {
+    // Pulls Y CS line low
+    PORTK &= ~(1 << 2);
+    // Send address and receives the SPI_STATUS
+    // Load data into the buffer
+    SPDR = SPI_DRV_STATUS;
+    //Wait until transmission complete
+    while(!(SPSR & (1<<SPIF) ));
+
+    // Receive the first package;
+    SPDR = 0;
+    //Wait until transmission complete
+    while(!(SPSR & (1<<SPIF) ));
+    output[4] = SPDR;
+
+    // Receive the second package;
+    SPDR = 0;
+    //Wait until transmission complete
+    while(!(SPSR & (1<<SPIF) ));
+    output[5] = SPDR;
+
+    // Receive the third package;
+    SPDR = 0;
+    //Wait until transmission complete
+    while(!(SPSR & (1<<SPIF) ));
+    output[6] = SPDR;
+
+    // Receive the fourth package;
+    SPDR = 0;
+    //Wait until transmission complete
+    while(!(SPSR & (1<<SPIF) ));
+    output[7] = SPDR;
+
+    // SERIAL_ECHO("Y:");
+    // println_binary8(output[7]);
+
+    // Pulls Y CS line high
+    PORTK |= (1 << 2);
+    }
+  else{
+    output[4] = 0xFF;
+    output[5] = 0x00;
+    output[6] = 0x00;
+    output[7] = 0x00;
+  }
+
+  if(active_extruder == 0) {
+    if(!READ(E0_ENABLE_PIN)) {
+      // E0
+        // Pulls E0 CS line low
+        PORTL &= ~(1 << 7);
+        // Send address and receives the SPI_STATUS
+        // Load data into the buffer
+        SPDR = SPI_DRV_STATUS;
+        //Wait until transmission complete
+        while(!(SPSR & (1<<SPIF) ));
+
+        // Receive the first package;
+        SPDR = 0;
+        //Wait until transmission complete
+        while(!(SPSR & (1<<SPIF) ));
+        output[8] = SPDR;
+
+        // Receive the second package;
+        SPDR = 0;
+        //Wait until transmission complete
+        while(!(SPSR & (1<<SPIF) ));
+        output[9] = SPDR;
+
+        // Receive the third package;
+        SPDR = 0;
+        //Wait until transmission complete
+        while(!(SPSR & (1<<SPIF) ));
+        output[10] = SPDR;
+
+        // Receive the fourth package;
+        SPDR = 0;
+        //Wait until transmission complete
+        while(!(SPSR & (1<<SPIF) ));
+        output[11] = SPDR;
+
+        // Pulls E0 CS line high
+        PORTL |= (1 << 7);
+    }
+    else{
+      output[8] = 0xFF;
+      output[9] = 0x00;
+      output[10] = 0x00;
+      output[11] = 0x00;
+    }
+  }
+
+  else if(!READ(E1_ENABLE_PIN)) {
+    // E1
+      // Pulls E1 CS line low
+      PORTK &= ~(1 << 3);
+      // Send address and receives the SPI_STATUS
+      // Load data into the buffer
+      SPDR = SPI_DRV_STATUS;
+      //Wait until transmission complete
+      while(!(SPSR & (1<<SPIF) ));
+
+      // Receive the first package;
+      SPDR = 0;
+      //Wait until transmission complete
+      while(!(SPSR & (1<<SPIF) ));
+      output[8] = SPDR;
+
+      // Receive the second package;
+      SPDR = 0;
+      //Wait until transmission complete
+      while(!(SPSR & (1<<SPIF) ));
+      output[9] = SPDR;
+
+      // Receive the third package;
+      SPDR = 0;
+      //Wait until transmission complete
+      while(!(SPSR & (1<<SPIF) ));
+      output[10] = SPDR;
+
+      // Receive the fourth package;
+      SPDR = 0;
+      //Wait until transmission complete
+      while(!(SPSR & (1<<SPIF) ));
+      output[11] = SPDR;
+
+      // Pulls E1 CS line high
+      PORTK |= (1 << 3);
+  }
+  else{
+    output[8] = 0xFF;
+    output[9] = 0x00;
+    output[10] = 0x00;
+    output[11] = 0x00;
+  }
+
+  // Toggles the timing port off
+  #ifdef DEBUG_SPI_TOGGLE_PIN_COMMAND
+    PORTG &= ~(1 << 5);
+  #endif
+  }
+
 #endif //BEEVC_TMC2130READSG
 
 
@@ -2232,10 +2477,8 @@ void Temperature::isr() {
     }
   #endif
 
-  #ifdef BEEVC_TMC2130READSG
 
-  // Avoids any other interrupt colapsing the SPI read
-  cli();
+  #ifdef BEEVC_TMC2130READSG
 
     ///////////////////////////////
     //////stallGuard2 Polling//////
@@ -2246,191 +2489,114 @@ void Temperature::isr() {
       // Restarts wait variable
       sg2_polling_wait = 0;
 
-      #if ( ENABLED(BEEVC_SG2_DEBUG_STEPPER_X) || ENABLED(BEEVC_SG2_DEBUG_STEPPER_Y) || ENABLED(BEEVC_SG2_DEBUG_STEPPER_E))
-        // Sets a flag if the read values are to be stored
-        bool to_write = !sg2_stop || (sg2_samples_remaining > 1);
-      #endif // BEEVC_SG2_DEBUG_STEPPER_X or Y or E
-
       // Temporary variables
-      uint16_t temp_result;
-      bool temp_standstill;
+      uint8_t status[12]  = {};
 
         //Checks if a read is possible
-        if( (READ(SDSS) && READ(DOGLCD_CS)))
+        if( READ(SDSS) && READ(DOGLCD_CS))
         {
-          // //E
-          // if(!READ(E0_ENABLE_PIN) || !READ(E1_ENABLE_PIN))
+
+          // Reads the data for all 3 stepper drivers X Y E
+          tmc_read_atomic_all(status);
+
+          // DEBUG
+          //SERIAL_ECHO("X:");
+          // print_binary8(((status[0] & 0b10000000)>> 7));
+          //
+          // SERIAL_ECHO("Y:");
+          // print_binary8(((status[4] & 0b10000000)>> 7));
+          // if (!((status[0] & 0b10000000)>> 7))
           // {
-          //   //
-          //   if(active_extruder)
+          //   if (((status[2] & 0b00000011) == 0 ) && (status[3] < 100))
           //   {
-          //     sg2_result[sg2_counter] = stepperE1.sg_result();
-          //     sg2_value[sg2_counter] = stepperE1.stallguard();
+          //     if (status[3] == 0)
+          //       SERIAL_ECHO("O");
+          //     else
+          //       SERIAL_ECHO("X");
           //   }
-          //   else
-          //   {
-          //     sg2_result[sg2_counter] = stepperE0.sg_result();
-          //     sg2_value[sg2_counter] = stepperE0.stallguard();
-          //   }
+          // }
           //
-          //
-          //   /*
-          //   *Activates the SG2_stop flag, calculates how many more samples will be
-          //   *be saved so that half the samples are after and half before the event
-          //   *Also stores the index at which the flag was set
-          //   */
-          //   // This uses just the flag to signal the stop
-          //   if ((! sg2_value[sg2_counter]) && !sg2_stop)
-          //   // This uses just the result to activate stop
-          //   //if (( sg2_result[sg2_counter-1] <80) && !sg2_stop)
+          // if (!((status[4] & 0b10000000)>> 7))
+          // {
+          //   if (((status[6] & 0b00000011) == 0 ) && (status[7] < 150))
           //   {
-          //     sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
-          //     sg2_samples_middle_index = sg2_counter;
-          //     sg2_stop = true;
+          //     if (status[7] == 0)
+          //       SERIAL_ECHO("U");
+          //     else
+          //       SERIAL_ECHO("Y");
           //   }
           // }
 
-          //X
-          if(!READ(X_ENABLE_PIN))
-          {
-            //Reads the values
-             temp_result = (stepperX.sg_result() & 0b0000001111111111);
-             temp_standstill = stepperX.stst();
+          //SERIAL_ECHO("Y:");
+          //print_binary8(status[7]);
 
-            //Triggers the endstop if the result is low and the motor is moving (REQUIRES TUNED TRHESHOLD)
-            if (temp_result < 100 && ! temp_standstill && sg2_x_limit_hit == 0)
+          //SERIAL_ECHOLN(status[3]);
+          //SERIAL_ECHOLN(status[7]);
+
+          // Sensorless homing
+          if(sg2_homing)
+          {
+            // X
+            if ( ((status[2] & 0b00000011) == 0 ) && (status[3] < 50) && !((status[0] & 0b10000000)>> 7) && (sg2_x_limit_hit == 0))
             {
               stepper.endstop_triggered(X_AXIS);
               // Stops further endstop detection
               sg2_x_limit_hit = 1;
             }
-            // Checks for step loss
-            else if (temp_result < 30 && ! temp_standstill && IS_SD_PRINTING)
-            {
-              // Must get 3 consecutive signals to be a step loss
-              if (++sg2_detect_count == 1)
-                sg2_stop = true;
-            }
-            else
-              sg2_detect_count = 0;
 
-            #ifdef BEEVC_SG2_DEBUG_STEPPER_X
-              // Makes sures the required conditions exist for the value to be stored, also only sets the debug flag and samples if writing
-              if (to_write)
-              {
-                sg2_result[sg2_counter] = temp_result;
-                sg2_standstill[sg2_counter] = temp_standstill;
-                sg2_value[sg2_counter] = stepperX.stallguard();
-              }
-
-            /*Activates the SG2_stop flag, calculates how many more samples will be
-            *be saved so that half the samples are after and half before the event
-            *Also stores the index at which the flag was set*/
-            // This uses just the result to activate stop
-            if( !sg2_stop && sg2_result[sg2_counter] == 0 && !sg2_standstill[sg2_counter])
-            {
-                sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
-                sg2_samples_middle_index = sg2_counter;
-                sg2_stop = true;
-            }
-            #endif //BEEVC_SG2_DEBUG_STEPPER_X
-          }
-          #ifdef BEEVC_SG2_DEBUG_STEPPER_X
-            // Result when read was possible but the X motor is off
-            else if(to_write)
-            {
-              sg2_result[sg2_counter] = 333;
-              sg2_value[sg2_counter] = 0;
-              sg2_standstill[sg2_counter] = 1;
-            }
-          #endif //BEEVC_SG2_DEBUG_STEPPER_X
-          //Y
-
-          if(!READ(Y_ENABLE_PIN))
-          {
-            //Reads the values
-             temp_result = (stepperY.sg_result() & 0b0000001111111111);
-             temp_standstill = stepperY.stst();
-
-            //Triggers the endstop if the result is low and the motor is moving (REQUIRES TUNED TRHESHOLD)
-            if (temp_result < 100 && ! temp_standstill && sg2_y_limit_hit == 0)
+            // Y
+            if ( ((status[6] & 0b00000011) == 0 ) && (status[7] < 60) && !((status[4] & 0b10000000)>> 7) && (sg2_y_limit_hit == 0))
             {
               stepper.endstop_triggered(Y_AXIS);
+              // Stops further endstop detection
               sg2_y_limit_hit = 1;
             }
+          }
 
-            #ifdef BEEVC_SG2_DEBUG_STEPPER_Y
-              // Makes sures the required conditions exist for the value to be stored
-              if (to_write)
+
+          else
+          {
+            if (IS_SD_PRINTING && !sg2_stop )
+            {
+              // Step loss detection
+              if ((((status[2] & 0b00000011) == 0 ) && (status[3] == 0) && !((status[0] & 0b10000000)>> 7)) || (((status[6] & 0b00000011) == 0 ) && (status[7] == 0) && !(status[4] & 0b010000000)))
               {
-                sg2_result[sg2_counter] = temp_result;
-                sg2_standstill[sg2_counter] = temp_standstill;
-                sg2_value[sg2_counter] = stepperY.stallguard();
+                // // Must get 3 consecutive signals to be a step loss
+                // if (++sg2_detect_count == 2)
+                  sg2_stop = true;
+                  SERIAL_ECHO("\n ---!!!!PANIC!!!!----");
+              }
+              // else
+              //   sg2_detect_count = 0;
+
+              // Filament runout/Traccion loss
+              if(!((status[8] & 0b10000000)>> 7))
+              {
+                // Checks if it is extruding
+                if(((active_extruder == 0) && READ(E0_DIR_PIN)) || ((active_extruder == 1) && READ(E1_DIR_PIN)))
+                sg2_e_average = (4* sg2_e_average + (((status[10] & 0b00000011)<< 2) | status[11])) /5;
+
+                if (sg2_e_average > 700)
+                  {
+                    sg2_runout = true;
+                    // Reset average
+                    sg2_e_average = 0;
+                  }
+
               }
 
-            /*Activates the SG2_stop flag, calculates how many more samples will be
-            *be saved so that half the samples are after and half before the event
-            *Also stores the index at which the flag was set*/
-            // This uses just the result to activate stop
-            if( !sg2_stop && sg2_result[sg2_counter] == 0 && !sg2_standstill[sg2_counter])
-            {
-                sg2_samples_remaining = BEEVC_SG2_DEBUG_HALF_SAMPLES;
-                sg2_samples_middle_index = sg2_counter;
-                sg2_stop = true;
             }
-            #endif //BEEVC_SG2_DEBUG_STEPPER_Y
+
           }
-          #ifdef BEEVC_SG2_DEBUG_STEPPER_Y
-            // Result when read was possible but the Y motor is off
-            else if(to_write)
-            {
-              sg2_result[sg2_counter] = 333;
-              sg2_value[sg2_counter] = 0;
-              sg2_standstill[sg2_counter] = 1;
-            }
-          #endif //BEEVC_SG2_DEBUG_STEPPER_Y
+          if((((status[2] & 0b00000011) == 0 ) && (status[3] == 0) && !((status[0] & 0b10000000)>> 7)))
+            SERIAL_ECHO("\nX\n");
 
-
+          if((((status[6] & 0b00000011) == 0 ) && (status[7] == 0) && !((status[4] & 0b10000000)>> 7)))
+            SERIAL_ECHO("\nY\n");
         }
-        #if (ENABLED(BEEVC_SG2_DEBUG_STEPPER_Y) || ENABLED(BEEVC_SG2_DEBUG_STEPPER_X))
-          // when the read was impossible
-          else if(to_write)
-          {
-            // Sets debug values
-            if (!READ(SDSS))
-            {
-              sg2_result[sg2_counter] = 999;
-              sg2_standstill[sg2_counter] = 1;
-            }
-
-            if (!READ(DOGLCD_CS))
-            {
-              sg2_result[sg2_counter] = 666;
-              sg2_standstill[sg2_counter] = 1;
-            }
-            sg2_value[sg2_counter] = 0;
-          }
-
-          if(to_write)
-          {
-            //Decreases the ammount of remaining samples after stop
-            if (sg2_samples_remaining > 1)
-              sg2_samples_remaining --;
-
-            //Increments the counter
-            sg2_counter++;
-
-            //Resets the counter if it is full
-            if(sg2_counter == BEEVC_SG2_DEBUG_SAMPLES)
-              sg2_counter = 0;
-          }
-        #endif // ENABLED(BEEVC_SG2_DEBUG_STEPPER_Y) || NABLED(BEEVC_SG2_DEBUG_STEPPER_X)
       }
+
     ///////////////////////////////
-
-    // Re-enables interrupts
-    sei();
-
   #endif //BEEVC_TMC2130READSG
 
   cli();

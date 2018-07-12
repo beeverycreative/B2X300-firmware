@@ -293,6 +293,8 @@ class Temperature {
       static bool       sg2_stop;
       static bool       sg2_to_read;
       static bool       sg2_homing;
+      static bool       sg2_runout;
+      static uint16_t   sg2_e_average;
       static uint8_t    sg2_detect_count;
 
       static bool       sg2_x_limit_hit;

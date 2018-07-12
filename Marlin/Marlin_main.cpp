@@ -4099,9 +4099,6 @@ enable_all_steppers();
   stepperX.sg_filter(false);
   stepperY.sg_filter(false);
 
-  // Turns flag off
-  thermalManager.sg2_stop     = false;
-
   // Sets homing and stallGuard2 reading flag
   thermalManager.sg2_homing   = true;
   thermalManager.sg2_to_read  = true;
@@ -4366,7 +4363,7 @@ enable_all_steppers();
       thermalManager.sg2_to_read  = false;
     #endif
 
-      thermalManager.sg2_polling_wait_cycles = 5; // Sets the read speed to normal to allow stall detect
+      //thermalManager.sg2_polling_wait_cycles = 5; // Sets the read speed to normal to allow stall detect
 
     // Sets printing sensitivity
     stepperX.sgt(BEEVC_TMC2130STEPLOSSSGT);
@@ -4477,7 +4474,7 @@ void home_all_axes() { gcode_G28(true); }
   inline void gcode_G29() {
 
   #ifdef BEEVC_TMC2130READSG
-  thermalManager.sg2_polling_wait_cycles = 255; // Temporarily increases the polling frequency to the lowest possible to avoid problems with homing Z
+  thermalManager.sg2_to_read  = false; // Temporarily disables reading to avoid problems with probing Z
   #endif // BEEVC_TMC2130READSG
 
 	//DR-Stores the extruder and changes to E0
@@ -4635,11 +4632,7 @@ void home_all_axes() { gcode_G28(true); }
 		tool_change(extruderNumber);
 
     #ifdef BEEVC_TMC2130READSG
-      #ifdef BEEVS_TMC2130STEPLOSS
-        thermalManager.sg2_polling_wait_cycles = 5; // Sets the read speed to normal to allow stall detect
-      #else
-        thermalManager.sg2_polling_wait_cycles = 255; // Sets the read speed to minimum to avoid stalling
-      #endif
+      thermalManager.sg2_to_read  = true; // reactivates reading
     #endif // BEEVC_TMC2130READSG
 
   }
@@ -4735,7 +4728,7 @@ void home_all_axes() { gcode_G28(true); }
   inline void gcode_G29() {
 
     #ifdef BEEVC_TMC2130READSG
-    thermalManager.sg2_polling_wait_cycles = 255; // Temporarily increases the polling frequency to the lowest possible to avoid problems with homing Z
+    thermalManager.sg2_to_read  = false; // Temporarily disables reading to avoid problems with probing Z
     #endif // BEEVC_TMC2130READSG
 
 	  //DR-Stores the extruder and changes to E0
@@ -5573,7 +5566,7 @@ void home_all_axes() { gcode_G28(true); }
 	tool_change(extruderNumber);
 
   #ifdef BEEVC_TMC2130READSG
-  thermalManager.sg2_polling_wait_cycles = 5; // Restores the polling frequency to normal 200Hz to allow step loss detection
+    thermalManager.sg2_to_read  = true; // reactivates reading
   #endif // BEEVC_TMC2130READSG
 
   }
@@ -15790,28 +15783,29 @@ void idle(
   #endif
 
   #ifdef BEEVS_TMC2130STEPLOSS
-    if (thermalManager.sg2_stop && !thermalManager.sg2_homing)
+    if (thermalManager.sg2_stop && !(thermalManager.sg2_homing))
     {
+      SERIAL_ECHO("\n ---!!!!STEP LOSS!!!!----");
+
       // Sets homing flag so no reaction is taken from now on
       thermalManager.sg2_homing =  true;
-
-      // Turns flag off
-      thermalManager.sg2_stop = false;
 
       // Injects the command to home XY before continuing print
       enqueue_and_echo_commands_P(PSTR("G28 X Y"));
 
-      // Forces the execution of 10 buffered commands ASAP
-      for(int k = 10; k != 0; k--)
-      {
-          drain_injected_commands_P();
-      }
-
-      // Turns flag off
-      thermalManager.sg2_stop = false;
-      thermalManager.sg2_detect_count = 0;
     }
   #endif //BEEVS_TMC2130STEPLOSS
+
+  #ifdef BEEVS_TMC2130RUNOUT
+    if (thermalManager.sg2_runout)
+    {
+      thermalManager.sg2_runout = false;
+
+      // Injects the command to change filament before continuing print
+      enqueue_and_echo_commands_P(PSTR("M600"));
+    }
+
+  #endif // BEEVS_TMC2130RUNOUT
 
 }
 
