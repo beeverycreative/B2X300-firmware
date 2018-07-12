@@ -89,6 +89,8 @@ Temperature thermalManager;
   uint16_t  Temperature::sg2_samples_remaining    = 0;
   uint16_t  Temperature::sg2_samples_middle_index = 0;
 
+  uint32_t      Temperature::sg2_timeout     = 0;
+
   //end_stops
   // Pre-set to 1 so no false detections are made when not homing
   bool      Temperature::sg2_x_limit_hit          = 1;
@@ -2484,115 +2486,120 @@ void Temperature::isr() {
     //////stallGuard2 Polling//////
     ///////////////////////////////
     // Checks if the correct number of wait cycles has been executed
-    if ((sg2_polling_wait++ >= sg2_polling_wait_cycles)  &&  (sg2_to_read))
+
+    // Allows some time after homing and restoring from stepp loss to avoid eroneous detection
+
+    if(sg2_to_read && (sg2_timeout < millis()))
     {
-      // Restarts wait variable
-      sg2_polling_wait = 0;
+      if ((sg2_polling_wait++ >= sg2_polling_wait_cycles) )
+      {
+        // Restarts wait variable
+        sg2_polling_wait = 0;
 
-      // Temporary variables
-      uint8_t status[12]  = {};
+        // Temporary variables
+        uint8_t status[12]  = {};
 
-        //Checks if a read is possible
-        if( READ(SDSS) && READ(DOGLCD_CS))
-        {
-
-          // Reads the data for all 3 stepper drivers X Y E
-          tmc_read_atomic_all(status);
-
-          // DEBUG
-          //SERIAL_ECHO("X:");
-          // print_binary8(((status[0] & 0b10000000)>> 7));
-          //
-          // SERIAL_ECHO("Y:");
-          // print_binary8(((status[4] & 0b10000000)>> 7));
-          // if (!((status[0] & 0b10000000)>> 7))
-          // {
-          //   if (((status[2] & 0b00000011) == 0 ) && (status[3] < 100))
-          //   {
-          //     if (status[3] == 0)
-          //       SERIAL_ECHO("O");
-          //     else
-          //       SERIAL_ECHO("X");
-          //   }
-          // }
-          //
-          // if (!((status[4] & 0b10000000)>> 7))
-          // {
-          //   if (((status[6] & 0b00000011) == 0 ) && (status[7] < 150))
-          //   {
-          //     if (status[7] == 0)
-          //       SERIAL_ECHO("U");
-          //     else
-          //       SERIAL_ECHO("Y");
-          //   }
-          // }
-
-          //SERIAL_ECHO("Y:");
-          //print_binary8(status[7]);
-
-          //SERIAL_ECHOLN(status[3]);
-          //SERIAL_ECHOLN(status[7]);
-
-          // Sensorless homing
-          if(sg2_homing)
+          //Checks if a read is possible
+          if( READ(SDSS) && READ(DOGLCD_CS))
           {
-            // X
-            if ( ((status[2] & 0b00000011) == 0 ) && (status[3] < 50) && !((status[0] & 0b10000000)>> 7) && (sg2_x_limit_hit == 0))
-            {
-              stepper.endstop_triggered(X_AXIS);
-              // Stops further endstop detection
-              sg2_x_limit_hit = 1;
-            }
 
-            // Y
-            if ( ((status[6] & 0b00000011) == 0 ) && (status[7] < 60) && !((status[4] & 0b10000000)>> 7) && (sg2_y_limit_hit == 0))
-            {
-              stepper.endstop_triggered(Y_AXIS);
-              // Stops further endstop detection
-              sg2_y_limit_hit = 1;
-            }
-          }
+            // Reads the data for all 3 stepper drivers X Y E
+            tmc_read_atomic_all(status);
 
+            // DEBUG
+            //SERIAL_ECHO("X:");
+            // print_binary8(((status[0] & 0b10000000)>> 7));
+            //
+            // SERIAL_ECHO("Y:");
+            // print_binary8(((status[4] & 0b10000000)>> 7));
+            // if (!((status[0] & 0b10000000)>> 7))
+            // {
+            //   if (((status[2] & 0b00000011) == 0 ) && (status[3] < 100))
+            //   {
+            //     if (status[3] == 0)
+            //       SERIAL_ECHO("O");
+            //     else
+            //       SERIAL_ECHO("X");
+            //   }
+            // }
+            //
+            // if (!((status[4] & 0b10000000)>> 7))
+            // {
+            //   if (((status[6] & 0b00000011) == 0 ) && (status[7] < 150))
+            //   {
+            //     if (status[7] == 0)
+            //       SERIAL_ECHO("U");
+            //     else
+            //       SERIAL_ECHO("Y");
+            //   }
+            // }
 
-          else
-          {
-            if (IS_SD_PRINTING && !sg2_stop )
+            //SERIAL_ECHO("Y:");
+            //print_binary8(status[7]);
+
+            //SERIAL_ECHOLN(status[3]);
+            //SERIAL_ECHOLN(status[7]);
+
+            // Sensorless homing
+            if(sg2_homing)
             {
-              // Step loss detection
-              if ((((status[2] & 0b00000011) == 0 ) && (status[3] == 0) && !((status[0] & 0b10000000)>> 7)) || (((status[6] & 0b00000011) == 0 ) && (status[7] == 0) && !(status[4] & 0b010000000)))
+              // X
+              if ( ((status[2] & 0b00000011) == 0 ) && (status[3] < 50) && !((status[0] & 0b10000000)>> 7) && (sg2_x_limit_hit == 0))
               {
-                // // Must get 3 consecutive signals to be a step loss
-                // if (++sg2_detect_count == 2)
-                  sg2_stop = true;
-                  SERIAL_ECHO("\n ---!!!!PANIC!!!!----");
-              }
-              // else
-              //   sg2_detect_count = 0;
-
-              // Filament runout/Traccion loss
-              if(!((status[8] & 0b10000000)>> 7))
-              {
-                // Checks if it is extruding
-                if(((active_extruder == 0) && READ(E0_DIR_PIN)) || ((active_extruder == 1) && READ(E1_DIR_PIN)))
-                sg2_e_average = (4* sg2_e_average + (((status[10] & 0b00000011)<< 2) | status[11])) /5;
-
-                if (sg2_e_average > 700)
-                  {
-                    sg2_runout = true;
-                    // Reset average
-                    sg2_e_average = 0;
-                  }
-
+                stepper.endstop_triggered(X_AXIS);
+                // Stops further endstop detection
+                sg2_x_limit_hit = 1;
               }
 
+              // Y
+              if ( ((status[6] & 0b00000011) == 0 ) && (status[7] < 60) && !((status[4] & 0b10000000)>> 7) && (sg2_y_limit_hit == 0))
+              {
+                stepper.endstop_triggered(Y_AXIS);
+                // Stops further endstop detection
+                sg2_y_limit_hit = 1;
+              }
             }
 
-          }
-          if((((status[2] & 0b00000011) == 0 ) && (status[3] == 0) && !((status[0] & 0b10000000)>> 7)))
-            SERIAL_ECHO("\nX\n");
 
-          if((((status[6] & 0b00000011) == 0 ) && (status[7] == 0) && !((status[4] & 0b10000000)>> 7)))
-            SERIAL_ECHO("\nY\n");
+            else
+            {
+              if (IS_SD_PRINTING && !sg2_stop )
+              {
+                // Step loss detection
+                if ((((status[2] & 0b00000011) == 0 ) && (status[3] < 50) && !((status[0] & 0b10000000)>> 7)) || (((status[6] & 0b00000011) == 0 ) && (status[7] < 60) && !(status[4] & 0b010000000)))
+                {
+                  // // Must get 3 consecutive signals to be a step loss
+                  // if (++sg2_detect_count == 2)
+                    sg2_stop = true;
+                }
+                // else
+                //   sg2_detect_count = 0;
+
+                // Filament runout/Traccion loss
+                if(!((status[8] & 0b10000000)>> 7))
+                {
+                  // Checks if it is extruding
+                  if(((active_extruder == 0) && READ(E0_DIR_PIN)) || ((active_extruder == 1) && READ(E1_DIR_PIN)))
+                  sg2_e_average = (4* sg2_e_average + (((status[10] & 0b00000011)<< 2) | status[11])) /5;
+
+                  if (sg2_e_average > 700)
+                    {
+                      sg2_runout = true;
+                      // Reset average
+                      sg2_e_average = 0;
+                    }
+
+                }
+
+              }
+
+            }
+            if((((status[2] & 0b00000011) == 0 ) && (status[3] < 50) && !((status[0] & 0b10000000)>> 7)))
+              SERIAL_ECHO("\nX\n");
+
+            if((((status[6] & 0b00000011) == 0 ) && (status[7] < 60) && !((status[4] & 0b10000000)>> 7)))
+              SERIAL_ECHO("\nY\n");
+          }
         }
       }
 

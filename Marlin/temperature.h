@@ -297,6 +297,8 @@ class Temperature {
       static uint16_t   sg2_e_average;
       static uint8_t    sg2_detect_count;
 
+      static uint32_t   sg2_timeout;
+
       static bool       sg2_x_limit_hit;
       static bool       sg2_y_limit_hit;
       static bool       sg2_z_limit_hit;

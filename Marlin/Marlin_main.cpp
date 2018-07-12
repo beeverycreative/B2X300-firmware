@@ -4361,9 +4361,10 @@ enable_all_steppers();
     #ifndef BEEVS_TMC2130STEPLOSS
       // Stops further stallGuard2 status reading if step loss detection is inactive
       thermalManager.sg2_to_read  = false;
+    #else
+      thermalManager.sg2_to_read  = true;
+      thermalManager.sg2_timeout = millis() + 2000;
     #endif
-
-      //thermalManager.sg2_polling_wait_cycles = 5; // Sets the read speed to normal to allow stall detect
 
     // Sets printing sensitivity
     stepperX.sgt(BEEVC_TMC2130STEPLOSSSGT);
@@ -4632,7 +4633,12 @@ void home_all_axes() { gcode_G28(true); }
 		tool_change(extruderNumber);
 
     #ifdef BEEVC_TMC2130READSG
+
+      thermalManager.sg2_timeout = millis() + 2000;
       thermalManager.sg2_to_read  = true; // reactivates reading
+      // Resets flags after homing
+      thermalManager.sg2_stop = false;
+      thermalManager.sg2_homing = false;
     #endif // BEEVC_TMC2130READSG
 
   }
@@ -5566,6 +5572,10 @@ void home_all_axes() { gcode_G28(true); }
 	tool_change(extruderNumber);
 
   #ifdef BEEVC_TMC2130READSG
+    thermalManager.sg2_timeout = millis() + 2000;
+    // Resets flags after homing
+    thermalManager.sg2_stop = false;
+    thermalManager.sg2_homing = false;
     thermalManager.sg2_to_read  = true; // reactivates reading
   #endif // BEEVC_TMC2130READSG
 
@@ -11329,6 +11339,7 @@ inline void gcode_M502() {
     // E0 axis
     #if ENABLED(E0_IS_TMC2130)
       if (parser.seen(axis_codes[E_AXIS]))
+      {
         if(parser.value_bool())
         {
           stepperE0.stealth_freq(1); // f_pwm = 2/683 f_clk
@@ -11344,11 +11355,13 @@ inline void gcode_M502() {
           stepperE0.stealthChop(0);
           SERIAL_ECHOLNPGM("\nE0 is now using spreadCycle");
         }
+      }
     #endif
 
     // E1 axis
     #if ENABLED(E1_IS_TMC2130)
       if (parser.seen(axis_codes[E_AXIS]))
+      {
         if(parser.value_bool())
         {
           stepperE1.stealth_freq(1); // f_pwm = 2/683 f_clk
@@ -11364,6 +11377,7 @@ inline void gcode_M502() {
           stepperE1.stealthChop(0);
           SERIAL_ECHOLNPGM("\nE1 is now using spreadCycle");
         }
+      }
     #endif
   }
   #endif  //ENABLED(HAVE_TMC2130) || ENABLED(HAVE_TMC2208)
@@ -15785,13 +15799,16 @@ void idle(
   #ifdef BEEVS_TMC2130STEPLOSS
     if (thermalManager.sg2_stop && !(thermalManager.sg2_homing))
     {
-      SERIAL_ECHO("\n ---!!!!STEP LOSS!!!!----");
+      SERIAL_ECHO("\n ---!!!!STEP LOSS!!!!----\n");
 
       // Sets homing flag so no reaction is taken from now on
       thermalManager.sg2_homing =  true;
 
       // Injects the command to home XY before continuing print
       enqueue_and_echo_commands_P(PSTR("G28 X Y"));
+
+      // Sets a high feedrate for a fast return to printing position
+      enqueue_and_echo_commands_P(PSTR("G1 F10000"));
 
     }
   #endif //BEEVS_TMC2130STEPLOSS
