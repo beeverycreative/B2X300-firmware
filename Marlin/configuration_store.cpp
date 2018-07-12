@@ -1422,9 +1422,10 @@ void MarlinSettings::reset() {
     reset_bed_level();
   #endif
 
-  #if HAS_BED_PROBE
-    zprobe_zoffset = Z_PROBE_OFFSET_FROM_EXTRUDER;
-  #endif
+  // Disabled to allow upgrading firmware without loosing probe offset
+  // #if HAS_BED_PROBE
+  //   zprobe_zoffset = Z_PROBE_OFFSET_FROM_EXTRUDER;
+  // #endif
 
   #if ENABLED(DELTA)
     const float adj[ABC] = DELTA_ENDSTOP_ADJ,
