@@ -16163,15 +16163,15 @@ void setup() {
 			toRecover = true;
 			lcd_setstatus("Print Restored! ");
 		}
-
-
-
-		// DEBUG ONLY - Used to measure the actuation time
-		DDRL |= (1 << 5); 	// Makes sure port 1 is output
-		PORTL &= ~(1 << 5);	// Sets the output high
-
 	#endif
 	///////////////////////////////////////////////////////
+	
+	// DEBUG ONLY - Used to measure the actuation time
+		DDRL |= (1 << 5); 	// Makes sure port 1 is output
+		PORTL &= ~(1 << 5);	// Sets the output low
+		
+		DDRG |= (1 << 5);
+		PORTG &= ~(1 << 5);
 }
 
 #ifdef BEEVC_Restore

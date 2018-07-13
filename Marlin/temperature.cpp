@@ -136,6 +136,7 @@ void println_binary8(uint8_t data) {
 
     // Sets SPI speed to 4Mhz and SPI mode to 3 as Master
     SPCR = (1 << SPE) | (1 << MSTR) | (1 << CPOL) | (1 << CPHA);
+    SPSR &= ~(1 << SPI2X);
 
     // Sets the stepper driver ports as output
     // X
@@ -157,13 +158,20 @@ void println_binary8(uint8_t data) {
     PORTL |= (1 << 7);
   }
 
+
+
   void tmc_read_atomic_all (uint8_t *output) {
   // Toggles the timing port on
   #ifdef DEBUG_SPI_TOGGLE_PIN_COMMAND
     PORTG |= (1 << 5);
   #endif
 
-  //tmc_start_spi();
+  //DEBUG ONLY - Used to measure the execution time
+  PORTL |= (1 << 5);	// Sets the output high
+
+  tmc_start_spi();
+
+  delayMicroseconds(4);
 
   // X
   if(!READ(X_ENABLE_PIN)) {
@@ -2576,6 +2584,9 @@ void Temperature::isr() {
                 //   sg2_detect_count = 0;
 
                 // Filament runout/Traccion loss
+
+                // Implementar mediana, media da mediana para filtrar, imprimir 10x Segundo
+
                 if(!((status[8] & 0b10000000)>> 7))
                 {
                   // Checks if it is extruding
