@@ -729,6 +729,12 @@ XYZ_CONSTS_FROM_CONFIG(signed char, home_dir, HOME_DIR);
 #endif
 ///////////////////////////////////////////////////////
 
+////////////    Trinamic stealth mode    //////////////
+#ifdef HAVE_TMC2130
+	uint8_t silent_mode = 0;
+#endif
+///////////////////////////////////////////////////////
+
 /**
  * ***************************************************************************
  * ******************************** FUNCTIONS ********************************
@@ -4081,10 +4087,41 @@ inline void gcode_G28(const bool always_home_all) {
 enable_all_steppers();
 
 #ifdef BEEVC_TMC2130READSG
-  uint8_t temp_x_max = X_MAX_POS;
-  uint8_t temp_y_max = Y_MAX_POS;
-  // Moves Y a little away from limit to avoid eroneous detections
-  do_blocking_move_to_xy((current_position[X_AXIS] <temp_x_max ? current_position[X_AXIS]+20 : current_position[X_AXIS]),(current_position[Y_AXIS] <=temp_y_max ? current_position[Y_AXIS]-20 : current_position[Y_AXIS]),25);
+  uint16_t temp_x_max = X_MAX_POS - 20;
+  uint16_t temp_y_max = Y_MAX_POS - 20;
+  bool restore_stealthchop_x = false, restore_stealthchop_y = false;
+
+  // Sets homing sensitivity
+  stepperX.sgt(BEEVC_TMC2130HOMESGTX);
+  stepperY.sgt(BEEVC_TMC2130HOMESGTY);
+
+  // Disables stallGuard2 filter for maximum time precision
+  stepperX.sg_filter(false);
+  stepperY.sg_filter(false);
+
+  // Sets homing and stallGuard2 reading flag
+  thermalManager.sg2_homing   = true;
+  thermalManager.sg2_to_read  = true;
+
+  // Sets spreadCycle if it was not already in use (otherwise stallGuard2 values cant be read)
+    if (stepperX.stealthChop())
+    {
+      stepperX.coolstep_min_speed(1024UL * 1024UL - 1UL);
+      stepperX.stealthChop(0);
+      restore_stealthchop_x = true;
+
+      delay(200);
+    }
+
+    if (stepperY.stealthChop())
+    {
+      stepperY.coolstep_min_speed(1024UL * 1024UL - 1UL);
+      stepperY.stealthChop(0);
+      restore_stealthchop_y = true;
+
+      delay(200);
+    }
+
 #endif // BEEVC_TMC2130READSG
 
   #if ENABLED(DEBUG_LEVELING_FEATURE)
@@ -4195,7 +4232,10 @@ enable_all_steppers();
     // Home X
     if (home_all || homeX) {
       #ifdef BEEVC_TMC2130READSG
-      thermalManager.sg2_x_limit_hit = 0;
+        // Moves X a little away from limit to avoid eroneous detections
+        do_blocking_move_to_xy((current_position[X_AXIS] < temp_x_max ? current_position[X_AXIS]+20 : current_position[X_AXIS]),current_position[Y_AXIS],25);
+
+        thermalManager.sg2_x_limit_hit = 0;
       #endif // BEEVC_TMC2130READSG
 
       #if ENABLED(DUAL_X_CARRIAGE)
@@ -4237,7 +4277,9 @@ enable_all_steppers();
       if (home_all || homeY) {
 
         #ifdef BEEVC_TMC2130READSG
-        thermalManager.sg2_y_limit_hit = 0;
+          // Moves Y a little away from limit to avoid eroneous detections
+          do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] < temp_y_max ? current_position[Y_AXIS]-20 : current_position[Y_AXIS]),25);
+          thermalManager.sg2_y_limit_hit = 0;
         #endif // BEEVC_TMC2130READSG
 
         HOMEAXIS(Y);
@@ -4246,7 +4288,7 @@ enable_all_steppers();
         #endif
 
         #ifdef BEEVC_TMC2130READSG
-        thermalManager.sg2_x_limit_hit = 1;
+        thermalManager.sg2_y_limit_hit = 1;
         #endif // BEEVC_TMC2130READSG
       }
     #endif
@@ -4315,7 +4357,41 @@ enable_all_steppers();
   #endif
 
   #ifdef BEEVC_TMC2130READSG
-  thermalManager.sg2_polling_wait_cycles = 5; // Sets the read speed to normal to allow stall detect
+
+    #ifndef BEEVS_TMC2130STEPLOSS
+      // Stops further stallGuard2 status reading if step loss detection is inactive
+      thermalManager.sg2_to_read  = false;
+    #else
+      thermalManager.sg2_to_read  = true;
+      thermalManager.sg2_timeout = millis() + 2000;
+    #endif
+
+    // Sets printing sensitivity
+    stepperX.sgt(BEEVC_TMC2130STEPLOSSSGT);
+    stepperY.sgt(BEEVC_TMC2130STEPLOSSSGT);
+
+    // Resets flags after homing
+    thermalManager.sg2_stop = false;
+    thermalManager.sg2_homing = false;
+
+    // Enable stallGuard2 filter for a consistent reading
+    stepperX.sg_filter(true);
+    stepperY.sg_filter(true);
+
+    // Restores stealthChop if it was active
+    if (restore_stealthchop_x)
+    {
+      stepperX.coolstep_min_speed(0);
+      stepperX.stealthChop(1);
+    }
+
+    if (restore_stealthchop_y)
+    {
+      stepperY.coolstep_min_speed(0);
+      stepperY.stealthChop(1);
+    }
+
+
   #endif // BEEVC_TMC2130READSG
 
 } // G28
@@ -4399,7 +4475,7 @@ void home_all_axes() { gcode_G28(true); }
   inline void gcode_G29() {
 
   #ifdef BEEVC_TMC2130READSG
-  thermalManager.sg2_polling_wait_cycles = 255; // Temporarily increases the polling frequency to the lowest possible to avoid problems with homing Z
+  thermalManager.sg2_to_read  = false; // Temporarily disables reading to avoid problems with probing Z
   #endif // BEEVC_TMC2130READSG
 
 	//DR-Stores the extruder and changes to E0
@@ -4557,7 +4633,12 @@ void home_all_axes() { gcode_G28(true); }
 		tool_change(extruderNumber);
 
     #ifdef BEEVC_TMC2130READSG
-    thermalManager.sg2_polling_wait_cycles = 5; // Restores the polling frequency to normal 200Hz to allow step loss detection
+
+      thermalManager.sg2_timeout = millis() + 2000;
+      thermalManager.sg2_to_read  = true; // reactivates reading
+      // Resets flags after homing
+      thermalManager.sg2_stop = false;
+      thermalManager.sg2_homing = false;
     #endif // BEEVC_TMC2130READSG
 
   }
@@ -4653,7 +4734,7 @@ void home_all_axes() { gcode_G28(true); }
   inline void gcode_G29() {
 
     #ifdef BEEVC_TMC2130READSG
-    thermalManager.sg2_polling_wait_cycles = 255; // Temporarily increases the polling frequency to the lowest possible to avoid problems with homing Z
+    thermalManager.sg2_to_read  = false; // Temporarily disables reading to avoid problems with probing Z
     #endif // BEEVC_TMC2130READSG
 
 	  //DR-Stores the extruder and changes to E0
@@ -5491,7 +5572,11 @@ void home_all_axes() { gcode_G28(true); }
 	tool_change(extruderNumber);
 
   #ifdef BEEVC_TMC2130READSG
-  thermalManager.sg2_polling_wait_cycles = 5; // Restores the polling frequency to normal 200Hz to allow step loss detection
+    thermalManager.sg2_timeout = millis() + 2000;
+    // Resets flags after homing
+    thermalManager.sg2_stop = false;
+    thermalManager.sg2_homing = false;
+    thermalManager.sg2_to_read  = true; // reactivates reading
   #endif // BEEVC_TMC2130READSG
 
   }
@@ -7806,7 +7891,7 @@ inline void gcode_M104() {
     #endif
 
     if (parser.value_celsius() > thermalManager.degHotend(target_extruder))
-      lcd_status_printf_P(0, PSTR("E%i %s"), target_extruder + 1, MSG_HEATING);
+      lcd_status_printf_P(0, PSTR("E%i %s"), target_extruder, MSG_HEATING);
   }
 
   #if ENABLED(AUTOTEMP)
@@ -7963,7 +8048,7 @@ inline void gcode_M109() {
         print_job_timer.start();
     #endif
 
-    if (thermalManager.isHeatingHotend(target_extruder)) lcd_status_printf_P(0, PSTR("E%i %s"), target_extruder + 1, MSG_HEATING);
+    if (thermalManager.isHeatingHotend(target_extruder)) lcd_status_printf_P(0, PSTR("E%i %s"), target_extruder, MSG_HEATING);
   }
   else return;
 
@@ -11187,6 +11272,7 @@ inline void gcode_M502() {
   inline void gcode_M916() {
     #if ENABLED(X_IS_TMC2130)
       if (parser.seen(axis_codes[X_AXIS]))
+      {
         if(parser.value_bool())
           //stealthChop
           {
@@ -11203,11 +11289,13 @@ inline void gcode_M502() {
             stepperX.stealthChop(0);
             SERIAL_ECHOLNPGM("\nX axis is now using spreadCycle");
           }
+      }
     #endif
 
     // Y axis
     #if ENABLED(Y_IS_TMC2130)
       if (parser.seen(axis_codes[Y_AXIS]))
+      {
         if(parser.value_bool())
         {
           stepperY.stealth_freq(1); // f_pwm = 2/683 f_clk
@@ -11218,16 +11306,18 @@ inline void gcode_M502() {
           SERIAL_ECHOLNPGM("\nY axis is now using stealthChop");
         }
         //spreadCycle
-      else
+        else
         {
           stepperY.stealthChop(0);
           SERIAL_ECHOLNPGM("\nY axis is now using spreadCycle");
         }
+      }
     #endif
 
     // Z axis
     #if ENABLED(Z_IS_TMC2130)
       if (parser.seen(axis_codes[Z_AXIS]))
+      {
         if(parser.value_bool())
         {
           stepperZ.stealth_freq(1); // f_pwm = 2/683 f_clk
@@ -11238,16 +11328,18 @@ inline void gcode_M502() {
           SERIAL_ECHOLNPGM("\nZ axis is now using stealthChop");
         }
         //spreadCycle
-      else
+        else
         {
           stepperZ.stealthChop(0);
           SERIAL_ECHOLNPGM("\nZ axis is now using spreadCycle");
         }
+      }
     #endif
 
     // E0 axis
     #if ENABLED(E0_IS_TMC2130)
       if (parser.seen(axis_codes[E_AXIS]))
+      {
         if(parser.value_bool())
         {
           stepperE0.stealth_freq(1); // f_pwm = 2/683 f_clk
@@ -11263,11 +11355,13 @@ inline void gcode_M502() {
           stepperE0.stealthChop(0);
           SERIAL_ECHOLNPGM("\nE0 is now using spreadCycle");
         }
+      }
     #endif
 
     // E1 axis
     #if ENABLED(E1_IS_TMC2130)
       if (parser.seen(axis_codes[E_AXIS]))
+      {
         if(parser.value_bool())
         {
           stepperE1.stealth_freq(1); // f_pwm = 2/683 f_clk
@@ -11283,6 +11377,7 @@ inline void gcode_M502() {
           stepperE1.stealthChop(0);
           SERIAL_ECHOLNPGM("\nE1 is now using spreadCycle");
         }
+      }
     #endif
   }
   #endif  //ENABLED(HAVE_TMC2130) || ENABLED(HAVE_TMC2208)
@@ -11316,75 +11411,77 @@ inline void gcode_M502() {
           }
         }
 
-        // Prints last 2s of log
-        if (parser.seen('L'))
-        {
-          // Ensures no new values are written
-          //cli();
-
-          SERIAL_ECHO("\n=============\n");
-
-          // SERIAL_ECHO("X value,X flag\n");
-          // SERIAL_ECHO("\nSg2_flag: ");
-          // SERIAL_ECHO(thermalManager.sg2_stop);
-          // SERIAL_ECHO("\nSg2_middle: ");
-          // SERIAL_ECHO((uint16_t)thermalManager.sg2_samples_middle_index);
-          // SERIAL_ECHO("\n");
-
-            //Prints in TSV (Tab separeted values)
-              for (uint16_t k = 0;k <BEEVC_SG2_DEBUG_SAMPLES; k++)
-              {
-                //Finds the correct index on which to read
-                int16_t index = (thermalManager.sg2_samples_middle_index +k) - BEEVC_SG2_DEBUG_HALF_SAMPLES -1;
-                if (index < 0)
-                  index += BEEVC_SG2_DEBUG_SAMPLES;
-
-                if(index > 399)
-                  index -= BEEVC_SG2_DEBUG_SAMPLES;
-
-                //X
-                SERIAL_ECHO((uint16_t)((thermalManager.sg2_result[index])));
-                SERIAL_ECHO("\t");
-                SERIAL_ECHO(thermalManager.sg2_value[index]);
-                SERIAL_ECHO("\t");
-                SERIAL_ECHO(thermalManager.sg2_standstill[index]);
-                // SERIAL_ECHO("\t");
-                // SERIAL_ECHO(index);
-                SERIAL_ECHO("\n");
-              }
+        #ifdef BEEVC_SG2_DEBUG_SAMPLES
+          // Prints last 2s of log
+          if (parser.seen('L'))
+          {
+            // Ensures no new values are written
+            //cli();
 
             SERIAL_ECHO("\n=============\n");
+
+            // SERIAL_ECHO("X value,X flag\n");
             // SERIAL_ECHO("\nSg2_flag: ");
             // SERIAL_ECHO(thermalManager.sg2_stop);
             // SERIAL_ECHO("\nSg2_middle: ");
-            // SERIAL_ECHO(thermalManager.sg2_samples_middle_index);
-            // SERIAL_ECHO("\nSg2_remaining: ");
-            // SERIAL_ECHO(thermalManager.sg2_samples_remaining);
+            // SERIAL_ECHO((uint16_t)thermalManager.sg2_samples_middle_index);
+            // SERIAL_ECHO("\n");
+
+              //Prints in TSV (Tab separeted values)
+                for (uint16_t k = 0;k <BEEVC_SG2_DEBUG_SAMPLES; k++)
+                {
+                  //Finds the correct index on which to read
+                  int16_t index = (thermalManager.sg2_samples_middle_index +k) - BEEVC_SG2_DEBUG_HALF_SAMPLES -1;
+                  if (index < 0)
+                    index += BEEVC_SG2_DEBUG_SAMPLES;
+
+                  if(index > 399)
+                    index -= BEEVC_SG2_DEBUG_SAMPLES;
+
+                  //X
+                  SERIAL_ECHO((uint16_t)((thermalManager.sg2_result[index])));
+                  SERIAL_ECHO("\t");
+                  SERIAL_ECHO(thermalManager.sg2_value[index]);
+                  SERIAL_ECHO("\t");
+                  SERIAL_ECHO(thermalManager.sg2_standstill[index]);
+                  // SERIAL_ECHO("\t");
+                  // SERIAL_ECHO(index);
+                  SERIAL_ECHO("\n");
+                }
+
+              SERIAL_ECHO("\n=============\n");
+              // SERIAL_ECHO("\nSg2_flag: ");
+              // SERIAL_ECHO(thermalManager.sg2_stop);
+              // SERIAL_ECHO("\nSg2_middle: ");
+              // SERIAL_ECHO(thermalManager.sg2_samples_middle_index);
+              // SERIAL_ECHO("\nSg2_remaining: ");
+              // SERIAL_ECHO(thermalManager.sg2_samples_remaining);
 
 
-            // Clears the sg2_counter value
-            //thermalManager.sg2_counter = 0;
+              // Clears the sg2_counter value
+              //thermalManager.sg2_counter = 0;
 
-            // Re-enables interrupts
-            //sei();
+              // Re-enables interrupts
+              //sei();
 
-          }
+            }
 
-          // Resets the information flags
-          if (parser.seen('R'))
+            // Resets the information flags
+            if (parser.seen('R'))
+            {
+              thermalManager.sg2_samples_remaining = 0;
+              thermalManager.sg2_samples_middle_index = 0;
+              thermalManager.sg2_stop = false;
+            }
+
+          else
           {
-            thermalManager.sg2_samples_remaining = 0;
-            thermalManager.sg2_samples_middle_index = 0;
-            thermalManager.sg2_stop = false;
+            SERIAL_ECHOPAIR("\nX axis stallGuard2 value     :", stepperX.sg_result());
+            SERIAL_ECHOPAIR("\nX axis stallGuard2 triggered :", stepperX.stallguard());
+            //SERIAL_ECHOLNPGM("\nX axis stallGuard2 average   : To be implemented");
+            SERIAL_ECHOPAIR("\nX axis stallGuard2 steps loss:", stepperX.LOST_STEPS());
           }
-
-        else
-        {
-          SERIAL_ECHOPAIR("\nX axis stallGuard2 value     :", stepperX.sg_result());
-          SERIAL_ECHOPAIR("\nX axis stallGuard2 triggered :", stepperX.stallguard());
-          //SERIAL_ECHOLNPGM("\nX axis stallGuard2 average   : To be implemented");
-          SERIAL_ECHOPAIR("\nX axis stallGuard2 steps loss:", stepperX.LOST_STEPS());
-        }
+        #endif // BEEVC_SG2_DEBUG_SAMPLES
       }
     #endif
 
@@ -15698,6 +15795,35 @@ void idle(
       lastUpdateMillis = millis();
     }
   #endif
+
+  #ifdef BEEVS_TMC2130STEPLOSS
+    if (thermalManager.sg2_stop && !(thermalManager.sg2_homing))
+    {
+      SERIAL_ECHO("\n ---!!!!STEP LOSS!!!!----\n");
+
+      // Sets homing flag so no reaction is taken from now on
+      thermalManager.sg2_homing =  true;
+
+      // Injects the command to home XY before continuing print
+      enqueue_and_echo_commands_P(PSTR("G28 X Y"));
+
+      // Sets a high feedrate for a fast return to printing position
+      enqueue_and_echo_commands_P(PSTR("G1 F10000"));
+
+    }
+  #endif //BEEVS_TMC2130STEPLOSS
+
+  #ifdef BEEVS_TMC2130RUNOUT
+    if (thermalManager.sg2_runout)
+    {
+      thermalManager.sg2_runout = false;
+
+      // Injects the command to change filament before continuing print
+      enqueue_and_echo_commands_P(PSTR("M600"));
+    }
+
+  #endif // BEEVS_TMC2130RUNOUT
+
 }
 
 /**
@@ -16037,17 +16163,15 @@ void setup() {
 			toRecover = true;
 			lcd_setstatus("Print Restored! ");
 		}
-
-
-
-		// DEBUG ONLY - Used to measure the actuation time
-		DDRL |= (1 << 5); 	// Makes sure port 1 is output
-		PORTL &= ~(1 << 5);	// Sets the output high
-
 	#endif
 	///////////////////////////////////////////////////////
-
-  uint32_t readLoss = millis() +500;
+	
+	// DEBUG ONLY - Used to measure the actuation time
+		DDRL |= (1 << 5); 	// Makes sure port 1 is output
+		PORTL &= ~(1 << 5);	// Sets the output low
+		
+		DDRG |= (1 << 5);
+		PORTG &= ~(1 << 5);
 }
 
 #ifdef BEEVC_Restore

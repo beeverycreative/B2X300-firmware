@@ -31,13 +31,12 @@
 // If your B2X300 has Trinamic TMC2130 stepper drivers please uncomment the correct line
 //
 // -Trinamic TMC2130 on all axis
-// #define BEEVC_TMC2130
+ #define BEEVC_TMC2130
 //
 // -Trinamic TMC2130 only on XY
 // #define BEEVC_TMC2130XY
 //
 //
-//#define BEEVC_SG2_DEBUG_SAMPLES 300
 //#define BEEVC_SG2_DEBUG_STEPPER_X
 //#define BEEVC_SG2_DEBUG_STEPPER_Y
 //#define BEEVC_SG2_DEBUG_STEPPER_E
@@ -50,7 +49,7 @@
 #define BEEVC_ReverseX
 #define BEEVC_ReverseY
 #define BEEVC_Trapezoidal
-#define BEEVC_Extendedbed
+//#define BEEVC_Addon_bed
 #define BEEVC_Autolevel
 #define BEEVC_Bowden
 #define BEEVC_MKS_MINI_12864
@@ -60,8 +59,16 @@
 //#define BEEVC_Restore_Move_X
 #define BEEVC_Restore_Move_Y
 
-#if ENABLED(BEEVC_TMC2130) || ENABLED(BEEVC_TMC2130XY)
+#if (ENABLED(BEEVC_TMC2130) || ENABLED(BEEVC_TMC2130XY))
   #define BEEVC_TMC2130READSG
+  #define BEEVC_TMC2130HOMESGTX      9
+  #define BEEVC_TMC2130HOMESGTY      9
+  #define BEEVC_TMC2130STEPLOSSSGT   9
+  //#define BEEVS_TMC2130STEPLOSS
+  //#define BEEVS_TMC2130RUNOUT
 #endif
 
-#define BEEVC_SG2_DEBUG_HALF_SAMPLES (BEEVC_SG2_DEBUG_SAMPLES/2)
+#if ENABLED(BEEVC_SG2_DEBUG_STEPPER_X) || ENABLED(BEEVC_SG2_DEBUG_STEPPER_Y) || ENABLED(BEEVC_SG2_DEBUG_STEPPER_E)
+  #define BEEVC_SG2_DEBUG_HALF_SAMPLES (BEEVC_SG2_DEBUG_SAMPLES/2)
+  #define BEEVC_SG2_DEBUG_SAMPLES 300
+#endif

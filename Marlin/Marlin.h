@@ -65,6 +65,13 @@ void manage_inactivity(bool ignore_stepper_queue = false);
 #endif
 ///////////////////////////////////////////////////////
 
+////////////    Trinamic stealth mode    //////////////
+#ifdef HAVE_TMC2130
+	extern uint8_t silent_mode;
+#endif
+///////////////////////////////////////////////////////
+
+
 #if ENABLED(DUAL_X_CARRIAGE) || ENABLED(DUAL_NOZZLE_DUPLICATION_MODE)
   extern bool extruder_duplication_enabled;
 #endif

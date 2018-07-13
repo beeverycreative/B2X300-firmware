@@ -860,8 +860,13 @@ void kill_screen(const char* lcd_msg) {
 	  lcd_setstatusPGM(PSTR(MSG_PRINT_ABORTED), -1);
       lcd_return_to_status();
 
+    // Lifts the Z axis a bit to avoid colisions with bed springs
+    enqueue_and_echo_commands_P(PSTR("G91"));
+    enqueue_and_echo_commands_P(PSTR("G1 Z5"));
+    enqueue_and_echo_commands_P(PSTR("G90"));
+
 	  // Moves X and Y so the nozzle doesn't stick to the printed part
-	  enqueue_and_echo_commands_P(PSTR("G1 X-100 Y300 F3000"));
+	  enqueue_and_echo_commands_P(PSTR("G1 X-10 Y300 F3000"));
 
 	  // Ensures the steppers are disabled
 	  enqueue_and_echo_commands_P(PSTR("M84"));
@@ -4048,9 +4053,127 @@ void lcd_enqueue_filament_change() {
 
   #endif
 
+  ////////////    Trinamic stealth mode    //////////////
+  #ifdef HAVE_TMC2130
+  	void disable_silent_mode (void)
+    {
+      #ifdef X_IS_TMC2130
+        stepperX.stealthChop(0);
+      #endif
+      #ifdef Y_IS_TMC2130
+        stepperY.stealthChop(0);
+      #endif
+      #ifdef E0_IS_TMC2130
+        stepperE0.stealthChop(0);
+      #endif
+      #ifdef E1_IS_TMC2130
+        stepperE1.stealthChop(0);
+      #endif
+
+      // Stores the global flag
+      silent_mode = 0;
+
+      // Resets default acceleration and velocity values
+      // Temp values to load the default from define values
+      uint32_t temp_acc[] = DEFAULT_MAX_ACCELERATION;
+      float temp_feed[] = DEFAULT_MAX_FEEDRATE;
+      planner.max_acceleration_mm_per_s2[X_AXIS] = temp_acc[0];
+      planner.max_acceleration_mm_per_s2[Y_AXIS] = temp_acc[1];
+      planner.max_acceleration_mm_per_s2[E_AXIS] = temp_acc[3];
+      planner.max_acceleration_mm_per_s2[E_AXIS+1] = temp_acc[4];
+      planner.max_jerk[X_AXIS] = DEFAULT_XJERK;
+      planner.max_jerk[Y_AXIS] = DEFAULT_YJERK;
+      planner.max_jerk[Z_AXIS] = DEFAULT_ZJERK;
+      planner.max_jerk[E_AXIS] = DEFAULT_EJERK;
+      planner.max_feedrate_mm_s[X_AXIS] = temp_feed[0];
+      planner.max_feedrate_mm_s[Y_AXIS] = temp_feed[1];
+      planner.max_feedrate_mm_s[Z_AXIS] = temp_feed[2];
+      planner.max_feedrate_mm_s[E_AXIS] = temp_feed[3];
+      planner.max_feedrate_mm_s[E_AXIS+1] = temp_feed[3];
+
+      // Ensures enough time for the stepper drives to stabilize
+      delay(200);
+    }
+
+    void enable_silent_mode (void)
+    {
+      delay(200);
+
+      #ifdef X_IS_TMC2130
+        stepperX.stealthChop(1);
+      #endif
+      #ifdef Y_IS_TMC2130
+        stepperY.stealthChop(1);
+      #endif
+      #ifdef E0_IS_TMC2130
+        stepperE0.stealthChop(1);
+      #endif
+      #ifdef E1_IS_TMC2130
+        stepperE1.stealthChop(1);
+      #endif
+
+      // Stores the global flag
+      silent_mode = 1;
+
+      // Ensures enough time for the stepper drives to stabilize
+      delay(200);
+    }
+
+    void enable_stealth_mode (void)
+    {
+      delay(200);
+
+      #ifdef X_IS_TMC2130
+        stepperX.stealthChop(1);
+      #endif
+      #ifdef Y_IS_TMC2130
+        stepperY.stealthChop(1);
+      #endif
+      #ifdef E0_IS_TMC2130
+        stepperE0.stealthChop(1);
+      #endif
+      #ifdef E1_IS_TMC2130
+        stepperE1.stealthChop(1);
+      #endif
+
+      // Stores the global flag
+      silent_mode = 2;
+
+      // Lowers the acceleration and velocity values to reduce noise levels
+      planner.max_acceleration_mm_per_s2[X_AXIS] = 400;
+      planner.max_acceleration_mm_per_s2[Y_AXIS] = 150;
+      planner.max_acceleration_mm_per_s2[E_AXIS] = 1000;
+      planner.max_acceleration_mm_per_s2[E_AXIS+1] = 1000;
+      planner.max_jerk[X_AXIS] = DEFAULT_XJERK/2;
+      planner.max_jerk[Y_AXIS] = DEFAULT_YJERK/2;
+      planner.max_jerk[Z_AXIS] = DEFAULT_ZJERK/2;
+      planner.max_jerk[E_AXIS] = DEFAULT_EJERK/2;
+      planner.max_feedrate_mm_s[X_AXIS] = 80;
+      planner.max_feedrate_mm_s[Y_AXIS] = 80;
+      planner.max_feedrate_mm_s[Z_AXIS] = 2;
+      planner.max_feedrate_mm_s[E_AXIS] = 40;
+      planner.max_feedrate_mm_s[E_AXIS+1] = 40;
+
+      // Ensures enough time for the stepper drives to stabilize
+      delay(200);
+    }
+  #endif
+  ///////////////////////////////////////////////////////
+
   void lcd_control_menu() {
     START_MENU();
     MENU_BACK(MSG_MAIN);
+
+    #ifdef HAVE_TMC2130
+      if (silent_mode == 1)
+        MENU_ITEM(function, _UxGT("Enable Silent+ mode"), enable_stealth_mode);
+      else if (silent_mode == 2)
+        MENU_ITEM(function, _UxGT("Disable Silent mode"), disable_silent_mode);
+      else
+        MENU_ITEM(function, _UxGT("Enable Silent mode"), enable_silent_mode);
+    #endif
+
+
     MENU_ITEM(submenu, MSG_TEMPERATURE, lcd_control_temperature_menu);
     MENU_ITEM(submenu, MSG_MOTION, lcd_control_motion_menu);
     MENU_ITEM(submenu, MSG_FILAMENT, lcd_control_filament_menu);

@@ -783,7 +783,7 @@
 // The number of linear motions that can be in the plan at any give time.
 // THE BLOCK_BUFFER_SIZE NEEDS TO BE A POWER OF 2 (e.g. 8, 16, 32) because shifts and ors are used to do the ring-buffering.
 #if ENABLED(SDSUPPORT)
-  #define BLOCK_BUFFER_SIZE 16 // SD,LCD,Buttons take more memory, block buffer needs to be smaller
+  #define BLOCK_BUFFER_SIZE 4 // SD,LCD,Buttons take more memory, block buffer needs to be smaller
 #else
   #define BLOCK_BUFFER_SIZE 16 // maximize block buffer
 #endif
@@ -1179,8 +1179,8 @@
    */
   //#define SENSORLESS_HOMING // TMC2130 only
 
-    #define X_HOMING_SENSITIVITY  10
-    #define Y_HOMING_SENSITIVITY  8
+    #define X_HOMING_SENSITIVITY  9
+    #define Y_HOMING_SENSITIVITY  9
 
   /**
    * Enable M122 debugging command for TMC stepper drivers.
@@ -1201,8 +1201,7 @@
    * }
    */
   #define  TMC_ADV() { \
-    stepperX.sgt(X_HOMING_SENSITIVITY); \
-    stepperY.sgt(Y_HOMING_SENSITIVITY); \
+    stepperZ.stealthChop(1);\
     }
 
 #endif // TMC2130 || TMC2208

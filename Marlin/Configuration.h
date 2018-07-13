@@ -451,7 +451,7 @@
 #define PID_MAX 255  // Limits current to nozzle while PID is active (see PID_FUNCTIONAL_RANGE below); 255=full current
 #define PID_K1 0.95      // Smoothing factor within the PID
 #if ENABLED(PIDTEMP)
-  //#define PID_AUTOTUNE_MENU // Add PID Autotune to the LCD "Temperature" menu to run M303 and apply the result.
+  #define PID_AUTOTUNE_MENU // Add PID Autotune to the LCD "Temperature" menu to run M303 and apply the result.
   //#define PID_DEBUG // Sends debug data to the serial port.
   //#define PID_OPENLOOP 1 // Puts PID in open loop. M104/M140 sets the output power from 0 to PID_MAX
   //#define SLOW_PWM_HEATERS // PWM with very low frequency (roughly 0.125Hz=8s) and minimum state time of approximately 1s useful for heaters driven by a relay
@@ -506,7 +506,7 @@
 
 
 // hBp - Checks if the extended bed is being used and adjusts the power limit
-#ifndef BEEVC_Extendedbed
+#ifndef BEEVC_Addon_bed
 #define MAX_BED_POWER 255 // limits duty cycle to bed; 255=full current
 
 #else
@@ -890,23 +890,26 @@
  *    (0,0)
  */
 
- //hBp - Checks if there is autoleveling
- #ifndef BEEVC_Autolevel
- // no leveling so no changes
- #else
-	 #ifndef BEEVC_Bowden
-		// direct drive
-		#define X_PROBE_OFFSET_FROM_EXTRUDER 37  // X offset: -left  +right  [of the nozzle]
-		#define Y_PROBE_OFFSET_FROM_EXTRUDER 33  // Y offset: -front +behind [the nozzle]
-		#define Z_PROBE_OFFSET_FROM_EXTRUDER -9   // Z offset: -below +above  [the nozzle]
+//hBp - Checks if there is autoleveling
+#ifndef BEEVC_Autolevel
+  // no leveling so no changes
+#elif (ENABLED(BEEVC_B2X300))
+  //B2X300
+  #define X_PROBE_OFFSET_FROM_EXTRUDER 4  // X offset: -left  +right  [of the nozzle]
+  #define Y_PROBE_OFFSET_FROM_EXTRUDER 41  // Y offset: -front +behind [the nozzle]
+  #define Z_PROBE_OFFSET_FROM_EXTRUDER -9   // Z offset: -below +above  [the nozzle]
 
-	#else
-		// bowden
-		#define X_PROBE_OFFSET_FROM_EXTRUDER 7  // X offset: -left  +right  [of the nozzle]
-		#define Y_PROBE_OFFSET_FROM_EXTRUDER 39  // Y offset: -front +behind [the nozzle]
-		#define Z_PROBE_OFFSET_FROM_EXTRUDER -9   // Z offset: -below +above  [the nozzle]
+#elif (ENABLED(BEEVC_Bowden))
+  // bowden
+  #define X_PROBE_OFFSET_FROM_EXTRUDER 7  // X offset: -left  +right  [of the nozzle]
+  #define Y_PROBE_OFFSET_FROM_EXTRUDER 39  // Y offset: -front +behind [the nozzle]
+  #define Z_PROBE_OFFSET_FROM_EXTRUDER -9   // Z offset: -below +above  [the nozzle]
 
-	#endif
+#else
+  // direct drive
+  #define X_PROBE_OFFSET_FROM_EXTRUDER 37  // X offset: -left  +right  [of the nozzle]
+  #define Y_PROBE_OFFSET_FROM_EXTRUDER 33  // Y offset: -front +behind [the nozzle]
+  #define Z_PROBE_OFFSET_FROM_EXTRUDER -9   // Z offset: -below +above  [the nozzle]
 #endif
 
 
@@ -1050,13 +1053,22 @@
   #define Y_MAX_POS 217
   #define Y_BED_SIZE 200
   #define Z_MAX_POS 300
-// The size of the printbed for B2X300 with Y+ endstop
-#elif ENABLED(BEEVC_B2X300)
+// The size of the printbed for B2X300 with the addon 300x200 hotbed
+#elif ENABLED(BEEVC_Addon_bed)
   #define X_MIN_POS -20
   #define X_MAX_POS 310
   #define X_BED_SIZE 300
   #define Y_MIN_POS -21
   #define Y_MAX_POS 203
+  #define Y_BED_SIZE 200
+  #define Z_MAX_POS 300
+// The size of the printbed for B2X300 with Y+ endstop
+#elif ENABLED(BEEVC_B2X300)
+  #define X_MIN_POS -16
+  #define X_MAX_POS 306
+  #define X_BED_SIZE 300
+  #define Y_MIN_POS -17
+  #define Y_MAX_POS 222
   #define Y_BED_SIZE 200
   #define Z_MAX_POS 300
 // The size of the printbed for helloBEEprusa with extended bed
@@ -1234,10 +1246,10 @@
   // Set the boundaries for probing (where the probe can reach).
 
 
-		#define LEFT_PROBE_BED_POSITION 35
-		#define RIGHT_PROBE_BED_POSITION X_MAX_POS-35
-		#define FRONT_PROBE_BED_POSITION 40
-		#define BACK_PROBE_BED_POSITION 185
+		#define LEFT_PROBE_BED_POSITION 10
+		#define RIGHT_PROBE_BED_POSITION X_BED_SIZE-10
+		#define FRONT_PROBE_BED_POSITION ((Y_MIN_POS+Y_PROBE_OFFSET_FROM_EXTRUDER)<=20  ? 20 : (Y_MIN_POS+Y_PROBE_OFFSET_FROM_EXTRUDER))
+		#define BACK_PROBE_BED_POSITION Y_BED_SIZE - 20
 
 
 
@@ -1468,7 +1480,7 @@
 //
 // M100 Free Memory Watcher
 //
-//#define M100_FREE_MEMORY_WATCHER    // Add M100 (Free Memory Watcher) to debug memory usage
+#define M100_FREE_MEMORY_WATCHER    // Add M100 (Free Memory Watcher) to debug memory usage
 
 //
 // G20/G21 Inch mode support
@@ -1679,7 +1691,7 @@
  * Enable one of the following items for a slower SPI transfer speed.
  * This may be required to resolve "volume init" errors.
  */
-#define SPI_SPEED SPI_HALF_SPEED
+//#define SPI_SPEED SPI_HALF_SPEED
 //#define SPI_SPEED SPI_QUARTER_SPEED
 //#define SPI_SPEED SPI_EIGHTH_SPEED
 
