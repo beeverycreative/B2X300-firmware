@@ -169,9 +169,12 @@ void println_binary8(uint8_t data) {
   //DEBUG ONLY - Used to measure the execution time
   PORTL |= (1 << 5);	// Sets the output high
 
-  tmc_start_spi();
-
-  delayMicroseconds(4);
+  // //Backs up old SPI configuration and sets new one
+  // uint8_t backup1= SPCR;
+  // uint8_t backup2= SPSR;
+  // tmc_start_spi();
+  //
+  // delayMicroseconds(4);
 
   // X
   if(!READ(X_ENABLE_PIN)) {
@@ -357,6 +360,10 @@ void println_binary8(uint8_t data) {
     output[10] = 0x00;
     output[11] = 0x00;
   }
+
+  // //Restores backed up old SPI configuration
+  // SPCR = backup1;
+  // SPSR = backup2;
 
   // Toggles the timing port off
   #ifdef DEBUG_SPI_TOGGLE_PIN_COMMAND
