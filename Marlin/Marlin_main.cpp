@@ -4083,12 +4083,8 @@ inline void gcode_G4() {
  */
 inline void gcode_G28(const bool always_home_all) {
 
-// Ensures the stepper have been preactivated to avoid eroneous detection
-enable_all_steppers();
-
 #ifdef BEEVC_TMC2130READSG
-  uint16_t temp_x_max = X_MAX_POS - 20;
-  uint16_t temp_y_max = Y_MAX_POS - 20;
+  uint8_t pre_home_move_mm = 20;
   bool restore_stealthchop_x = false, restore_stealthchop_y = false;
 
   // Sets homing sensitivity
@@ -4096,8 +4092,14 @@ enable_all_steppers();
   stepperY.sgt(BEEVC_TMC2130HOMESGTY);
 
   // Disables stallGuard2 filter for maximum time precision
-  stepperX.sg_filter(false);
-  stepperY.sg_filter(false);
+  #ifdef BEEVC_TMC2130SGFILTER
+    stepperX.sg_filter(true);
+    stepperY.sg_filter(true);
+  #else
+    stepperX.sg_filter(false);
+    stepperY.sg_filter(false);
+  #endif // BEEVC_TMC2130SGFILTER
+
 
   // Sets homing and stallGuard2 reading flag
   thermalManager.sg2_homing   = true;
@@ -4110,7 +4112,7 @@ enable_all_steppers();
       stepperX.stealthChop(0);
       restore_stealthchop_x = true;
 
-      delay(200);
+      safe_delay(400);
     }
 
     if (stepperY.stealthChop())
@@ -4119,10 +4121,14 @@ enable_all_steppers();
       stepperY.stealthChop(0);
       restore_stealthchop_y = true;
 
-      delay(200);
+      safe_delay(400);
     }
 
 #endif // BEEVC_TMC2130READSG
+
+// Ensures the stepper have been preactivated to avoid eroneous detection
+enable_all_steppers();
+safe_delay(400);
 
   #if ENABLED(DEBUG_LEVELING_FEATURE)
     if (DEBUGGING(LEVELING)) {
@@ -4233,7 +4239,13 @@ enable_all_steppers();
     if (home_all || homeX) {
       #ifdef BEEVC_TMC2130READSG
         // Moves X a little away from limit to avoid eroneous detections
-        do_blocking_move_to_xy((current_position[X_AXIS] < temp_x_max ? current_position[X_AXIS]+20 : current_position[X_AXIS]),current_position[Y_AXIS],25);
+        #ifdef BEEVC_TMC2130HOMEXREVERSE
+          // Homes X to the right
+          do_blocking_move_to_xy((current_position[X_AXIS] > (X_MIN_POS + pre_home_move_mm) ? current_position[X_AXIS]-pre_home_move_mm : current_position[X_AXIS]),current_position[Y_AXIS],25);
+        #else
+          // Homes X to the left
+          do_blocking_move_to_xy((current_position[X_AXIS] < (X_MAX_POS - pre_home_move_mm) ? current_position[X_AXIS]+pre_home_move_mm : current_position[X_AXIS]),current_position[Y_AXIS],25);
+        #endif //BEEVC_TMC2130HOMEXREVERSE
 
         thermalManager.sg2_x_limit_hit = 0;
       #endif // BEEVC_TMC2130READSG
@@ -4278,7 +4290,7 @@ enable_all_steppers();
 
         #ifdef BEEVC_TMC2130READSG
           // Moves Y a little away from limit to avoid eroneous detections
-          do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] < temp_y_max ? current_position[Y_AXIS]-20 : current_position[Y_AXIS]),25);
+          do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] > (Y_MIN_POS + pre_home_move_mm) ? current_position[Y_AXIS]-pre_home_move_mm : current_position[Y_AXIS]),25);
           thermalManager.sg2_y_limit_hit = 0;
         #endif // BEEVC_TMC2130READSG
 
@@ -16165,11 +16177,11 @@ void setup() {
 		}
 	#endif
 	///////////////////////////////////////////////////////
-	
+
 	// DEBUG ONLY - Used to measure the actuation time
 		DDRL |= (1 << 5); 	// Makes sure port 1 is output
 		PORTL &= ~(1 << 5);	// Sets the output low
-		
+
 		DDRG |= (1 << 5);
 		PORTG &= ~(1 << 5);
 }

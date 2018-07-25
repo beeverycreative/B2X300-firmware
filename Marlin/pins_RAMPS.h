@@ -75,7 +75,7 @@
 // Limit Switches
 //
 #define X_MIN_PIN           3
-#define X_MAX_PIN           -1
+#define X_MAX_PIN           3
 
 #ifdef BEEVC_B2X300_YMINSTOP
   #define Y_MIN_PIN         15

@@ -2559,19 +2559,19 @@ void Temperature::isr() {
             if(sg2_homing)
             {
               // X
-              if ( ((status[2] & 0b00000011) == 0 ) && (status[3] < 50) && !((status[0] & 0b10000000)>> 7) && (sg2_x_limit_hit == 0))
+              if ( ((status[2] & 0b00000011) == 0 ) && (status[3] == 0) && !((status[0] & 0b10000000)>> 7) && (sg2_x_limit_hit == 0))
               {
                 stepper.endstop_triggered(X_AXIS);
                 // Stops further endstop detection
-                sg2_x_limit_hit = 1;
+                // sg2_x_limit_hit = 1;
               }
 
               // Y
-              if ( ((status[6] & 0b00000011) == 0 ) && (status[7] < 60) && !((status[4] & 0b10000000)>> 7) && (sg2_y_limit_hit == 0))
+              if ( ((status[6] & 0b00000011) == 0 ) && (status[7] < 40) && !((status[4] & 0b10000000)>> 7) && (sg2_y_limit_hit == 0))
               {
                 stepper.endstop_triggered(Y_AXIS);
                 // Stops further endstop detection
-                sg2_y_limit_hit = 1;
+                // sg2_y_limit_hit = 1;
               }
             }
 
@@ -2613,10 +2613,10 @@ void Temperature::isr() {
 
             }
             #ifdef BEEVC_TMC2130SGDEBUG
-              if((((status[2] & 0b00000011) == 0 ) && (status[3] < 50) && !((status[0] & 0b10000000)>> 7)))
+              if((((status[2] & 0b00000011) == 0 ) && (status[3] == 0) && !((status[0] & 0b10000000)>> 7)))
                 SERIAL_ECHO("\nX\n");
 
-              if((((status[6] & 0b00000011) == 0 ) && (status[7] < 60) && !((status[4] & 0b10000000)>> 7)))
+              if((((status[6] & 0b00000011) == 0 ) && (status[7] < 50) && !((status[4] & 0b10000000)>> 7)))
                 SERIAL_ECHO("\nY\n");
             #endif // BEEVC_TMC2130SGDEBUG
           }
