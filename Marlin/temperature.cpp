@@ -2612,11 +2612,13 @@ void Temperature::isr() {
               }
 
             }
-            if((((status[2] & 0b00000011) == 0 ) && (status[3] < 50) && !((status[0] & 0b10000000)>> 7)))
-              SERIAL_ECHO("\nX\n");
+            #ifdef BEEVC_TMC2130SGDEBUG
+              if((((status[2] & 0b00000011) == 0 ) && (status[3] < 50) && !((status[0] & 0b10000000)>> 7)))
+                SERIAL_ECHO("\nX\n");
 
-            if((((status[6] & 0b00000011) == 0 ) && (status[7] < 60) && !((status[4] & 0b10000000)>> 7)))
-              SERIAL_ECHO("\nY\n");
+              if((((status[6] & 0b00000011) == 0 ) && (status[7] < 60) && !((status[4] & 0b10000000)>> 7)))
+                SERIAL_ECHO("\nY\n");
+            #endif // BEEVC_TMC2130SGDEBUG
           }
         }
       }
