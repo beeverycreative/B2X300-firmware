@@ -607,7 +607,14 @@
 // Specify here all the endstop connectors that are connected to any endstop or probe.
 // Almost all printers will be using one per axis. Probes will use one or more of the
 // extra connectors. Leave undefined any used for non-endstop and non-probe purposes.
-#define USE_XMIN_PLUG
+#ifdef BEEVC_TMC2130HOMEXREVERSE
+  // Homes X to the right
+  #define USE_XMAX_PLUG
+#else
+  // Homes X to the left
+  #define USE_XMIN_PLUG
+#endif // BEEVC_TMC2130HOMEXREVERSE
+
 
 // If the Y endstop is next to the Y motor
 #ifdef BEEVC_B2X300_YMINSTOP
@@ -640,7 +647,7 @@
 #define X_MIN_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.
 #define Y_MIN_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.
 #define Z_MIN_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.
-#define X_MAX_ENDSTOP_INVERTING false // set to true to invert the logic of the endstop.
+#define X_MAX_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.
 #define Y_MAX_ENDSTOP_INVERTING true // set to true to invert the logic of the endstop.
 #define Z_MAX_ENDSTOP_INVERTING false // set to true to invert the logic of the endstop.
 #define Z_MIN_PROBE_ENDSTOP_INVERTING true // set to true to invert the logic of the probe.
@@ -1028,7 +1035,16 @@
 
 // Direction of endstops when homing; 1=MAX, -1=MIN
 // :[-1,1]
-#define X_HOME_DIR -1
+
+#ifdef BEEVC_TMC2130HOMEXREVERSE
+  // Homes X to the right
+  #define X_HOME_DIR 1
+#else
+  // Homes X to the left
+  #define X_HOME_DIR -1
+#endif // BEEVC_TMC2130HOMEXREVERSE
+
+
 
 // If the endstop is towards Y-
 #ifdef BEEVC_B2X300_YMINSTOP

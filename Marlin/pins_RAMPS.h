@@ -75,11 +75,13 @@
 // Limit Switches
 //
 #define X_MIN_PIN           3
+#define X_MAX_PIN           -1
 
 #ifdef BEEVC_B2X300_YMINSTOP
   #define Y_MIN_PIN         15
 #else
   #ifndef FILAMENT_RUNOUT_SENSOR
+    #undef X_MAX_PIN
     #define X_MAX_PIN         2
 
     #ifndef FILAMENT_RUNOUT_DUAL
