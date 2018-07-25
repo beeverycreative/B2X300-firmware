@@ -4358,7 +4358,7 @@ enable_all_steppers();
 
   #ifdef BEEVC_TMC2130READSG
 
-    #ifndef BEEVS_TMC2130STEPLOSS
+    #ifndef BEEVC_TMC2130STEPLOSS
       // Stops further stallGuard2 status reading if step loss detection is inactive
       thermalManager.sg2_to_read  = false;
     #else
@@ -15796,7 +15796,7 @@ void idle(
     }
   #endif
 
-  #ifdef BEEVS_TMC2130STEPLOSS
+  #ifdef BEEVC_TMC2130STEPLOSS
     if (thermalManager.sg2_stop && !(thermalManager.sg2_homing))
     {
       SERIAL_ECHO("\n ---!!!!STEP LOSS!!!!----\n");
@@ -15811,9 +15811,9 @@ void idle(
       enqueue_and_echo_commands_P(PSTR("G1 F10000"));
 
     }
-  #endif //BEEVS_TMC2130STEPLOSS
+  #endif //BEEVC_TMC2130STEPLOSS
 
-  #ifdef BEEVS_TMC2130RUNOUT
+  #ifdef BEEVC_TMC2130RUNOUT
     if (thermalManager.sg2_runout)
     {
       thermalManager.sg2_runout = false;
@@ -15822,7 +15822,7 @@ void idle(
       enqueue_and_echo_commands_P(PSTR("M600"));
     }
 
-  #endif // BEEVS_TMC2130RUNOUT
+  #endif // BEEVC_TMC2130RUNOUT
 
 }
 
