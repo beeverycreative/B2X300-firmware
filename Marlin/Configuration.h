@@ -923,12 +923,12 @@
 //DR - 17-10-17 13h50 Activated probe double touch and reduced the second probing speed
 
 // Speed for the "accurate" probe of each point
-#define Z_PROBE_SPEED_SLOW Z_PROBE_SPEED_FAST *0.25
+#define Z_PROBE_SPEED_SLOW Z_PROBE_SPEED_FAST
 
 // The number of probes to perform at each point.
 //   Set to 2 for a fast/slow probe, using the second probe result.
 //   Set to 3 or more for slow probes, averaging the results.
-#define MULTIPLE_PROBING 2
+#define MULTIPLE_PROBING 4
 
 /**
  * Z probes require clearance when deploying, stowing, and moving between
