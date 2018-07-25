@@ -1093,7 +1093,7 @@
   #define Y_CURRENT          900
   #define Y_MICROSTEPS        16
 
-  #define Z_CURRENT          925
+  #define Z_CURRENT          850
   #define Z_MICROSTEPS        16
 
   #define X2_CURRENT         800
