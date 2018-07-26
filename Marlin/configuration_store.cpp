@@ -322,6 +322,36 @@ void MarlinSettings::postprocess() {
     } while (--size);
   }
 
+  // NON CRC Version
+
+  // Necessary to write to eeprom
+inline void EEPROM_write(int &pos, const uint8_t *value, uint16_t size) {
+   while (size--) {
+     uint8_t * const p = (uint8_t * const)pos;
+     uint8_t v = *value;
+     // EEPROM has only ~100,000 write cycles,
+     // so only write bytes that have changed!
+     if (v != eeprom_read_byte(p)) {
+       eeprom_write_byte(p, v);
+       if (eeprom_read_byte(p) != v) {
+         SERIAL_ECHO_START();
+         SERIAL_ECHOLNPGM(MSG_ERR_EEPROM_WRITE);
+         return;
+       }
+     }
+     pos++;
+     value++;
+   };
+ }
+ inline void EEPROM_read(int &pos, uint8_t* value, uint16_t size) {
+   do {
+     uint8_t c = eeprom_read_byte((unsigned char*)pos);
+     *value = c;
+     pos++;
+     value++;
+   } while (--size);
+ }
+
   /**
    * M500 - Store Configuration
    */
@@ -1150,6 +1180,11 @@ void MarlinSettings::postprocess() {
       #else
         for (uint8_t q = 0; q < 2; q++) EEPROM_READ(thrs);
       #endif
+
+      // Extra sensorless homing calibration
+      int sensorless_index = 50;
+      EEPROM_read(sensorless_index, (uint8_t*)&thermalManager.sg2_homing_x_calibration, sizeof(thermalManager.sg2_homing_x_calibration));
+      EEPROM_read(sensorless_index, (uint8_t*)&thermalManager.sg2_homing_y_calibration, sizeof(thermalManager.sg2_homing_y_calibration));
 
       //
       // Linear Advance

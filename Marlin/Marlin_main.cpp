@@ -227,8 +227,6 @@
  * M913 - Set HYBRID_THRESHOLD speed. (Requires HYBRID_THRESHOLD)
  * M914 - Set SENSORLESS_HOMING sensitivity. (Requires SENSORLESS_HOMING)
  * M915 - TMC2130 dual Z calibration
- * M916 - Set chopping mode (Only works for TMC2130 or TMC2208)
- * M917 - Read stallGuard2 values
  *
  * M360 - SCARA calibration: Move to cal-position ThetaA (0 deg calibration)
  * M361 - SCARA calibration: Move to cal-position ThetaB (90 deg calibration - steps per degree)
@@ -246,6 +244,10 @@
  * M701 - Store current position to EEPROM
  * M710 - Loads position and restores print
  * M711 - Loads current position from EEPROM
+ * M916 - Set chopping mode (Only works for TMC2130 or TMC2208)
+ * M917 - Read stallGuard2 values
+ * M918 - Set Sensorless_homing calibration value
+ *
  *
  *
  * "T" Codes
@@ -792,7 +794,6 @@ void report_current_position_detail();
 
 	 // Necessary to write to eeprom
  inline void EEPROM_write(int &pos, const uint8_t *value, uint16_t size) {
-
     while (size--) {
       uint8_t * const p = (uint8_t * const)pos;
       uint8_t v = *value;
@@ -11543,6 +11544,44 @@ inline void gcode_M502() {
   }
   #endif  //ENABLED(HAVE_TMC2130) || ENABLED(HAVE_TMC2208)
 
+  /**
+   * M918 -  TMC Sensorless homing calibration value
+   * Example :
+   * M916 X0 Y40   - Sets X calibration to 0 and Y calibration to 40
+   * Recommended range of values:
+   * X - 0 to 40
+   * Y - 20 to 70
+   */
+  #if ENABLED(HAVE_TMC2130) || ENABLED(HAVE_TMC2208)
+  inline void gcode_M918() {
+    // X axis
+    #if ENABLED(X_IS_TMC2130)
+      if (parser.seen(axis_codes[X_AXIS]))
+      {
+        thermalManager.sg2_homing_x_calibration = parser.value_int();
+      }
+    #endif
+
+    // Y axis
+    #if ENABLED(Y_IS_TMC2130)
+      if (parser.seen(axis_codes[Y_AXIS]))
+      {
+        thermalManager.sg2_homing_y_calibration = parser.value_int();
+      }
+    #endif
+
+    // Store the values to eeprom
+    int eeprom_index = 50;
+    EEPROM_write(eeprom_index, (uint8_t*)&thermalManager.sg2_homing_x_calibration, sizeof(thermalManager.sg2_homing_x_calibration));
+    EEPROM_write(eeprom_index, (uint8_t*)&thermalManager.sg2_homing_y_calibration, sizeof(thermalManager.sg2_homing_y_calibration));
+
+    // Prints current value
+    SERIAL_ECHOPAIR("\nX axis sensorless homing calibration  :", thermalManager.sg2_homing_x_calibration);
+    SERIAL_ECHOPAIR("\nY axis sensorless homing calibration  :", thermalManager.sg2_homing_y_calibration);
+
+  }
+  #endif  //ENABLED(HAVE_TMC2130) || ENABLED(HAVE_TMC2208)
+
 #endif // HAS_TRINAMIC
 
 /**
@@ -14017,6 +14056,12 @@ void process_parsed_command() {
         #if ENABLED(HAVE_TMC2130)
           case 917: // M917: Read stallGuard2 values
             gcode_M917();
+            break;
+        #endif
+
+        #if ENABLED(HAVE_TMC2130)
+          case 918: // M918: TMC Sensorless homing calibration value
+            gcode_M918();
             break;
         #endif
       #endif

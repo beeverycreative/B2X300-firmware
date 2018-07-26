@@ -299,6 +299,8 @@ class Temperature {
 
       static uint32_t   sg2_timeout;
 
+      static uint8_t    sg2_homing_x_calibration;
+      static uint8_t    sg2_homing_y_calibration;
       static bool       sg2_x_limit_hit;
       static bool       sg2_y_limit_hit;
       static bool       sg2_z_limit_hit;

@@ -93,6 +93,8 @@ Temperature thermalManager;
 
   //end_stops
   // Pre-set to 1 so no false detections are made when not homing
+  uint8_t   Temperature::sg2_homing_x_calibration = 0;
+  uint8_t   Temperature::sg2_homing_y_calibration = 40;
   bool      Temperature::sg2_x_limit_hit          = 1;
   bool      Temperature::sg2_y_limit_hit          = 1;
   bool      Temperature::sg2_z_limit_hit          = 1;
@@ -2559,7 +2561,7 @@ void Temperature::isr() {
             if(sg2_homing)
             {
               // X
-              if ( ((status[2] & 0b00000011) == 0 ) && (status[3] == 0) && !((status[0] & 0b10000000)>> 7) && (sg2_x_limit_hit == 0))
+              if ( ((status[2] & 0b00000011) == 0 ) && (status[3] <= sg2_homing_x_calibration) && !((status[0] & 0b10000000)>> 7) && (sg2_x_limit_hit == 0))
               {
                 stepper.endstop_triggered(X_AXIS);
                 // Stops further endstop detection
@@ -2567,7 +2569,7 @@ void Temperature::isr() {
               }
 
               // Y
-              if ( ((status[6] & 0b00000011) == 0 ) && (status[7] < 40) && !((status[4] & 0b10000000)>> 7) && (sg2_y_limit_hit == 0))
+              if ( ((status[6] & 0b00000011) == 0 ) && (status[7] <= sg2_homing_y_calibration) && !((status[4] & 0b10000000)>> 7) && (sg2_y_limit_hit == 0))
               {
                 stepper.endstop_triggered(Y_AXIS);
                 // Stops further endstop detection
@@ -2613,10 +2615,10 @@ void Temperature::isr() {
 
             }
             #ifdef BEEVC_TMC2130SGDEBUG
-              if((((status[2] & 0b00000011) == 0 ) && (status[3] == 0) && !((status[0] & 0b10000000)>> 7)))
+              if((((status[2] & 0b00000011) == 0 ) && (status[3] <= sg2_homing_x_calibration) && !((status[0] & 0b10000000)>> 7)))
                 SERIAL_ECHO("\nX\n");
 
-              if((((status[6] & 0b00000011) == 0 ) && (status[7] < 50) && !((status[4] & 0b10000000)>> 7)))
+              if((((status[6] & 0b00000011) == 0 ) && (status[7] <= sg2_homing_y_calibration) && !((status[4] & 0b10000000)>> 7)))
                 SERIAL_ECHO("\nY\n");
             #endif // BEEVC_TMC2130SGDEBUG
           }
