@@ -225,7 +225,6 @@ uint16_t max_display_update_time = 0;
 
   //Bed leveling - DR
   #if ENABLED(LCD_BED_LEVELING)
-
     void _lcd_level_goto_next_point();
     void _lcd_level_bed_done() ;
     void _lcd_level_bed_moving() ;
@@ -234,16 +233,44 @@ uint16_t max_display_update_time = 0;
     void _lcd_level_bed_homing_done() ;
     void _lcd_level_bed_homing() ;
     void _lcd_level_bed_continue();
-
 	#endif
 
 	////////////   Power recovery feature    //////////////
 	#ifdef BEEVC_Restore
-
 		void recover_print();
-
 	#endif
 	///////////////////////////////////////////////////////
+
+  // Trinamic menu
+  #if HAS_TRINAMIC
+    // Variables
+    #if ENABLED(X_IS_TMC2130)
+      int16_t trinamic_tempXcurrent = 0;
+
+    #endif
+    #if ENABLED(Y_IS_TMC2130)
+      int16_t trinamic_tempYcurrent = 0;
+
+    #endif
+    #if ENABLED(Z_IS_TMC2130)
+      int16_t trinamic_tempZcurrent = 0;
+
+    #endif
+    #if (ENABLED(E0_IS_TMC2130) || ENABLED(E1_IS_TMC2130))
+      int16_t trinamic_tempEcurrent = 0;
+    #endif
+
+    void lcd_trinamic_settings();
+    void lcd_trinamic_current();
+    // Only shown if X or Y are TMC2130 otherwise sensorless homing wont be used
+    #if (ENABLED(X_IS_TMC2130) || ENABLED(Y_IS_TMC2130))
+      void lcd_trinamic_sensorless();
+    #endif
+    // Only shown if X, Y or E are TMC2130 otherwise stallguard measure aren't useful
+    #if (ENABLED(X_IS_TMC2130) || ENABLED(Y_IS_TMC2130) || ENABLED(E0_IS_TMC2130) || ENABLED(E1_IS_TMC2130))
+      void lcd_trinamic_stallguard2();
+    #endif
+  #endif
 
 
 #if HAS_ABL
@@ -4173,6 +4200,8 @@ void lcd_enqueue_filament_change() {
         MENU_ITEM(function, _UxGT("Disable Silent mode"), disable_silent_mode);
       else
         MENU_ITEM(function, _UxGT("Enable Silent mode"), enable_silent_mode);
+
+        MENU_ITEM(submenu,  _UxGT("Trinamic Settings"), lcd_trinamic_settings);
     #endif
 
 
@@ -4662,6 +4691,138 @@ void lcd_enqueue_filament_change() {
 
     END_MENU();
   }
+
+
+
+  #if HAS_TRINAMIC
+  // Auxiliary funcitons
+  #if ENABLED(X_IS_TMC2130)
+    inline void _trinamic_setX_current() {stepperX.setCurrent(trinamic_tempXcurrent, R_SENSE, HOLD_MULTIPLIER);}
+
+  #endif
+  #if ENABLED(Y_IS_TMC2130)
+    inline void _trinamic_setY_current() {stepperY.setCurrent(trinamic_tempYcurrent, R_SENSE, HOLD_MULTIPLIER);}
+
+  #endif
+  #if ENABLED(Z_IS_TMC2130)
+    inline void _trinamic_setZ_current() {stepperZ.setCurrent(trinamic_tempZcurrent, R_SENSE, HOLD_MULTIPLIER);}
+
+  #endif
+  #if (ENABLED(E0_IS_TMC2130) || ENABLED(E1_IS_TMC2130))
+    inline void _trinamic_setE_current() {stepperE0.setCurrent(trinamic_tempEcurrent, R_SENSE, HOLD_MULTIPLIER);stepperE1.setCurrent(trinamic_tempEcurrent, R_SENSE, HOLD_MULTIPLIER);}
+  #endif
+
+  inline void _trinamic_update_current_values() {
+    #if ENABLED(X_IS_TMC2130)
+      trinamic_tempXcurrent = stepperX.getCurrent();
+    #endif
+    #if ENABLED(Y_IS_TMC2130)
+      trinamic_tempYcurrent = stepperY.getCurrent();
+    #endif
+    #if ENABLED(Z_IS_TMC2130)
+      trinamic_tempZcurrent = stepperZ.getCurrent();
+    #endif
+    #if (ENABLED(E0_IS_TMC2130) || ENABLED(E1_IS_TMC2130))
+      trinamic_tempEcurrent = stepperE0.getCurrent();
+    #endif
+  }
+
+
+
+
+
+  /**
+   *
+   * "Control" > "Trinamic Settings" > "Sensorless homing" submenu
+   *
+   */
+    void lcd_trinamic_current() {
+      START_MENU();
+      MENU_BACK(_UxGT("Trinamic Settings"));
+      _trinamic_update_current_values();
+      #if ENABLED(X_IS_TMC2130)
+        MENU_ITEM_EDIT_CALLBACK(int3, MSG_X, &trinamic_tempXcurrent, 500, 950, _trinamic_setX_current);
+      #endif
+      #if ENABLED(Y_IS_TMC2130)
+        MENU_ITEM_EDIT_CALLBACK(int3, MSG_Y, &trinamic_tempYcurrent, 500, 950, _trinamic_setY_current);
+      #endif
+      #if ENABLED(Z_IS_TMC2130)
+        MENU_ITEM_EDIT_CALLBACK(int3, MSG_Z, &trinamic_tempZcurrent, 500, 950, _trinamic_setZ_current);
+      #endif
+      #if (ENABLED(E0_IS_TMC2130) || ENABLED(E1_IS_TMC2130))
+        MENU_ITEM_EDIT_CALLBACK(int3, MSG_E, &trinamic_tempEcurrent, 500, 950, _trinamic_setZ_current);
+      #endif
+      END_MENU();
+    }
+
+  // /**
+  //  *
+  //  * "Control" > "Trinamic Settings" > "Sensorless homing" submenu
+  //  *
+  //  */
+  //  void lcd_trinamic_sensorless() {
+  //    START_MENU();
+  //    MENU_BACK(_UxGT("Trinamic Settings"));
+  //    #if ENABLED(X_IS_TMC2130)
+  //      MENU_ITEM_EDIT_CALLBACK(int3, _UxGT("X sensorless calibration"), &thermalManager.sg2_homing_x_calibration, 0, 100,);
+  //      MENU_ITEM(gcode, _UxGT("Test X homing"), PSTR("G28 X\nG28 X\nG28 X\nG28 X\nG28 X"));
+  //    #endif
+  //    #if ENABLED(Y_IS_TMC2130)
+  //      MENU_ITEM_EDIT_CALLBACK(int3, _UxGT("Y sensorless calibration"), &thermalManager.sg2_homing_y_calibration, 0, 100,);
+  //     MENU_ITEM(gcode, _UxGT("Test Y homing"), PSTR("G28 Y\nG28 Y\nG28 Y\nG28 Y\nG28 Y"));
+  //    #endif
+  //  END_MENU();
+  //  }
+  //
+  //  /**
+  //   *
+  //   * "Control" > "Trinamic Settings" > "Stallguard2 settings" submenu
+  //   *
+  //   */
+  //   void lcd_trinamic_stallguard2() {
+  //     START_MENU();
+  //     MENU_BACK(_UxGT("Trinamic Settings"));
+  //     #if ENABLED(X_IS_TMC2130)
+  //       uint8_t tempXsgt = stepperX.sgt();
+  //       MENU_ITEM_EDIT_CALLBACK(int2, _UxGT("X threshold"), &tempXcurrent, 0, 15, stepperX.sgt(tempXsgt););
+  //     #endif
+  //     #if ENABLED(Y_IS_TMC2130)
+  //       uint8_t tempYsgt = stepperY.sgt();
+  //       MENU_ITEM_EDIT_CALLBACK(int2, _UxGT("Y threshold"), &tempXcurrent, 0, 15, stepperY.sgt(tempYsgt););
+  //     #endif
+  //     #if (ENABLED(E0_IS_TMC2130) || ENABLED(E1_IS_TMC2130))
+  //       uint8_t tempEsgt = stepperE0.sgt();
+  //       MENU_ITEM_EDIT_CALLBACK(int2, _UxGT("E threshold"), &tempXcurrent, 0, 15, stepperE0.sgt(tempEsgt);stepperE1.sgt(tempEsgt););
+  //     #endif
+  //  END_MENU();
+  //   }
+
+
+
+  /**
+   *
+   * "Control" > "Trinamic Settings" submenu
+   *
+   */
+    void lcd_trinamic_settings() {
+      START_MENU();
+      MENU_BACK(MSG_CONTROL);
+
+      MENU_ITEM(submenu, _UxGT("Stepper current"), lcd_trinamic_current);
+
+      // // Only shown if X or Y are TMC2130 otherwise sensorless homing wont be used
+      // #if (ENABLED(X_IS_TMC2130) || ENABLED(Y_IS_TMC2130))
+      //   MENU_ITEM(submenu, _UxGT("Sensorless homing"), lcd_trinamic_sensorless);
+      // #endif
+      //
+      // // Only shown if X, Y or E are TMC2130 otherwise stallguard measure aren't useful
+      // #if (ENABLED(X_IS_TMC2130) || ENABLED(Y_IS_TMC2130) || ENABLED(E0_IS_TMC2130) || ENABLED(E1_IS_TMC2130))
+      //   MENU_ITEM(submenu, _UxGT("Stallguard2 settings"), lcd_trinamic_stallguard2);
+      // #endif
+
+      END_MENU();
+    }
+  #endif // HAS_TRINAMIC
 
   /**
    *
