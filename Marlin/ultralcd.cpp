@@ -4761,7 +4761,7 @@ void lcd_enqueue_filament_change() {
         MENU_ITEM_EDIT_CALLBACK(int3, MSG_Z, &trinamic_tempZcurrent, 500, 950, _trinamic_setZ_current);
       #endif
       #if (ENABLED(E0_IS_TMC2130) || ENABLED(E1_IS_TMC2130))
-        MENU_ITEM_EDIT_CALLBACK(int3, MSG_E, &trinamic_tempEcurrent, 500, 950, _trinamic_setZ_current);
+        MENU_ITEM_EDIT_CALLBACK(int3, MSG_E, &trinamic_tempEcurrent, 500, 950, _trinamic_setE_current);
       #endif
       END_MENU();
     }
