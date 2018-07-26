@@ -706,6 +706,12 @@ inline void EEPROM_write(int &pos, const uint8_t *value, uint16_t size) {
     #endif
     EEPROM_WRITE(thrs);
 
+    // SPI Sensorless homing extra calibration
+    int temp_index = 50;
+    EEPROM_write(temp_index, (uint8_t*)&thermalManager.sg2_homing_x_calibration, sizeof(thermalManager.sg2_homing_x_calibration));
+    EEPROM_write(temp_index, (uint8_t*)&thermalManager.sg2_homing_y_calibration, sizeof(thermalManager.sg2_homing_y_calibration));
+
+
     //
     // Linear Advance
     //
