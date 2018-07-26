@@ -4088,10 +4088,6 @@ inline void gcode_G28(const bool always_home_all) {
   uint8_t pre_home_move_mm = 20;
   bool restore_stealthchop_x = false, restore_stealthchop_y = false;
 
-  // Sets homing sensitivity
-  stepperX.sgt(BEEVC_TMC2130HOMESGTX);
-  stepperY.sgt(BEEVC_TMC2130HOMESGTY);
-
   // Disables stallGuard2 filter for maximum time precision
   #ifdef BEEVC_TMC2130SGFILTER
     stepperX.sg_filter(true);
@@ -4378,10 +4374,6 @@ safe_delay(400);
       thermalManager.sg2_to_read  = true;
       thermalManager.sg2_timeout = millis() + 2000;
     #endif
-
-    // Sets printing sensitivity
-    stepperX.sgt(BEEVC_TMC2130STEPLOSSSGT);
-    stepperY.sgt(BEEVC_TMC2130STEPLOSSSGT);
 
     // Resets flags after homing
     thermalManager.sg2_stop = false;
@@ -12361,10 +12353,6 @@ inline void gcode_M999() {
       uint8_t pre_home_move_mm = 20;
       bool restore_stealthchop_x = false, restore_stealthchop_y = false;
 
-      // Sets homing sensitivity
-      stepperX.sgt(BEEVC_TMC2130HOMESGTX);
-      stepperY.sgt(BEEVC_TMC2130HOMESGTY);
-
       // Disables stallGuard2 filter for maximum time precision
       #ifdef BEEVC_TMC2130SGFILTER
         stepperX.sg_filter(true);
@@ -12428,10 +12416,6 @@ inline void gcode_M999() {
         thermalManager.sg2_to_read  = true;
         thermalManager.sg2_timeout = millis() + 2000;
       #endif
-
-      // Sets printing sensitivity
-      stepperX.sgt(BEEVC_TMC2130STEPLOSSSGT);
-      stepperY.sgt(BEEVC_TMC2130STEPLOSSSGT);
 
       // Resets flags after homing
       thermalManager.sg2_stop = false;

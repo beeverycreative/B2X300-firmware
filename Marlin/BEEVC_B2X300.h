@@ -64,15 +64,15 @@
   #define BEEVC_TMC2130HOMEXREVERSE
   #define BEEVC_TMC2130SGFILTER
 
-  #ifdef BEEVC_TMC2130SGFILTER
-    #define BEEVC_TMC2130HOMESGTX      5
-    #define BEEVC_TMC2130HOMESGTY      6
-    #define BEEVC_TMC2130STEPLOSSSGT   5
-  #else
-    #define BEEVC_TMC2130HOMESGTX      9
-    #define BEEVC_TMC2130HOMESGTY      9
-    #define BEEVC_TMC2130STEPLOSSSGT   9
-  #endif
+  // #ifdef BEEVC_TMC2130SGFILTER
+  //   #define BEEVC_TMC2130HOMESGTX      5
+  //   #define BEEVC_TMC2130HOMESGTY      6
+  //   #define BEEVC_TMC2130STEPLOSSSGT   5
+  // #else
+  //   #define BEEVC_TMC2130HOMESGTX      9
+  //   #define BEEVC_TMC2130HOMESGTY      9
+  //   #define BEEVC_TMC2130STEPLOSSSGT   9
+  // #endif
 
   //#define BEEVC_TMC2130STEPLOSS
   //#define BEEVC_TMC2130RUNOUT
