@@ -12317,8 +12317,117 @@ inline void gcode_M999() {
     //Lifts Z 20mm and homes X Y not moving the Z axis
     do_blocking_move_to_z((current_position[2]+20), 4);
     lcd_setstatus("Homing XY...");
-		HOMEAXIS(X);
-		HOMEAXIS(Y);
+
+    #ifdef BEEVC_TMC2130READSG
+      uint8_t pre_home_move_mm = 20;
+      bool restore_stealthchop_x = false, restore_stealthchop_y = false;
+
+      // Sets homing sensitivity
+      stepperX.sgt(BEEVC_TMC2130HOMESGTX);
+      stepperY.sgt(BEEVC_TMC2130HOMESGTY);
+
+      // Disables stallGuard2 filter for maximum time precision
+      #ifdef BEEVC_TMC2130SGFILTER
+        stepperX.sg_filter(true);
+        stepperY.sg_filter(true);
+      #else
+        stepperX.sg_filter(false);
+        stepperY.sg_filter(false);
+      #endif // BEEVC_TMC2130SGFILTER
+
+
+      // Sets homing and stallGuard2 reading flag
+      thermalManager.sg2_homing   = true;
+      thermalManager.sg2_to_read  = true;
+
+      // Sets spreadCycle if it was not already in use (otherwise stallGuard2 values cant be read)
+        if (stepperX.stealthChop())
+        {
+          stepperX.coolstep_min_speed(1024UL * 1024UL - 1UL);
+          stepperX.stealthChop(0);
+          restore_stealthchop_x = true;
+
+          safe_delay(400);
+        }
+
+        if (stepperY.stealthChop())
+        {
+          stepperY.coolstep_min_speed(1024UL * 1024UL - 1UL);
+          stepperY.stealthChop(0);
+          restore_stealthchop_y = true;
+
+          safe_delay(400);
+        }
+
+      // Sets the read speed to maximum to allow endstop detection
+      thermalManager.sg2_polling_wait_cycles = 0;
+
+      // X
+      // Moves X a little away from limit to avoid eroneous detections
+      #ifdef BEEVC_TMC2130HOMEXREVERSE
+        // Homes X to the right
+        do_blocking_move_to_xy((current_position[X_AXIS] > (X_MIN_POS + pre_home_move_mm) ? current_position[X_AXIS]-pre_home_move_mm : current_position[X_AXIS]),current_position[Y_AXIS],25);
+      #else
+        // Homes X to the left
+        do_blocking_move_to_xy((current_position[X_AXIS] < (X_MAX_POS - pre_home_move_mm) ? current_position[X_AXIS]+pre_home_move_mm : current_position[X_AXIS]),current_position[Y_AXIS],25);
+      #endif //BEEVC_TMC2130HOMEXREVERSE
+      thermalManager.sg2_x_limit_hit = 0;
+      HOMEAXIS(X);
+      thermalManager.sg2_x_limit_hit = 1;
+
+      // Y
+      // Moves Y a little away from limit to avoid eroneous detections
+      do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] > (Y_MIN_POS + pre_home_move_mm) ? current_position[Y_AXIS]-pre_home_move_mm : current_position[Y_AXIS]),25);
+      thermalManager.sg2_y_limit_hit = 0;
+      HOMEAXIS(Y);
+      thermalManager.sg2_y_limit_hit = 1;
+
+      #ifndef BEEVC_TMC2130STEPLOSS
+        // Stops further stallGuard2 status reading if step loss detection is inactive
+        thermalManager.sg2_to_read  = false;
+      #else
+        thermalManager.sg2_to_read  = true;
+        thermalManager.sg2_timeout = millis() + 2000;
+      #endif
+
+      // Sets printing sensitivity
+      stepperX.sgt(BEEVC_TMC2130STEPLOSSSGT);
+      stepperY.sgt(BEEVC_TMC2130STEPLOSSSGT);
+
+      // Resets flags after homing
+      thermalManager.sg2_stop = false;
+      thermalManager.sg2_homing = false;
+
+      // Enable stallGuard2 filter for a consistent reading
+      stepperX.sg_filter(true);
+      stepperY.sg_filter(true);
+
+      // Restores stealthChop if it was active
+      if (restore_stealthchop_x)
+      {
+        stepperX.coolstep_min_speed(0);
+        stepperX.stealthChop(1);
+      }
+
+      if (restore_stealthchop_y)
+      {
+        stepperY.coolstep_min_speed(0);
+        stepperY.stealthChop(1);
+      }
+
+    #else
+      HOMEAXIS(X);
+      HOMEAXIS(Y);
+    #endif // BEEVC_TMC2130READSG
+
+
+    // Ensures the stepper have been preactivated to avoid eroneous detection
+    enable_all_steppers();
+    safe_delay(400);
+    // Wait for planner moves to finish!
+    stepper.synchronize();
+
+
 
     //Sets the correct extruder temperatures for printing
     thermalManager.target_temperature[0] = tempE0;
