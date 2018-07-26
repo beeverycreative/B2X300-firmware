@@ -4741,6 +4741,29 @@ void lcd_enqueue_filament_change() {
 
   inline void _void_() {}
 
+  inline void lcd_trinamic_reset() {
+    #if ENABLED(X_IS_TMC2130)
+      stepperX.setCurrent(X_CURRENT, R_SENSE, HOLD_MULTIPLIER);
+      stepperX.sgt(X_HOMING_SENSITIVITY);
+      thermalManager.sg2_homing_x_calibration = 0;
+    #endif
+    #if ENABLED(Y_IS_TMC2130)
+      stepperY.setCurrent(Y_CURRENT, R_SENSE, HOLD_MULTIPLIER);
+      stepperY.sgt(Y_HOMING_SENSITIVITY);
+      thermalManager.sg2_homing_y_calibration = 40;
+    #endif
+    #if ENABLED(Z_IS_TMC2130)
+      stepperZ.setCurrent(Z_CURRENT, R_SENSE, HOLD_MULTIPLIER);
+    #endif
+    #if (ENABLED(E0_IS_TMC2130) || ENABLED(E1_IS_TMC2130))
+    stepperE0.setCurrent(E0_CURRENT, R_SENSE, HOLD_MULTIPLIER);
+    stepperE1.setCurrent(E1_CURRENT, R_SENSE, HOLD_MULTIPLIER);
+    stepperE1.sgt(5);
+    stepperE1.sgt(5);
+    #endif
+
+    (void)settings.save();
+  }
 
   /**
    *
@@ -4828,6 +4851,8 @@ void lcd_enqueue_filament_change() {
       #if (ENABLED(X_IS_TMC2130) || ENABLED(Y_IS_TMC2130) || ENABLED(E0_IS_TMC2130) || ENABLED(E1_IS_TMC2130))
         MENU_ITEM(submenu, _UxGT("Stallguard2 settings"), lcd_trinamic_stallguard2);
       #endif
+
+      MENU_ITEM(function, _UxGT("Reset default"), lcd_trinamic_reset);
 
       END_MENU();
     }
