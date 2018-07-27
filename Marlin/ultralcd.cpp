@@ -4803,8 +4803,12 @@ void lcd_enqueue_filament_change() {
      #endif
      #if ENABLED(Y_IS_TMC2130)
        MENU_ITEM_EDIT_CALLBACK(int8, _UxGT("Y calibration"), &thermalManager.sg2_homing_y_calibration, 0, 100,_void_);
-      MENU_ITEM(gcode, _UxGT("Test Y homing"), PSTR("G28 Y\nG28 Y\nG28 Y\nG28 Y\nG28 Y"));
+       MENU_ITEM(gcode, _UxGT("Test Y homing"), PSTR("G28 Y\nG28 Y\nG28 Y\nG28 Y\nG28 Y"));
      #endif
+     #if (ENABLED(Y_IS_TMC2130) && ENABLED(X_IS_TMC2130))
+       MENU_ITEM(gcode, _UxGT("Auto adjust"), PSTR("M918 A"));
+     #endif
+
    END_MENU();
    }
 

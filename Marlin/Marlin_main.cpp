@@ -4266,7 +4266,6 @@ safe_delay(400);
         active_extruder_parked = true;
 
       #else
-
         HOMEAXIS(X);
 
       #endif
@@ -11539,12 +11538,13 @@ inline void gcode_M502() {
   /**
    * M918 -  TMC Sensorless homing calibration value
    * Example :
-   * M916 X0 Y40   - Sets X calibration to 0 and Y calibration to 40
+   * M916 X0 Y40    - Sets X calibration to 0 and Y calibration to 40
    * Recommended range of values:
    * X - 0 to 40
    * Y - 20 to 70
+   * M918 A         - Finds the best value automatically
    */
-  #if ENABLED(HAVE_TMC2130) || ENABLED(HAVE_TMC2208)
+#ifdef BEEVC_TMC2130READSG
   inline void gcode_M918() {
     // X axis
     #if ENABLED(X_IS_TMC2130)
@@ -11562,6 +11562,240 @@ inline void gcode_M502() {
       }
     #endif
 
+    #if (ENABLED(X_IS_TMC2130) && ENABLED(Y_IS_TMC2130))
+      if (parser.seen('A'))
+      {
+        //Variables
+        bool x_home_to_calibrate = true;
+        bool y_home_to_calibrate = true;
+        uint16_t xy_home_duration_expected = 245;
+        uint16_t xy_home_duration_limit = 285;
+        uint32_t xy_home_duration_temp = 0;
+        uint32_t xy_home_duration_sum;
+
+
+        //Reset default values
+        thermalManager.sg2_homing_x_calibration = 0;
+        thermalManager.sg2_homing_y_calibration = 40;
+        axis_homed[X_AXIS] = false;
+        axis_homed[Y_AXIS] = false;
+
+        // Preparations for homing calibration
+        uint8_t pre_home_move_mm = 20;
+        bool restore_stealthchop_x = false, restore_stealthchop_y = false;
+
+        // Disables stallGuard2 filter for maximum time precision
+        #ifdef BEEVC_TMC2130SGFILTER
+          stepperX.sg_filter(true);
+          stepperY.sg_filter(true);
+        #else
+          stepperX.sg_filter(false);
+          stepperY.sg_filter(false);
+        #endif // BEEVC_TMC2130SGFILTER
+
+
+        // Sets homing and stallGuard2 reading flag
+        thermalManager.sg2_homing   = true;
+        thermalManager.sg2_to_read  = true;
+
+        // Sets spreadCycle if it was not already in use (otherwise stallGuard2 values cant be read)
+          if (stepperX.stealthChop())
+          {
+            stepperX.coolstep_min_speed(1024UL * 1024UL - 1UL);
+            stepperX.stealthChop(0);
+            restore_stealthchop_x = true;
+
+            safe_delay(400);
+          }
+
+          if (stepperY.stealthChop())
+          {
+            stepperY.coolstep_min_speed(1024UL * 1024UL - 1UL);
+            stepperY.stealthChop(0);
+            restore_stealthchop_y = true;
+
+            safe_delay(400);
+          }
+
+          // Ensures the stepper have been preactivated to avoid eroneous detection
+          enable_all_steppers();
+          safe_delay(400);
+
+          // Wait for planner moves to finish!
+          stepper.synchronize();
+
+          // Always home with tool 0 active
+          #if HOTENDS > 1
+            const uint8_t old_tool_index = active_extruder;
+            tool_change(0, 0, true);
+          #endif
+
+          setup_for_endstop_or_probe_move();
+          endstops.enable(true); // Enable endstops for next homing move
+          set_destination_from_current();
+
+          #ifdef BEEVC_TMC2130READSG
+          // Sets the read speed to maximum to allow endstop detection
+          thermalManager.sg2_polling_wait_cycles = 0;
+          #endif // BEEVC_TMC2130READSG
+
+          //Homes XY
+          #ifdef BEEVC_TMC2130HOMEXREVERSE
+            // Homes X to the right
+            do_blocking_move_to_xy(current_position[X_AXIS]-pre_home_move_mm ,current_position[Y_AXIS],80);
+          #else
+            // Homes X to the left
+            do_blocking_move_to_xy(current_position[X_AXIS]+pre_home_move_mm,current_position[Y_AXIS],80);
+          #endif //BEEVC_TMC2130HOMEXREVERSE
+          thermalManager.sg2_x_limit_hit = 0;
+          HOMEAXIS(X);
+          thermalManager.sg2_x_limit_hit = 1;
+          // Homes Y to the front
+          do_blocking_move_to_xy(current_position[X_AXIS],current_position[Y_AXIS]-pre_home_move_mm,80);
+          thermalManager.sg2_y_limit_hit = 0;
+          HOMEAXIS(Y);
+          thermalManager.sg2_y_limit_hit = 1;
+
+          uint8_t count = 0;
+
+        //Loop while testing new values until a good value is found for X
+        while(x_home_to_calibrate)
+        {
+          xy_home_duration_sum = 0;
+          // Homes 5 times in a row to get a good average
+          for (int k = 0; k< 5; k++)
+          {
+            setup_for_endstop_or_probe_move();
+            endstops.enable(true); // Enable endstops for next homing move
+            set_destination_from_current();
+
+            #ifdef BEEVC_TMC2130HOMEXREVERSE
+              // Homes X to the right
+              do_blocking_move_to_xy(current_position[X_AXIS]-pre_home_move_mm ,current_position[Y_AXIS],80);
+            #else
+              // Homes X to the left
+              do_blocking_move_to_xy(current_position[X_AXIS]+pre_home_move_mm,current_position[Y_AXIS],80);
+            #endif //BEEVC_TMC2130HOMEXREVERSE
+
+            thermalManager.sg2_x_limit_hit = 0;
+            xy_home_duration_temp = millis();
+            HOMEAXIS(X);
+            xy_home_duration_temp = millis()- xy_home_duration_temp;
+
+            // Makes sure the result never leads to false positives
+            if (xy_home_duration_temp < xy_home_duration_expected)
+            xy_home_duration_sum = 0;
+            else
+            xy_home_duration_sum += xy_home_duration_temp;
+
+            safe_delay(250);
+          }
+          uint16_t x_home_duration = (xy_home_duration_sum/5);
+
+          // Verifies if the homing values appear good if so exit
+          if (x_home_duration > xy_home_duration_limit){
+            if(thermalManager.sg2_homing_x_calibration <= 60)
+            thermalManager.sg2_homing_x_calibration += 5;
+          }
+          else if (x_home_duration < xy_home_duration_expected){
+            if(thermalManager.sg2_homing_x_calibration >= 5)
+            thermalManager.sg2_homing_x_calibration -= 5;
+          }
+          else
+          x_home_to_calibrate = false;
+
+          SERIAL_ECHO(x_home_duration);
+
+          count++;
+          if (count > 20)
+          break;
+        }
+
+        count = 0;
+
+        //Loop while testing new values until a good value is found for Y
+        while(y_home_to_calibrate)
+        {
+          xy_home_duration_sum = 0;
+
+          // Homes 5 times in a row to get a good average
+          for (int k = 0; k< 5; k++)
+          {
+            setup_for_endstop_or_probe_move();
+            endstops.enable(true); // Enable endstops for next homing move
+            set_destination_from_current();
+
+            // Homes Y to the front
+            do_blocking_move_to_xy(current_position[X_AXIS],current_position[Y_AXIS]-pre_home_move_mm,80);
+            thermalManager.sg2_y_limit_hit = 0;
+
+            xy_home_duration_temp = millis();
+            HOMEAXIS(Y);
+            xy_home_duration_temp = millis()- xy_home_duration_temp;
+
+            // Makes sure the result never leads to false positives
+            if (xy_home_duration_temp < xy_home_duration_expected)
+            xy_home_duration_sum = 0;
+            else
+            xy_home_duration_sum += xy_home_duration_temp;
+            safe_delay(250);
+          }
+          uint16_t y_home_duration = (xy_home_duration_sum/5);
+
+          // Verifies if the homing values appear good if so exit
+          if (y_home_duration > xy_home_duration_limit){
+            if(thermalManager.sg2_homing_y_calibration <= 95)
+            thermalManager.sg2_homing_y_calibration += 5;
+          }
+          else if (y_home_duration < xy_home_duration_expected){
+            if(thermalManager.sg2_homing_y_calibration >= 20)
+            thermalManager.sg2_homing_y_calibration -= 5;
+          }
+          else
+          y_home_to_calibrate = false;
+
+          SERIAL_ECHO(y_home_duration);
+
+          count++;
+          if (count > 20)
+          break;
+        }
+
+        // Restores stealthChop if it was active
+        if (restore_stealthchop_x)
+        {
+          stepperX.coolstep_min_speed(0);
+          stepperX.stealthChop(1);
+        }
+
+        if (restore_stealthchop_y)
+        {
+          stepperY.coolstep_min_speed(0);
+          stepperY.stealthChop(1);
+        }
+        endstops.not_homing();
+        clean_up_after_endstop_or_probe_move();
+        // Restore the active tool after homing
+        #if HOTENDS > 1
+          #if ENABLED(PARKING_EXTRUDER)
+            #define NO_FETCH false // fetch the previous toolhead
+          #else
+            #define NO_FETCH true
+          #endif
+          tool_change(old_tool_index, 0, NO_FETCH);
+        #endif
+
+
+        #ifdef BEEVC_TMC2130READSG
+          thermalManager.sg2_polling_wait_cycles = 255; // Temporarily increases the polling frequency to the lowest possible to avoid problems with homing Z
+          // Resets flags after homing
+          thermalManager.sg2_stop = false;
+          thermalManager.sg2_homing = false;
+        #endif // BEEVC_TMC2130READSG
+
+      }
+    #endif //(ENABLED(X_IS_TMC2130) && ENABLED(Y_IS_TMC2130))
+
     // Store the values to eeprom
     int eeprom_index = 50;
     EEPROM_write(eeprom_index, (uint8_t*)&thermalManager.sg2_homing_x_calibration, sizeof(thermalManager.sg2_homing_x_calibration));
@@ -11572,7 +11806,7 @@ inline void gcode_M502() {
     SERIAL_ECHOPAIR("\nY axis sensorless homing calibration  :", thermalManager.sg2_homing_y_calibration);
 
   }
-  #endif  //ENABLED(HAVE_TMC2130) || ENABLED(HAVE_TMC2208)
+  #endif  //BEEVC_TMC2130READSG
 
 #endif // HAS_TRINAMIC
 
