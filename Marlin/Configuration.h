@@ -170,8 +170,8 @@
 //#define STRING_CONFIG_H_AUTHOR "(none, default config)" // Who made the changes.
 #define SHOW_BOOTSCREEN
 #define BOOTSCREEN_TIMEOUT 1500
-#define STRING_SPLASH_LINE1 FIRMWARE_BRANCH // will be shown during bootup in line 1
-#define STRING_SPLASH_LINE2 FIRMWARE_HASH         // will be shown during bootup in line 2
+#define STRING_SPLASH_LINE1 BUILDBRANCH // will be shown during bootup in line 1
+#define STRING_SPLASH_LINE2 BUILDCOMMIT         // will be shown during bootup in line 2
 
 //
 // *** VENDORS PLEASE READ *****************************************************
