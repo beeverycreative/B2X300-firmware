@@ -1168,7 +1168,7 @@ inline void EEPROM_write(int &pos, const uint8_t *value, uint16_t size) {
        * Y and Y2 use the same value
        */
       int16_t thrs;
-      #if ENABLED(SENSORLESS_HOMING)
+      #if (ENABLED(SENSORLESS_HOMING) || ENABLED(BEEVC_TMC2130READSG))
         EEPROM_READ(thrs);
         #if ENABLED(X_IS_TMC2130)
           stepperX.sgt(thrs);
@@ -1623,7 +1623,7 @@ void MarlinSettings::reset() {
     stepperY.sgt(Y_HOMING_SENSITIVITY);
   #endif
 
-  #if ENABLED(SENSORLESS_HOMING)
+  #if (ENABLED(SENSORLESS_HOMING) || ENABLED(BEEVC_TMC2130READSG))
     #if ENABLED(X2_IS_TMC2130)
       stepperX2.sgt(X_HOMING_SENSITIVITY);
     #endif
