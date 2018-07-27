@@ -32,6 +32,12 @@
 
 #else
 
+  // Firmware branch
+  #define FIRMWARE_BRANCH "Branch: Custom"
+
+  // Commit hash
+  #define FIRMWARE_HASH "Git Hash: Custom"
+
   /**
    * Marlin release version identifier
    */

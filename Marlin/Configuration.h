@@ -169,9 +169,9 @@
 // build by the user have been successfully uploaded into firmware.
 //#define STRING_CONFIG_H_AUTHOR "(none, default config)" // Who made the changes.
 #define SHOW_BOOTSCREEN
-#define BOOTSCREEN_TIMEOUT 0
-#define STRING_SPLASH_LINE1 SHORT_BUILD_VERSION // will be shown during bootup in line 1
-#define STRING_SPLASH_LINE2 WEBSITE_URL         // will be shown during bootup in line 2
+#define BOOTSCREEN_TIMEOUT 1500
+#define STRING_SPLASH_LINE1 FIRMWARE_BRANCH // will be shown during bootup in line 1
+#define STRING_SPLASH_LINE2 FIRMWARE_HASH         // will be shown during bootup in line 2
 
 //
 // *** VENDORS PLEASE READ *****************************************************
