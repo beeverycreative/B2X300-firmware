@@ -11679,7 +11679,8 @@ inline void gcode_M502() {
 
             thermalManager.sg2_x_limit_hit = 0;
             xy_home_duration_temp = millis();
-            HOMEAXIS(X);
+            //HOMEAXIS(X);
+            do_homing_move(X_AXIS, 25* home_dir(X_AXIS));
             xy_home_duration_temp = millis()- xy_home_duration_temp;
 
             // Makes sure the result never leads to false positives
@@ -11730,7 +11731,8 @@ inline void gcode_M502() {
             thermalManager.sg2_y_limit_hit = 0;
 
             xy_home_duration_temp = millis();
-            HOMEAXIS(Y);
+            //HOMEAXIS(Y);
+            do_homing_move(Y_AXIS, 25* home_dir(Y_AXIS));
             xy_home_duration_temp = millis()- xy_home_duration_temp;
 
             // Makes sure the result never leads to false positives
