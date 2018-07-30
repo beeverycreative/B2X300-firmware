@@ -11795,6 +11795,9 @@ inline void gcode_M502() {
           thermalManager.sg2_homing = false;
         #endif // BEEVC_TMC2130READSG
 
+        thermalManager.sg2_homing_x_calibration -= 5;
+        thermalManager.sg2_homing_y_calibration -= 5;
+
       }
     #endif //(ENABLED(X_IS_TMC2130) && ENABLED(Y_IS_TMC2130))
 
