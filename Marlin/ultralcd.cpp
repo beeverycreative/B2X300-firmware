@@ -1788,8 +1788,8 @@ static void lcd_filament_change()
   MENU_BACK(MSG_BACK);
 
   MENU_ITEM(function, _UxGT("Move to position"), lcd_filament_change_move_to_position);
-  MENU_ITEM(submenu, _UxGT("Extruder 0"), lcd_filament_change_extruder_0);
-  MENU_ITEM(submenu, _UxGT("Extruder 1"), lcd_filament_change_extruder_1);
+  MENU_ITEM(submenu, _UxGT("Extruder 1"), lcd_filament_change_extruder_0);
+  MENU_ITEM(submenu, _UxGT("Extruder 2"), lcd_filament_change_extruder_1);
 
   END_MENU();
 }
