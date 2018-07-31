@@ -4290,7 +4290,11 @@ safe_delay(400);
           thermalManager.sg2_y_limit_hit = 0;
         #endif // BEEVC_TMC2130READSG
 
+        uint32_t temptime = millis();
         HOMEAXIS(Y);
+        temptime = millis()- temptime;
+        SERIAL_ECHOLNPAIR("Y axis homing duration", temptime);
+
         #if ENABLED(DEBUG_LEVELING_FEATURE)
           if (DEBUGGING(LEVELING)) DEBUG_POS("> homeY", current_position);
         #endif
@@ -11568,15 +11572,16 @@ inline void gcode_M502() {
         //Variables
         bool x_home_to_calibrate = true;
         bool y_home_to_calibrate = true;
-        uint16_t xy_home_duration_expected = 245;
-        uint16_t xy_home_duration_limit = 285;
+        uint16_t xy_home_duration_expected = 255;
+        uint16_t x_home_duration_limit = 280;
+        uint16_t y_home_duration_limit = 280;
         uint32_t xy_home_duration_temp = 0;
         uint32_t xy_home_duration_sum;
 
 
         //Reset default values
         thermalManager.sg2_homing_x_calibration = 0;
-        thermalManager.sg2_homing_y_calibration = 40;
+        thermalManager.sg2_homing_y_calibration = 60;
         axis_homed[X_AXIS] = false;
         axis_homed[Y_AXIS] = false;
 
@@ -11680,8 +11685,10 @@ inline void gcode_M502() {
             thermalManager.sg2_x_limit_hit = 0;
             xy_home_duration_temp = millis();
             //HOMEAXIS(X);
-            do_homing_move(X_AXIS, 25* home_dir(X_AXIS));
+            do_homing_move(X_AXIS, (pre_home_move_mm+5)* home_dir(X_AXIS));
             xy_home_duration_temp = millis()- xy_home_duration_temp;
+
+            SERIAL_ECHOLNPAIR("X axis homing duration", xy_home_duration_temp);
 
             // Makes sure the result never leads to false positives
             if (xy_home_duration_temp < xy_home_duration_expected)
@@ -11694,8 +11701,8 @@ inline void gcode_M502() {
           uint16_t x_home_duration = (xy_home_duration_sum/5);
 
           // Verifies if the homing values appear good if so exit
-          if (x_home_duration > xy_home_duration_limit){
-            if(thermalManager.sg2_homing_x_calibration <= 60)
+          if (x_home_duration > x_home_duration_limit){
+            if(thermalManager.sg2_homing_x_calibration <= 90)
             thermalManager.sg2_homing_x_calibration += 5;
           }
           else if (x_home_duration < xy_home_duration_expected){
@@ -11730,27 +11737,31 @@ inline void gcode_M502() {
             do_blocking_move_to_xy(current_position[X_AXIS],current_position[Y_AXIS]-pre_home_move_mm,80);
             thermalManager.sg2_y_limit_hit = 0;
 
+            safe_delay(50);
+
             xy_home_duration_temp = millis();
             //HOMEAXIS(Y);
-            do_homing_move(Y_AXIS, 25* home_dir(Y_AXIS));
+            do_homing_move(Y_AXIS, (pre_home_move_mm+5)* home_dir(Y_AXIS));
             xy_home_duration_temp = millis()- xy_home_duration_temp;
+
+            SERIAL_ECHOLNPAIR("Y axis homing duration", xy_home_duration_temp);
 
             // Makes sure the result never leads to false positives
             if (xy_home_duration_temp < xy_home_duration_expected)
             xy_home_duration_sum = 0;
             else
             xy_home_duration_sum += xy_home_duration_temp;
-            safe_delay(250);
+            safe_delay(350);
           }
           uint16_t y_home_duration = (xy_home_duration_sum/5);
 
           // Verifies if the homing values appear good if so exit
-          if (y_home_duration > xy_home_duration_limit){
-            if(thermalManager.sg2_homing_y_calibration <= 95)
+          if (y_home_duration > y_home_duration_limit){
+            if(thermalManager.sg2_homing_y_calibration <= 195)
             thermalManager.sg2_homing_y_calibration += 5;
           }
           else if (y_home_duration < xy_home_duration_expected){
-            if(thermalManager.sg2_homing_y_calibration >= 20)
+            if(thermalManager.sg2_homing_y_calibration >= 60)
             thermalManager.sg2_homing_y_calibration -= 5;
           }
           else
