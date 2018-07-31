@@ -382,7 +382,8 @@ uint16_t max_display_update_time = 0;
       _MENU_ITEM_PART_2(TYPE, LABEL, ## __VA_ARGS__); \
     }while(0)
 
-  #define MENU_BACK(LABEL) MENU_ITEM(back, LABEL, 0)
+  // #define MENU_BACK(LABEL) MENU_ITEM(back, LABEL, 0)
+  #define MENU_BACK(LABEL) MENU_ITEM(back, _UxGT("Back"), 0)
 
   // Used to print static text with no visible cursor.
   // Parameters: label [, bool center [, bool invert [, char *value] ] ]
