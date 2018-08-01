@@ -33,7 +33,7 @@
 #else
 
   // Firmware branch
-  #define BUILDBRANCH "Custom"
+  #define BUILDBRANCH "CST"
 
   // Commit hash
   #define BUILDCOMMIT "Custom"

@@ -293,6 +293,9 @@
 #define MSG_E4 "E4"
 #define MSG_E5 "E5"
 
+#define MSG_SE1 " E1"
+#define MSG_SE2 " E2"
+
 #define MSG_MOVE_E1 "1"
 #define MSG_MOVE_E2 "2"
 #define MSG_MOVE_E3 "3"

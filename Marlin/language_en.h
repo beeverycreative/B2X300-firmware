@@ -455,7 +455,7 @@
   #define MSG_MOVE_10MM                       _UxGT("Move 10mm")
 #endif
 #ifndef MSG_SPEED
-  #define MSG_SPEED                           _UxGT("Speed")
+  #define MSG_SPEED                           _UxGT("Feedrate")
 #endif
 #ifndef MSG_BED_Z
   #define MSG_BED_Z                           _UxGT("Bed Z")
@@ -465,6 +465,9 @@
 #endif
 #ifndef MSG_BED
   #define MSG_BED                             _UxGT("Bed")
+#endif
+#ifndef MSG_SBED
+  #define MSG_SBED                             _UxGT(" Bed")
 #endif
 #ifndef MSG_FAN_SPEED
   #define MSG_FAN_SPEED                       _UxGT("Fan speed")

@@ -160,16 +160,44 @@ uint16_t max_display_update_time = 0;
     extern bool powersupply_on;
   #endif
 
+  #define _PID_BASE_MENU_ITEMS(ELABEL, eindex) \
+    raw_Ki = unscalePID_i(PID_PARAM(Ki, eindex)); \
+    raw_Kd = unscalePID_d(PID_PARAM(Kd, eindex)); \
+    MENU_ITEM_EDIT(float52, MSG_PID_P ELABEL, &PID_PARAM(Kp, eindex), 1, 9990); \
+    MENU_ITEM_EDIT_CALLBACK(float52, MSG_PID_I ELABEL, &raw_Ki, 0.01, 9990, copy_and_scalePID_i_E ## eindex); \
+    MENU_ITEM_EDIT_CALLBACK(float52, MSG_PID_D ELABEL, &raw_Kd, 1, 9990, copy_and_scalePID_d_E ## eindex)
+
+  #define _PID_MENU_ITEMS(ELABEL, eindex) _PID_BASE_MENU_ITEMS(ELABEL, eindex)
+
+  #if ENABLED(PID_AUTOTUNE_MENU)
+    #define PID_MENU_ITEMS(ELABEL, eindex) \
+      _PID_MENU_ITEMS(ELABEL, eindex); \
+      MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_PID_AUTOTUNE ELABEL, &autotune_temp[eindex], 150, heater_maxtemp[eindex] - 15, lcd_autotune_callback_E ## eindex)
+  #else
+    #define PID_MENU_ITEMS(ELABEL, eindex) _PID_MENU_ITEMS(ELABEL, eindex)
+  #endif
+
   ////////////////////////////////////////////
   ///////////////// Menu Tree ////////////////
   ////////////////////////////////////////////
 
-  void lcd_main_menu();
-  void lcd_tune_menu();
-  void lcd_prepare_menu();
+  // BEEVC
+  void beevc_main_menu();
+  void beevc_print_menu();
+  void beevc_print_settings_menu();
+  void beevc_maintenance_menu();
+  void beevc_machine_menu();
+  void beevc_machine_motion_menu();
+  void beevc_machine_filament_menu();
+  void beevc_about_menu();
+
+  // void lcd_main_menu();
+  // void lcd_tune_menu();
+  // void lcd_prepare_menu();
   void lcd_move_menu();
-  void lcd_control_menu();
-  void lcd_control_temperature_menu();
+  void _lcd_z_offset_start_bed_homing();
+  // void lcd_control_menu();
+  // void lcd_control_temperature_menu();
   void lcd_control_temperature_preheat_material1_settings_menu();
   void lcd_control_temperature_preheat_material2_settings_menu();
   void lcd_control_motion_menu();
@@ -221,7 +249,7 @@ uint16_t max_display_update_time = 0;
 	static void lcd_filament_change_ext1_abs_load ();
 	static void lcd_filament_change_unload_unload (unsigned int extruder, unsigned int pla_abs, unsigned int unload_load);
 
-  #endif
+  #endif // ADVANCED_PAUSE_FEATURE
 
   //Bed leveling - DR
   #if ENABLED(LCD_BED_LEVELING)
@@ -233,12 +261,12 @@ uint16_t max_display_update_time = 0;
     void _lcd_level_bed_homing_done() ;
     void _lcd_level_bed_homing() ;
     void _lcd_level_bed_continue();
-	#endif
+	#endif // LCD_BED_LEVELING
 
 	////////////   Power recovery feature    //////////////
 	#ifdef BEEVC_Restore
 		void recover_print();
-	#endif
+	#endif // BEEVC_Restore
 	///////////////////////////////////////////////////////
 
   // Trinamic menu
@@ -270,28 +298,25 @@ uint16_t max_display_update_time = 0;
     #if (ENABLED(X_IS_TMC2130) || ENABLED(Y_IS_TMC2130) || ENABLED(E0_IS_TMC2130) || ENABLED(E1_IS_TMC2130))
       void lcd_trinamic_stallguard2();
     #endif
-  #endif
+  #endif // HAS_TRINAMIC
 
-
-#if HAS_ABL
-
-	//Calibrate Z offset
-	void _lcd_calibrate_z_offset();
-	void _lcd_menu_z_offset();
-	void _lcd_reset_z_offset();
-
-  #endif
+  #if HAS_ABL
+  	//Calibrate Z offset
+  	void _lcd_calibrate_z_offset();
+  	void _lcd_menu_z_offset();
+  	void _lcd_reset_z_offset();
+  #endif // HAS_ABL
 
   #if ENABLED(DAC_STEPPER_CURRENT)
     void dac_driver_commit();
     void dac_driver_getValues();
     void lcd_dac_menu();
     void lcd_dac_write_eeprom();
-  #endif
+  #endif // DAC_STEPPER_CURRENT
 
   #if ENABLED(FWRETRACT)
     void lcd_control_retract_menu();
-  #endif
+  #endif // FWRETRACT
 
   #if ENABLED(DELTA_CALIBRATION_MENU) || ENABLED(DELTA_AUTO_CALIBRATION)
     void lcd_delta_calibrate_menu();
@@ -334,7 +359,7 @@ uint16_t max_display_update_time = 0;
     void lcd_sdcard_menu();
     void menu_action_sdfile(const char* filename, char* longFilename);
     void menu_action_sddirectory(const char* filename, char* longFilename);
-  #endif
+  #endif // SDSUPPORT
 
   ////////////////////////////////////////////
   //////////// Menu System Macros ////////////
@@ -382,8 +407,7 @@ uint16_t max_display_update_time = 0;
       _MENU_ITEM_PART_2(TYPE, LABEL, ## __VA_ARGS__); \
     }while(0)
 
-  // #define MENU_BACK(LABEL) MENU_ITEM(back, LABEL, 0)
-  #define MENU_BACK(LABEL) MENU_ITEM(back, _UxGT("Back"), 0)
+  #define MENU_BACK(LABEL) MENU_ITEM(back, LABEL, 0)
 
   // Used to print static text with no visible cursor.
   // Parameters: label [, bool center [, bool invert [, char *value] ] ]
@@ -758,7 +782,7 @@ void lcd_status_screen() {
           CHARSET_MENU
         #endif
       );
-      lcd_goto_screen(lcd_main_menu);
+      lcd_goto_screen(beevc_main_menu);
       return;
     }
 
@@ -889,60 +913,9 @@ void kill_screen(const char* lcd_msg) {
       lcd_return_to_status();
 
       enqueue_and_echo_commands_P(PSTR("G91\nG1 Z5\nG90\nG28 X Y\nM84"));
-
-    // // Lifts the Z axis a bit to avoid colisions with bed springs
-    // enqueue_and_echo_commands_P(PSTR("G91"));
-    // enqueue_and_echo_commands_P(PSTR("G1 Z5"));
-    // enqueue_and_echo_commands_P(PSTR("G90"));
-    //
-	  // // Moves X and Y so the nozzle doesn't stick to the printed part
-	  // enqueue_and_echo_commands_P(PSTR("G1 X-10 Y300 F3000"));
-    //
-	  // // Ensures the steppers are disabled
-	  // enqueue_and_echo_commands_P(PSTR("M84"));
     }
 
   #endif // SDSUPPORT
-
-  #if ENABLED(MENU_ITEM_CASE_LIGHT)
-
-    extern uint8_t case_light_brightness;
-    extern bool case_light_on;
-    extern void update_case_light();
-
-    void case_light_menu() {
-      START_MENU();
-      //
-      // ^ Main
-      //
-      MENU_BACK(MSG_MAIN);
-      MENU_ITEM_EDIT_CALLBACK(int8, MSG_CASE_LIGHT_BRIGHTNESS, &case_light_brightness, 0, 255, update_case_light, true);
-      MENU_ITEM_EDIT_CALLBACK(bool, MSG_CASE_LIGHT, (bool*)&case_light_on, update_case_light);
-      END_MENU();
-    }
-  #endif // MENU_ITEM_CASE_LIGHT
-
-  #if ENABLED(BLTOUCH)
-
-    /**
-     *
-     * "BLTouch" submenu
-     *
-     */
-    static void bltouch_menu() {
-      START_MENU();
-      //
-      // ^ Main
-      //
-      MENU_BACK(MSG_MAIN);
-      MENU_ITEM(gcode, MSG_BLTOUCH_RESET, PSTR("M280 P" STRINGIFY(Z_ENDSTOP_SERVO_NR) " S" STRINGIFY(BLTOUCH_RESET)));
-      MENU_ITEM(gcode, MSG_BLTOUCH_SELFTEST, PSTR("M280 P" STRINGIFY(Z_ENDSTOP_SERVO_NR) " S" STRINGIFY(BLTOUCH_SELFTEST)));
-      MENU_ITEM(gcode, MSG_BLTOUCH_DEPLOY, PSTR("M280 P" STRINGIFY(Z_ENDSTOP_SERVO_NR) " S" STRINGIFY(BLTOUCH_DEPLOY)));
-      MENU_ITEM(gcode, MSG_BLTOUCH_STOW, PSTR("M280 P" STRINGIFY(Z_ENDSTOP_SERVO_NR) " S" STRINGIFY(BLTOUCH_STOW)));
-      END_MENU();
-    }
-
-  #endif // BLTOUCH
 
   #if ENABLED(LCD_PROGRESS_BAR_TEST)
 
@@ -969,209 +942,141 @@ void kill_screen(const char* lcd_msg) {
 
   #endif // LCD_PROGRESS_BAR_TEST
 
-  #if HAS_DEBUG_MENU
-
-    void lcd_debug_menu() {
-      START_MENU();
-
-      MENU_BACK(MSG_MAIN); // ^ Main
-
-      #if ENABLED(LCD_PROGRESS_BAR_TEST)
-        MENU_ITEM(submenu, MSG_PROGRESS_BAR_TEST, _progress_bar_test);
-      #endif
-
-      END_MENU();
-    }
-
-  #endif // HAS_DEBUG_MENU
-
-  #if ENABLED(CUSTOM_USER_MENUS)
-
-    #ifdef USER_SCRIPT_DONE
-      #define _DONE_SCRIPT "\n" USER_SCRIPT_DONE
-    #else
-      #define _DONE_SCRIPT ""
-    #endif
-
-    void _lcd_user_gcode(const char * const cmd) {
-      enqueue_and_echo_commands_P(cmd);
-      #if ENABLED(USER_SCRIPT_AUDIBLE_FEEDBACK)
-        lcd_completion_feedback();
-      #endif
-      #if ENABLED(USER_SCRIPT_RETURN)
-        lcd_return_to_status();
-      #endif
-    }
-
-    #if defined(USER_DESC_1) && defined(USER_GCODE_1)
-      void lcd_user_gcode_1() { _lcd_user_gcode(PSTR(USER_GCODE_1 _DONE_SCRIPT)); }
-    #endif
-    #if defined(USER_DESC_2) && defined(USER_GCODE_2)
-      void lcd_user_gcode_2() { _lcd_user_gcode(PSTR(USER_GCODE_2 _DONE_SCRIPT)); }
-    #endif
-    #if defined(USER_DESC_3) && defined(USER_GCODE_3)
-      void lcd_user_gcode_3() { _lcd_user_gcode(PSTR(USER_GCODE_3 _DONE_SCRIPT)); }
-    #endif
-    #if defined(USER_DESC_4) && defined(USER_GCODE_4)
-      void lcd_user_gcode_4() { _lcd_user_gcode(PSTR(USER_GCODE_4 _DONE_SCRIPT)); }
-    #endif
-    #if defined(USER_DESC_5) && defined(USER_GCODE_5)
-      void lcd_user_gcode_5() { _lcd_user_gcode(PSTR(USER_GCODE_5 _DONE_SCRIPT)); }
-    #endif
-
-    void _lcd_user_menu() {
-      START_MENU();
-      MENU_BACK(MSG_MAIN);
-      #if defined(USER_DESC_1) && defined(USER_GCODE_1)
-        MENU_ITEM(function, USER_DESC_1, lcd_user_gcode_1);
-      #endif
-      #if defined(USER_DESC_2) && defined(USER_GCODE_2)
-        MENU_ITEM(function, USER_DESC_2, lcd_user_gcode_2);
-      #endif
-      #if defined(USER_DESC_3) && defined(USER_GCODE_3)
-        MENU_ITEM(function, USER_DESC_3, lcd_user_gcode_3);
-      #endif
-      #if defined(USER_DESC_4) && defined(USER_GCODE_4)
-        MENU_ITEM(function, USER_DESC_4, lcd_user_gcode_4);
-      #endif
-      #if defined(USER_DESC_5) && defined(USER_GCODE_5)
-        MENU_ITEM(function, USER_DESC_5, lcd_user_gcode_5);
-      #endif
-      END_MENU();
-    }
-
-  #endif
-
   /**
+   * BEEVC
    *
    * "Main" menu
    *
    */
 
-  void lcd_main_menu() {
+  void beevc_main_menu() {
     START_MENU();
     MENU_BACK(MSG_WATCH);
 
-    #if ENABLED(CUSTOM_USER_MENUS)
-      MENU_ITEM(submenu, MSG_USER_MENU, _lcd_user_menu);
-    #endif
+  	// This shows an option to recover the print from the menu
+  	#ifdef BEEVC_Restore
+  		if (toRecover)
+  			MENU_ITEM(function, _UxGT("Restore print"), recover_print);
+  	#endif
 
-    //
-    // Debug Menu when certain options are enabled
-    //
-    #if HAS_DEBUG_MENU
-      MENU_ITEM(submenu, MSG_DEBUG_MENU, lcd_debug_menu);
-    #endif
-
-    //
-    // Set Case light on/off/brightness
-    //
-    #if ENABLED(MENU_ITEM_CASE_LIGHT)
-      if (USEABLE_HARDWARE_PWM(CASE_LIGHT_PIN)) {
-        MENU_ITEM(submenu, MSG_CASE_LIGHT, case_light_menu);
-      }
-      else
-        MENU_ITEM_EDIT_CALLBACK(bool, MSG_CASE_LIGHT, (bool*)&case_light_on, update_case_light);
-    #endif
-
-	////////////   Power recovery feature    //////////////
-	// This shows an option to recover the print from the menu
-	#ifdef BEEVC_Restore
-
-		if (toRecover)
-			MENU_ITEM(function, _UxGT("Restore print"), recover_print);
-
-	#endif
-
-	///////////////////////////////////////////////////////
-
-
-    #if ENABLED(SDSUPPORT)
+    // Only shows when not printing and still
+    if(!(planner.movesplanned() || IS_SD_PRINTING || IS_SD_FILE_OPEN)){
+      MENU_ITEM(submenu, _UxGT("Print"), lcd_sdcard_menu);
+      MENU_ITEM(submenu, _UxGT("Maintenance"), beevc_maintenance_menu);
+    }
+    // When printing or moving
+    else{
+      // If the SD card is readable
       if (card.cardOK) {
-        if (card.isFileOpen()) {
-          if (card.sdprinting)
-            MENU_ITEM(function, MSG_PAUSE_PRINT, lcd_sdcard_pause);
-          else
-            MENU_ITEM(function, MSG_RESUME_PRINT, lcd_sdcard_resume);
-          MENU_ITEM(function, MSG_STOP_PRINT, lcd_sdcard_stop);
-        }
-        else {
-          MENU_ITEM(submenu, MSG_CARD_MENU, lcd_sdcard_menu);
-          #if !PIN_EXISTS(SD_DETECT)
-            MENU_ITEM(gcode, MSG_CNG_SDCARD, PSTR("M21"));  // SD-card changed by user
-          #endif
+        if (!(card.isFileOpen())) {
+          MENU_ITEM(submenu, _UxGT("Print"), beevc_print_menu);
         }
       }
+      // SD card read error
       else {
-        MENU_ITEM(submenu, MSG_NO_CARD, lcd_sdcard_menu);
-        #if !PIN_EXISTS(SD_DETECT)
-          MENU_ITEM(gcode, MSG_INIT_SDCARD, PSTR("M21")); // Manually initialize the SD-card via user interface
-        #endif
+          MENU_ITEM(gcode, _UxGT("Retry SD card"), PSTR("M21")); // Manually initialize the SD-card via user interface
       }
-    #endif //SDSUPPORT
-
-    //
-    // Switch case light on/off
-    //
-    #if ENABLED(MENU_ITEM_CASE_LIGHT)
-      if (case_light_on)
-        MENU_ITEM(function, MSG_LIGHTS_OFF, toggle_case_light);
-      else
-        MENU_ITEM(function, MSG_LIGHTS_ON, toggle_case_light);
-    #endif
-
-    #if ENABLED(BLTOUCH)
-      MENU_ITEM(submenu, MSG_BLTOUCH, bltouch_menu);
-    #endif
-
-    if (planner.movesplanned() || IS_SD_PRINTING || IS_SD_FILE_OPEN) {
-      MENU_ITEM(submenu, MSG_TUNE, lcd_tune_menu);
-	  MENU_ITEM(function, MSG_FILAMENTCHANGE, lcd_enqueue_filament_change);
-    }
-    else {
-
-
-      //
-      // Change filament
-      //
-      //#if ENABLED(FILAMENT_CHANGE_FEATURE)
-		MENU_ITEM(submenu, MSG_FILAMENTCHANGE, lcd_filament_change);
-      //#endif
-
-	  // Bed Leveling
-	  #if ENABLED(LCD_BED_LEVELING)
-		  MENU_ITEM(function, MSG_LEVEL_BED, _lcd_level_bed_continue);
-	  #endif
-	  #if HAS_ABL
-		  MENU_ITEM(gcode, MSG_LEVEL_BED, PSTR("T0\nG28\nG29\nG28 X Y\nM500\nG4 P200\n M300 S4000 P200\nG4 P500\n M300 S4000 P200"));
-	  #endif
-
-	  //DR - Calibrate Z_offset
-	  #if HAS_ABL
-		  MENU_ITEM(submenu, _UxGT("Set nozzle height"), _lcd_menu_z_offset);
-	  #endif
-
-	  MENU_ITEM(submenu, MSG_PREPARE, lcd_prepare_menu);
-
-      #if ENABLED(DELTA_CALIBRATION_MENU)
-        MENU_ITEM(submenu, MSG_DELTA_CALIBRATE, lcd_delta_calibrate_menu);
-      #endif
     }
 
-    MENU_ITEM(submenu, MSG_CONTROL, lcd_control_menu);
-
-
-
-    #if ENABLED(LCD_INFO_MENU)
-      MENU_ITEM(submenu, MSG_INFO_MENU, lcd_info_menu);
-    #endif
-
-    #if ENABLED(LED_CONTROL_MENU)
-      MENU_ITEM(submenu, MSG_LED_CONTROL, lcd_led_menu);
-    #endif
-
+    MENU_ITEM(submenu, _UxGT("Machine Settings"), beevc_machine_menu);
+    MENU_ITEM(submenu, _UxGT("About"), beevc_about_menu);
     END_MENU();
   }
+
+  /**
+   *  BEEVC
+   *
+   * "Print" submenu
+   *
+   */
+   void beevc_print_menu(){
+     START_MENU();
+     MENU_BACK(MSG_WATCH);
+
+     // Pause/Resume/Cancel SD card print
+     if (card.isFileOpen()) {
+       if (card.sdprinting)
+         MENU_ITEM(function, MSG_PAUSE_PRINT, lcd_sdcard_pause);
+       else
+         MENU_ITEM(function, MSG_RESUME_PRINT, lcd_sdcard_resume);
+      MENU_ITEM(function, MSG_STOP_PRINT, lcd_sdcard_stop);
+     }
+
+     // Change filament
+     // Ensures the hotend isn'too cold
+     if (!thermalManager.tooColdToExtrude(active_extruder))
+       MENU_ITEM(function, MSG_FILAMENTCHANGE, lcd_enqueue_filament_change);
+
+     // Adjust Print settings
+     MENU_ITEM(function, _UxGT("Print settings"), beevc_print_settings_menu);
+
+     END_MENU();
+   }
+
+   /**
+    *  BEEVC
+    *
+    * "Maintenance" submenu
+    *
+    */
+    void beevc_maintenance_menu(){
+      START_MENU();
+      MENU_BACK(MSG_WATCH);
+
+      // Change filament
+        MENU_ITEM(submenu, MSG_FILAMENTCHANGE, lcd_filament_change);
+      // Move axis
+        MENU_ITEM(submenu, MSG_MOVE_AXIS, lcd_move_menu);
+      // Set nozzle height / Z offset
+    	  #if HAS_ABL
+    		  MENU_ITEM(submenu, _UxGT("Set nozzle height"), _lcd_z_offset_start_bed_homing);
+    	  #endif
+
+      // Cold pull
+        MENU_ITEM(submenu, _UxGT("Cold pull"), _lcd_menu_z_offset);
+
+      // Auto Home/ Level Bed
+        // Leveling only appears when automatic bed leveling method exists
+        #if HAS_ABL
+    		  MENU_ITEM(gcode, MSG_LEVEL_BED, PSTR("T0\nG28\nG29\nG28 X Y\nM500\nG4 P200\n M300 S4000 P200\nG4 P500\n M300 S4000 P200"));
+    	  #endif
+        // helloBEEprusa - LCD leveling
+    	  #if ENABLED(LCD_BED_LEVELING)
+    		  MENU_ITEM(function, MSG_LEVEL_BED, _lcd_level_bed_continue);
+    	  #endif
+
+      // Auto Home
+      MENU_ITEM(gcode, MSG_AUTO_HOME, PSTR("G28"));
+
+      END_MENU();
+    }
+
+    /**
+     *  BEEVC
+     *
+     * "About" submenu
+     *
+     */
+    void beevc_about_menu() {
+      if (lcd_clicked) { return lcd_goto_previous_menu(); }
+
+      START_SCREEN();
+      STATIC_ITEM("Marlin-fork", false, false);
+      STATIC_ITEM("open source firmware", false, false);
+      STATIC_ITEM("engineered by", false, false);
+      STATIC_ITEM("BEEVERYCREATIVE", false, false);
+
+      char about_string[21];
+      strcpy(about_string, BUILDDATE);
+      strcat(about_string, "-");
+      strcat(about_string, BUILDBRANCH);
+      strcat(about_string, "-");
+      strcat(about_string, BUILDCOMMIT);
+      STATIC_ITEM("", false, false, about_string);
+      END_SCREEN();
+    }
+
+
 
   /**
    *
@@ -1228,6 +1133,32 @@ void kill_screen(const char* lcd_msg) {
 
   #endif // BABYSTEP_ZPROBE_GFX_OVERLAY || MESH_EDIT_GFX_OVERLAY
 
+  void lcd_babystep_zoffset() {
+    if (lcd_clicked) { return lcd_goto_previous_menu_no_defer(); }
+    defer_return_to_status = true;
+    ENCODER_DIRECTION_NORMAL();
+    if (encoderPosition) {
+      const int16_t babystep_increment = (int32_t)encoderPosition * (BABYSTEP_MULTIPLICATOR);
+      encoderPosition = 0;
+
+      const float new_zoffset = zprobe_zoffset + planner.steps_to_mm[Z_AXIS] * babystep_increment;
+      if (WITHIN(new_zoffset, Z_PROBE_OFFSET_RANGE_MIN, Z_PROBE_OFFSET_RANGE_MAX)) {
+
+        if (planner.leveling_active)
+          thermalManager.babystep_axis(Z_AXIS, babystep_increment);
+
+        zprobe_zoffset = new_zoffset;
+        lcdDrawUpdate = LCDVIEW_CALL_REDRAW_NEXT;
+      }
+    }
+    if (lcdDrawUpdate) {
+      lcd_implementation_drawedit(PSTR(MSG_ZPROBE_ZOFFSET), ftostr43sign(zprobe_zoffset));
+      #if ENABLED(BABYSTEP_ZPROBE_GFX_OVERLAY)
+        _lcd_zoffset_overlay_gfx(zprobe_zoffset);
+      #endif
+    }
+  }
+
   #if ENABLED(BABYSTEPPING)
 
     void _lcd_babystep(const AxisEnum axis, const char* msg) {
@@ -1251,40 +1182,8 @@ void kill_screen(const char* lcd_msg) {
       void lcd_babystep_y() { lcd_goto_screen(_lcd_babystep_y); babysteps_done = 0; defer_return_to_status = true; }
     #endif
 
-    #if ENABLED(BABYSTEP_ZPROBE_OFFSET)
-
-      void lcd_babystep_zoffset() {
-        if (lcd_clicked) { return lcd_goto_previous_menu_no_defer(); }
-        defer_return_to_status = true;
-        ENCODER_DIRECTION_NORMAL();
-        if (encoderPosition) {
-          const int16_t babystep_increment = (int32_t)encoderPosition * (BABYSTEP_MULTIPLICATOR);
-          encoderPosition = 0;
-
-          const float new_zoffset = zprobe_zoffset + planner.steps_to_mm[Z_AXIS] * babystep_increment;
-          if (WITHIN(new_zoffset, Z_PROBE_OFFSET_RANGE_MIN, Z_PROBE_OFFSET_RANGE_MAX)) {
-
-            if (planner.leveling_active)
-              thermalManager.babystep_axis(Z_AXIS, babystep_increment);
-
-            zprobe_zoffset = new_zoffset;
-            lcdDrawUpdate = LCDVIEW_CALL_REDRAW_NEXT;
-          }
-        }
-        if (lcdDrawUpdate) {
-          lcd_implementation_drawedit(PSTR(MSG_ZPROBE_ZOFFSET), ftostr43sign(zprobe_zoffset));
-          #if ENABLED(BABYSTEP_ZPROBE_GFX_OVERLAY)
-            _lcd_zoffset_overlay_gfx(zprobe_zoffset);
-          #endif
-        }
-      }
-
-    #else // !BABYSTEP_ZPROBE_OFFSET
-
       void _lcd_babystep_z() { _lcd_babystep(Z_AXIS, PSTR(MSG_BABYSTEP_Z)); }
       void lcd_babystep_z() { lcd_goto_screen(_lcd_babystep_z); babysteps_done = 0; defer_return_to_status = true; }
-
-    #endif // !BABYSTEP_ZPROBE_OFFSET
 
   #endif // BABYSTEPPING
 
@@ -1789,8 +1688,8 @@ static void lcd_filament_change()
   MENU_BACK(MSG_BACK);
 
   MENU_ITEM(function, _UxGT("Move to position"), lcd_filament_change_move_to_position);
-  MENU_ITEM(submenu, _UxGT("Extruder 1"), lcd_filament_change_extruder_0);
-  MENU_ITEM(submenu, _UxGT("Extruder 2"), lcd_filament_change_extruder_1);
+  MENU_ITEM(submenu, _UxGT("Extruder 0"), lcd_filament_change_extruder_0);
+  MENU_ITEM(submenu, _UxGT("Extruder 1"), lcd_filament_change_extruder_1);
 
   END_MENU();
 }
@@ -1838,6 +1737,42 @@ void lcd_enqueue_filament_change() {
   #endif // EXTRUDERS > 1
 
   /**
+   *  BEEVC
+   *
+   * "Print settings" submenu items
+   *
+   */
+  void beevc_print_settings_menu() {
+    START_MENU();
+
+    // Back
+    MENU_BACK(MSG_MAIN);
+
+    // Feedrate:
+    MENU_ITEM_EDIT(int3, MSG_SPEED, &feedrate_percentage, 10, 999);
+
+    // Nozzle:
+    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_TEMPERATURE MSG_SE1, &thermalManager.target_temperature[0], 0, HEATER_0_MAXTEMP - 15, watch_temp_callback_E0);
+    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_TEMPERATURE MSG_SE2, &thermalManager.target_temperature[1], 0, HEATER_1_MAXTEMP - 15, watch_temp_callback_E1);
+
+    // Bed:
+    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3,MSG_TEMPERATURE MSG_SBED, &thermalManager.target_temperature_bed, 0, BED_MAXTEMP - 15, watch_temp_callback_bed);
+
+    // Fan Speed:
+    MENU_MULTIPLIER_ITEM_EDIT(int3, MSG_FAN_SPEED FAN_SPEED_1_SUFFIX, &fanSpeeds[0], 0, 255);
+
+    // Flow:
+    MENU_ITEM_EDIT_CALLBACK(int3, MSG_FLOW, &planner.flow_percentage[active_extruder], 10, 999, _lcd_refresh_e_factor);
+    MENU_ITEM_EDIT_CALLBACK(int3, MSG_FLOW MSG_SE1, &planner.flow_percentage[0], 10, 999, _lcd_refresh_e_factor_0);
+    MENU_ITEM_EDIT_CALLBACK(int3, MSG_FLOW MSG_SE2, &planner.flow_percentage[1], 10, 999, _lcd_refresh_e_factor_1);
+
+    // Babystep Z offset
+    MENU_ITEM(submenu, MSG_ZPROBE_ZOFFSET, lcd_babystep_zoffset);
+
+    END_MENU();
+  }
+
+  /**
    *
    * "Tune" submenu
    *
@@ -1862,13 +1797,13 @@ void lcd_enqueue_filament_change() {
 
     //
     // Nozzle:
-    // Nozzle [1-4]:
+    // Nozzle [1-2]:
     //
     #if HOTENDS == 1
       MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_NOZZLE, &thermalManager.target_temperature[0], 0, HEATER_0_MAXTEMP - 15, watch_temp_callback_E0);
     #else // HOTENDS > 1
-      MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_NOZZLE MSG_N1, &thermalManager.target_temperature[0], 0, HEATER_0_MAXTEMP - 15, watch_temp_callback_E0);
-      MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_NOZZLE MSG_N2, &thermalManager.target_temperature[1], 0, HEATER_1_MAXTEMP - 15, watch_temp_callback_E1);
+      MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_TEMPERATURE MSG_SE1, &thermalManager.target_temperature[0], 0, HEATER_0_MAXTEMP - 15, watch_temp_callback_E0);
+      MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_TEMPERATURE MSG_SE2, &thermalManager.target_temperature[1], 0, HEATER_1_MAXTEMP - 15, watch_temp_callback_E1);
       #if HOTENDS > 2
         MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_NOZZLE MSG_N3, &thermalManager.target_temperature[2], 0, HEATER_2_MAXTEMP - 15, watch_temp_callback_E2);
         #if HOTENDS > 3
@@ -1884,7 +1819,7 @@ void lcd_enqueue_filament_change() {
     // Bed:
     //
     #if HAS_TEMP_BED
-      MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_BED, &thermalManager.target_temperature_bed, 0, BED_MAXTEMP - 15, watch_temp_callback_bed);
+      MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3,MSG_TEMPERATURE MSG_SBED, &thermalManager.target_temperature_bed, 0, BED_MAXTEMP - 15, watch_temp_callback_bed);
     #endif
 
     //
@@ -1919,8 +1854,8 @@ void lcd_enqueue_filament_change() {
       MENU_ITEM_EDIT_CALLBACK(int3, MSG_FLOW, &planner.flow_percentage[0], 10, 999, _lcd_refresh_e_factor_0);
     #else // EXTRUDERS > 1
       MENU_ITEM_EDIT_CALLBACK(int3, MSG_FLOW, &planner.flow_percentage[active_extruder], 10, 999, _lcd_refresh_e_factor);
-      MENU_ITEM_EDIT_CALLBACK(int3, MSG_FLOW MSG_N1, &planner.flow_percentage[0], 10, 999, _lcd_refresh_e_factor_0);
-      MENU_ITEM_EDIT_CALLBACK(int3, MSG_FLOW MSG_N2, &planner.flow_percentage[1], 10, 999, _lcd_refresh_e_factor_1);
+      MENU_ITEM_EDIT_CALLBACK(int3, MSG_FLOW MSG_SE1, &planner.flow_percentage[0], 10, 999, _lcd_refresh_e_factor_0);
+      MENU_ITEM_EDIT_CALLBACK(int3, MSG_FLOW MSG_SE2, &planner.flow_percentage[1], 10, 999, _lcd_refresh_e_factor_1);
       #if EXTRUDERS > 2
         MENU_ITEM_EDIT_CALLBACK(int3, MSG_FLOW MSG_N3, &planner.flow_percentage[2], 10, 999, _lcd_refresh_e_factor_2);
         #if EXTRUDERS > 3
@@ -3476,7 +3411,7 @@ void lcd_enqueue_filament_change() {
 		{
 			defer_return_to_status = false;
 			lcd_implementation_clear();
-			lcd_main_menu();
+			beevc_main_menu();
 		}
 	}
 
@@ -4190,6 +4125,36 @@ void lcd_enqueue_filament_change() {
   #endif
   ///////////////////////////////////////////////////////
 
+  /**
+   *  BEEVC
+   *
+   * "Machine settings" submenu
+   *
+   */
+  void beevc_machine_menu() {
+    START_MENU();
+    MENU_BACK(MSG_MAIN);
+
+    #ifdef HAVE_TMC2130
+      if (silent_mode == 1)
+        MENU_ITEM(function, _UxGT("Enable Silent+ mode"), enable_stealth_mode);
+      else if (silent_mode == 2)
+        MENU_ITEM(function, _UxGT("Disable Silent mode"), disable_silent_mode);
+      else
+        MENU_ITEM(function, _UxGT("Enable Silent mode"), enable_silent_mode);
+    #endif
+
+    MENU_ITEM(submenu, MSG_FILAMENT, beevc_machine_filament_menu);
+
+    MENU_ITEM(submenu, MSG_MOTION, beevc_machine_motion_menu);
+
+    MENU_ITEM(function, MSG_STORE_EEPROM, lcd_store_settings);
+
+    MENU_ITEM(submenu, _UxGT("Reset Settings"), lcd_init_eeprom_confirm);
+
+    END_MENU();
+  }
+
   void lcd_control_menu() {
     START_MENU();
     MENU_BACK(MSG_MAIN);
@@ -4206,7 +4171,6 @@ void lcd_enqueue_filament_change() {
     #endif
 
 
-    MENU_ITEM(submenu, MSG_TEMPERATURE, lcd_control_temperature_menu);
     MENU_ITEM(submenu, MSG_MOTION, lcd_control_motion_menu);
     MENU_ITEM(submenu, MSG_FILAMENT, lcd_control_filament_menu);
 
@@ -4314,6 +4278,53 @@ void lcd_enqueue_filament_change() {
     #endif // PID_PARAMS_PER_HOTEND
 
   #endif // PIDTEMP
+
+  /**
+   *  BEEVC
+   *
+   * "Machine settings" > "Filament" > "Advanced Settings" submenu
+   *
+   */
+  void beevc_machine_filament_advanced_menu() {
+    START_MENU();
+    MENU_BACK(MSG_CONTROL);
+
+    PID_MENU_ITEMS(" " MSG_E1, 0);
+    PID_MENU_ITEMS(" " MSG_E2, 1);
+
+    MENU_ITEM(submenu, MSG_PREHEAT_1, lcd_preheat_m1_menu);
+    MENU_ITEM(submenu, MSG_PREHEAT_2, lcd_preheat_m2_menu);
+
+  END_MENU();
+  }
+
+  /**
+   *  BEEVC
+   *
+   * "Machine settings" > "Filament" submenu
+   *
+   */
+  void beevc_machine_filament_menu() {
+    START_MENU();
+    MENU_BACK(MSG_CONTROL);
+
+    // Nozzle:
+    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_TEMPERATURE MSG_SE1, &thermalManager.target_temperature[0], 0, HEATER_0_MAXTEMP - 15, watch_temp_callback_E0);
+    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_TEMPERATURE MSG_SE2, &thermalManager.target_temperature[1], 0, HEATER_1_MAXTEMP - 15, watch_temp_callback_E1);
+
+    // Bed:
+    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3,MSG_TEMPERATURE MSG_SBED, &thermalManager.target_temperature_bed, 0, BED_MAXTEMP - 15, watch_temp_callback_bed);
+
+    // Fan Speed:
+    MENU_MULTIPLIER_ITEM_EDIT(int3, MSG_FAN_SPEED FAN_SPEED_1_SUFFIX, &fanSpeeds[0], 0, 255);
+
+    // Advanced options
+    MENU_ITEM(submenu,  _UxGT("Advanced Settings"), beevc_machine_filament_advanced_menu);
+
+
+    END_MENU();
+  }
+
 
   /**
    *
@@ -4693,7 +4704,34 @@ void lcd_enqueue_filament_change() {
     END_MENU();
   }
 
+  /**
+   *  BEEVC
+   *
+   * "Machine settings > Motion" submenu
+   *
+   */
+  void beevc_machine_motion_menu() {
+    START_MENU();
+    MENU_BACK(MSG_CONTROL);
 
+    #ifdef HAVE_TMC2130
+        MENU_ITEM(submenu,  _UxGT("Trinamic Settings"), lcd_trinamic_settings);
+    #endif
+
+    // M203 / M205 - Feedrate items
+    MENU_ITEM(submenu, MSG_SPEED, lcd_control_motion_velocity_menu);
+
+    // M201 - Acceleration items
+    MENU_ITEM(submenu, MSG_ACCELERATION, lcd_control_motion_acceleration_menu);
+
+    // M205 - Max Jerk
+    MENU_ITEM(submenu, MSG_JERK, lcd_control_motion_jerk_menu);
+
+    // M92 - Steps Per mm
+    MENU_ITEM(submenu, MSG_STEPS_PER_MM, lcd_control_motion_steps_per_mm_menu);
+
+    END_MENU();
+  }
 
   #if HAS_TRINAMIC
   // Auxiliary funcitons
@@ -4803,7 +4841,7 @@ void lcd_enqueue_filament_change() {
        MENU_ITEM(gcode, _UxGT("Test X homing"), PSTR("G28 X\nG28 X\nG28 X\nG28 X\nG28 X"));
      #endif
      #if ENABLED(Y_IS_TMC2130)
-       MENU_ITEM_EDIT_CALLBACK(int8, _UxGT("Y calibration"), &thermalManager.sg2_homing_y_calibration, 60, 200,_void_);
+       MENU_ITEM_EDIT_CALLBACK(int8, _UxGT("Y calibration"), &thermalManager.sg2_homing_y_calibration, 0, 100,_void_);
        MENU_ITEM(gcode, _UxGT("Test Y homing"), PSTR("G28 Y\nG28 Y\nG28 Y\nG28 Y\nG28 Y"));
      #endif
      #if (ENABLED(Y_IS_TMC2130) && ENABLED(X_IS_TMC2130))
