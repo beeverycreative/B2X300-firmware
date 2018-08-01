@@ -311,22 +311,35 @@ void lcd_printPGM_utf(const char *str, uint8_t n=LCD_WIDTH) {
     //   constexpr uint8_t offy = DOG_CHAR_HEIGHT;
     // #endif
 
-    char string1[21];
-    char string2[21];
-    strcpy(string1,"Branch: ");
-    strcat(string1, BUILDBRANCH);
-    strcpy(string2,"Hash: ");
-    strcat(string2, BUILDCOMMIT);
+    // char string1[21];
+    // char string2[21];
+    // strcpy(string1,"Branch: ");
+    // strcat(string1, BUILDBRANCH);
+    // strcpy(string2,"Hash: ");
+    // strcat(string2, BUILDCOMMIT);
+    //
+    // const uint8_t txt1X = (u8g.getWidth() - (sizeof("Branch: ") + sizeof(BUILDBRANCH) - 1) * (DOG_CHAR_WIDTH)) / 2;
+    // const uint8_t txt2X = (u8g.getWidth() - (sizeof("Hash: ") + sizeof(BUILDCOMMIT) - 1) * (DOG_CHAR_WIDTH)) / 2;
 
-    const uint8_t txt1X = (u8g.getWidth() - (sizeof("Branch: ") + sizeof(BUILDBRANCH) - 1) * (DOG_CHAR_WIDTH)) / 2;
-    const uint8_t txt2X = (u8g.getWidth() - (sizeof("Hash: ") + sizeof(BUILDCOMMIT) - 1) * (DOG_CHAR_WIDTH)) / 2;
+    char about_string[21];
+    strcpy(about_string, BUILDDATE);
+    strcat(about_string, "-");
+    strcat(about_string, BUILDBRANCH);
+    strcat(about_string, "-");
+    strcat(about_string, BUILDCOMMIT);
 
     u8g.firstPage();
     do {
       //u8g.drawBitmapP(offx, offy, (START_BMPWIDTH + 7) / 8, START_BMPHEIGHT, start_bmp);
       lcd_setFont(FONT_MENU);
-      u8g.drawStr(txt1X, (u8g.getHeight() - (DOG_CHAR_HEIGHT)) / 3 , string1);
-      u8g.drawStr(txt2X, (u8g.getHeight() - (DOG_CHAR_HEIGHT))*3/ 3 , string2);
+      uint8_t heightboot = 0;
+      u8g.drawStr(0, 0+(DOG_CHAR_HEIGHT * ++heightboot) , "Marlin-Fork");
+      u8g.drawStr(0, 0+(DOG_CHAR_HEIGHT * ++heightboot) , "open source firmware");
+      u8g.drawStr(0, 0+(DOG_CHAR_HEIGHT * ++heightboot) , "engineered by");
+      u8g.drawStr(0, 0+(DOG_CHAR_HEIGHT * ++heightboot) , "BEEVERYCREATIVE");
+      u8g.drawStr(0, 0+(DOG_CHAR_HEIGHT * ++heightboot) , about_string);
+      // u8g.drawStr(txt1X, (u8g.getHeight() - (DOG_CHAR_HEIGHT)) / 3 , string1);
+      // u8g.drawStr(txt2X, (u8g.getHeight() - (DOG_CHAR_HEIGHT))*3/ 3 , string2);
     } while (u8g.nextPage());
     safe_delay(BOOTSCREEN_TIMEOUT);
   }
