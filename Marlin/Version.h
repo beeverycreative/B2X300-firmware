@@ -33,10 +33,13 @@
 #else
 
   // Firmware branch
-  #define BUILDBRANCH "Branch: Custom"
+  #define BUILDBRANCH "Custom"
 
   // Commit hash
-  #define BUILDCOMMIT "Hash: Custom"
+  #define BUILDCOMMIT "Custom"
+
+  // Build date
+  #define BUILDDATE "01/08/18"
 
   /**
    * Marlin release version identifier

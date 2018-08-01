@@ -311,20 +311,22 @@ void lcd_printPGM_utf(const char *str, uint8_t n=LCD_WIDTH) {
     //   constexpr uint8_t offy = DOG_CHAR_HEIGHT;
     // #endif
 
-    const uint8_t //offx = (u8g.getWidth() - (START_BMPWIDTH)) / 2,
-                  txt1X = (u8g.getWidth() - (sizeof(STRING_SPLASH_LINE1) - 1) * (DOG_CHAR_WIDTH)) / 2;
+    char string1[21];
+    char string2[21];
+    strcpy(string1,"Branch: ");
+    strcat(string1, BUILDBRANCH);
+    strcpy(string2,"Hash: ");
+    strcat(string2, BUILDCOMMIT);
+
+    const uint8_t txt1X = (u8g.getWidth() - (sizeof("Branch: ") + sizeof(BUILDBRANCH) - 1) * (DOG_CHAR_WIDTH)) / 2;
+    const uint8_t txt2X = (u8g.getWidth() - (sizeof("Hash: ") + sizeof(BUILDCOMMIT) - 1) * (DOG_CHAR_WIDTH)) / 2;
 
     u8g.firstPage();
     do {
       //u8g.drawBitmapP(offx, offy, (START_BMPWIDTH + 7) / 8, START_BMPHEIGHT, start_bmp);
       lcd_setFont(FONT_MENU);
-      #ifndef STRING_SPLASH_LINE2
-        u8g.drawStr(txt1X, u8g.getHeight() - (DOG_CHAR_HEIGHT), STRING_SPLASH_LINE1);
-      #else
-        const uint8_t txt2X = (u8g.getWidth() - (sizeof(STRING_SPLASH_LINE2) - 1) * (DOG_CHAR_WIDTH)) / 2;
-        u8g.drawStr(txt1X, (u8g.getHeight() - (DOG_CHAR_HEIGHT)) / 3 , STRING_SPLASH_LINE1);
-        u8g.drawStr(txt2X, (u8g.getHeight() - (DOG_CHAR_HEIGHT))*3/ 3 , STRING_SPLASH_LINE2);
-      #endif
+      u8g.drawStr(txt1X, (u8g.getHeight() - (DOG_CHAR_HEIGHT)) / 3 , string1);
+      u8g.drawStr(txt2X, (u8g.getHeight() - (DOG_CHAR_HEIGHT))*3/ 3 , string2);
     } while (u8g.nextPage());
     safe_delay(BOOTSCREEN_TIMEOUT);
   }
