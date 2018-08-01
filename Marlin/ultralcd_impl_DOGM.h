@@ -399,10 +399,23 @@ void lcd_implementation_clear() { } // Automatically cleared by Picture Loop
 //
 
 FORCE_INLINE void _draw_centered_temp(const int16_t temp, const uint8_t x, const uint8_t y) {
-  const uint8_t degsize = 6 * (temp >= 100 ? 3 : temp >= 10 ? 2 : 1); // number's pixel width
-  u8g.setPrintPos(x - (18 - degsize) / 2, y); // move left if shorter
-  lcd_print(itostr3(temp));
-  lcd_printPGM(PSTR(LCD_STR_DEGREE " "));
+  // Shows -- for temperatures below 40º and ERR if no thermistor
+  if(temp == -14){
+    u8g.setPrintPos(x, y); // move left if shorter
+    lcd_print("ERR");
+  }
+  else if (temp < 40){
+    u8g.setPrintPos(x+2 , y); // move left if shorter
+    lcd_print("--");
+    lcd_printPGM(PSTR(LCD_STR_DEGREE " "));
+  }
+  else{
+    const uint8_t degsize = 6 * (temp >= 100 ? 3 : temp >= 10 ? 2 : 1); // number's pixel width
+    u8g.setPrintPos(x - (18 - degsize) / 2, y); // move left if shorter
+    lcd_print(itostr3(temp));
+    lcd_printPGM(PSTR(LCD_STR_DEGREE " "));
+  }
+
 }
 
 FORCE_INLINE void _draw_heater_status(const uint8_t x, const int8_t heater, const bool blink) {
