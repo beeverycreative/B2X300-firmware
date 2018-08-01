@@ -188,7 +188,7 @@ uint16_t max_display_update_time = 0;
   void beevc_maintenance_menu();
   void beevc_machine_menu();
   void beevc_machine_motion_menu();
-  void beevc_machine_filament_menu();
+  void beevc_machine_temperature_menu();
   void beevc_about_menu();
 
   // void lcd_main_menu();
@@ -4127,9 +4127,59 @@ void lcd_enqueue_filament_change() {
 
   /**
    *  BEEVC
-   *
+   * "Machine settings" > "Setup wizard"
+   */
+  void beevc_machine_setup() {
+    uint32_t duration = 0;
+    // Verify Hotend connections
+
+    // Verify hotbed connections
+
+    // Verify blower connection
+
+    // Calibrate sensorless homing
+
+    // Measure XY axes size
+
+    // Set Z offset
+
+    // G29
+
+    // Fine tune offset w/test print
+
+  }
+
+  ///////////////////////////////////////////////////////
+
+  /**
+   *  BEEVC
+   * "Machine settings" > "Save settings" submenu
+   */
+  void beevc_machine_save_confirm() {
+    START_MENU();
+    MENU_BACK(MSG_MAIN);
+
+    MENU_ITEM(function, _UxGT("Confirm"), lcd_store_settings);
+
+    END_MENU();
+  }
+
+  /**
+   *  BEEVC
+   * "Machine settings" > "Save settings" submenu
+   */
+  void beevc_machine_reset_confirm() {
+    START_MENU();
+    MENU_BACK(MSG_MAIN);
+
+    MENU_ITEM(function, _UxGT("Confirm"), lcd_init_eeprom);
+
+    END_MENU();
+  }
+
+  /**
+   *  BEEVC
    * "Machine settings" submenu
-   *
    */
   void beevc_machine_menu() {
     START_MENU();
@@ -4144,13 +4194,15 @@ void lcd_enqueue_filament_change() {
         MENU_ITEM(function, _UxGT("Enable silent mode"), enable_silent_mode);
     #endif
 
-    MENU_ITEM(submenu, MSG_FILAMENT, beevc_machine_filament_menu);
+    MENU_ITEM(submenu, MSG_TEMPERATURE, beevc_machine_temperature_menu);
 
     MENU_ITEM(submenu, MSG_MOTION, beevc_machine_motion_menu);
 
-    MENU_ITEM(function, MSG_STORE_EEPROM, lcd_store_settings);
+    MENU_ITEM(function, _UxGT("Setup wizard"), beevc_machine_setup);
 
-    MENU_ITEM(submenu, _UxGT("Reset Settings"), lcd_init_eeprom_confirm);
+    MENU_ITEM(submenu, MSG_STORE_EEPROM, beevc_machine_save_confirm);
+
+    MENU_ITEM(submenu, _UxGT("Reset settings"), beevc_machine_reset_confirm);
 
     END_MENU();
   }
@@ -4285,7 +4337,7 @@ void lcd_enqueue_filament_change() {
    * "Machine settings" > "Filament" > "Advanced Settings" submenu
    *
    */
-  void beevc_machine_filament_advanced_menu() {
+  void beevc_machine_temperature_advanced_menu() {
     START_MENU();
     MENU_BACK(MSG_CONTROL);
 
@@ -4304,7 +4356,7 @@ void lcd_enqueue_filament_change() {
    * "Machine settings" > "Filament" submenu
    *
    */
-  void beevc_machine_filament_menu() {
+  void beevc_machine_temperature_menu() {
     START_MENU();
     MENU_BACK(MSG_CONTROL);
 
@@ -4319,7 +4371,7 @@ void lcd_enqueue_filament_change() {
     MENU_MULTIPLIER_ITEM_EDIT(int3, MSG_FAN_SPEED FAN_SPEED_1_SUFFIX, &fanSpeeds[0], 0, 255);
 
     // Advanced options
-    MENU_ITEM(submenu,  _UxGT("Advanced Settings"), beevc_machine_filament_advanced_menu);
+    MENU_ITEM(submenu,  _UxGT("Advanced Settings"), beevc_machine_temperature_advanced_menu);
 
 
     END_MENU();
