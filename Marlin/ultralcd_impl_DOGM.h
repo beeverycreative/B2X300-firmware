@@ -404,7 +404,7 @@ FORCE_INLINE void _draw_centered_temp(const int16_t temp, const uint8_t x, const
     u8g.setPrintPos(x, y); // move left if shorter
     lcd_print("ERR");
   }
-  else if (temp < 40){
+  else if (temp < 25){
     u8g.setPrintPos(x+2 , y); // move left if shorter
     lcd_print("--");
     lcd_printPGM(PSTR(LCD_STR_DEGREE " "));
