@@ -635,7 +635,7 @@
   #define MSG_RESUME_PRINT                    _UxGT("Resume print")
 #endif
 #ifndef MSG_STOP_PRINT
-  #define MSG_STOP_PRINT                      _UxGT("Stop print")
+  #define MSG_STOP_PRINT                      _UxGT("Cancel print")
 #endif
 #ifndef MSG_CARD_MENU
   #define MSG_CARD_MENU                       _UxGT("Print from SD")
@@ -656,7 +656,7 @@
   #define MSG_RESUMING                        _UxGT("Resuming print")
 #endif
 #ifndef MSG_PRINT_ABORTED
-  #define MSG_PRINT_ABORTED                   _UxGT("Print aborted")
+  #define MSG_PRINT_ABORTED                   _UxGT("Print canceled")
 #endif
 #ifndef MSG_NO_MOVE
   #define MSG_NO_MOVE                         _UxGT("No move.")
