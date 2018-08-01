@@ -288,7 +288,7 @@ uint16_t max_display_update_time = 0;
       uint8_t trinamic_tempEsgt = 0;
     #endif
 
-    void lcd_trinamic_settings();
+    void beevc_trinamic_settings_menu();
     void lcd_trinamic_current();
     // Only shown if X or Y are TMC2130 otherwise sensorless homing wont be used
     #if (ENABLED(X_IS_TMC2130) || ENABLED(Y_IS_TMC2130))
@@ -4081,7 +4081,7 @@ void lcd_enqueue_filament_change() {
       silent_mode = 1;
 
       // Ensures enough time for the stepper drives to stabilize
-      delay(200);
+      delay(500);
     }
 
     void enable_stealth_mode (void)
@@ -4120,7 +4120,7 @@ void lcd_enqueue_filament_change() {
       planner.max_feedrate_mm_s[E_AXIS+1] = 40;
 
       // Ensures enough time for the stepper drives to stabilize
-      delay(200);
+      delay(500);
     }
   #endif
   ///////////////////////////////////////////////////////
@@ -4137,11 +4137,11 @@ void lcd_enqueue_filament_change() {
 
     #ifdef HAVE_TMC2130
       if (silent_mode == 1)
-        MENU_ITEM(function, _UxGT("Enable Silent+ mode"), enable_stealth_mode);
+        MENU_ITEM(function, _UxGT("Enable silent+ mode"), enable_stealth_mode);
       else if (silent_mode == 2)
-        MENU_ITEM(function, _UxGT("Disable Silent mode"), disable_silent_mode);
+        MENU_ITEM(function, _UxGT("Disable silent mode"), disable_silent_mode);
       else
-        MENU_ITEM(function, _UxGT("Enable Silent mode"), enable_silent_mode);
+        MENU_ITEM(function, _UxGT("Enable silent mode"), enable_silent_mode);
     #endif
 
     MENU_ITEM(submenu, MSG_FILAMENT, beevc_machine_filament_menu);
@@ -4167,7 +4167,7 @@ void lcd_enqueue_filament_change() {
       else
         MENU_ITEM(function, _UxGT("Enable Silent mode"), enable_silent_mode);
 
-        MENU_ITEM(submenu,  _UxGT("Trinamic Settings"), lcd_trinamic_settings);
+        MENU_ITEM(submenu,  _UxGT("Trinamic Settings"), beevc_trinamic_settings_menu);
     #endif
 
 
@@ -4715,7 +4715,7 @@ void lcd_enqueue_filament_change() {
     MENU_BACK(MSG_CONTROL);
 
     #ifdef HAVE_TMC2130
-        MENU_ITEM(submenu,  _UxGT("Trinamic Settings"), lcd_trinamic_settings);
+        MENU_ITEM(submenu,  _UxGT("Trinamic Settings"), beevc_trinamic_settings_menu);
     #endif
 
     // M203 / M205 - Feedrate items
@@ -4879,7 +4879,7 @@ void lcd_enqueue_filament_change() {
    * "Control" > "Trinamic Settings" submenu
    *
    */
-    void lcd_trinamic_settings() {
+    void beevc_trinamic_settings_menu() {
       START_MENU();
       MENU_BACK(MSG_CONTROL);
 
