@@ -1035,6 +1035,9 @@ void kill_screen(const char* lcd_msg) {
       // Cold pull
         MENU_ITEM(submenu, _UxGT("Cold pull"), _lcd_menu_z_offset);
 
+        // Auto Home
+        MENU_ITEM(gcode, MSG_AUTO_HOME, PSTR("G28"));
+
       // Auto Home/ Level Bed
         // Leveling only appears when automatic bed leveling method exists
         #if HAS_ABL
@@ -1044,9 +1047,6 @@ void kill_screen(const char* lcd_msg) {
     	  #if ENABLED(LCD_BED_LEVELING)
     		  MENU_ITEM(function, MSG_LEVEL_BED, _lcd_level_bed_continue);
     	  #endif
-
-      // Auto Home
-      MENU_ITEM(gcode, MSG_AUTO_HOME, PSTR("G28"));
 
       END_MENU();
     }
