@@ -4797,7 +4797,7 @@ void lcd_enqueue_filament_change() {
     #if (ENABLED(E0_IS_TMC2130) || ENABLED(E1_IS_TMC2130))
     stepperE0.setCurrent(E0_CURRENT, R_SENSE, HOLD_MULTIPLIER);
     stepperE1.setCurrent(E1_CURRENT, R_SENSE, HOLD_MULTIPLIER);
-    stepperE1.sgt(5);
+    stepperE0.sgt(5);
     stepperE1.sgt(5);
     #endif
 
@@ -4841,7 +4841,7 @@ void lcd_enqueue_filament_change() {
        MENU_ITEM(gcode, _UxGT("Test X homing"), PSTR("G28 X\nG28 X\nG28 X\nG28 X\nG28 X"));
      #endif
      #if ENABLED(Y_IS_TMC2130)
-       MENU_ITEM_EDIT_CALLBACK(int8, _UxGT("Y calibration"), &thermalManager.sg2_homing_y_calibration, 0, 100,_void_);
+       MENU_ITEM_EDIT_CALLBACK(int8, _UxGT("Y calibration"), &thermalManager.sg2_homing_y_calibration, 40, 200,_void_);
        MENU_ITEM(gcode, _UxGT("Test Y homing"), PSTR("G28 Y\nG28 Y\nG28 Y\nG28 Y\nG28 Y"));
      #endif
      #if (ENABLED(Y_IS_TMC2130) && ENABLED(X_IS_TMC2130))

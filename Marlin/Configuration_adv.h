@@ -1093,7 +1093,7 @@
   #define Y_CURRENT          700
   #define Y_MICROSTEPS        16
 
-  #define Z_CURRENT          850
+  #define Z_CURRENT          800
   #define Z_MICROSTEPS        16
 
   #define X2_CURRENT         800
@@ -1105,10 +1105,10 @@
   #define Z2_CURRENT         800
   #define Z2_MICROSTEPS       16
 
-  #define E0_CURRENT         850
+  #define E0_CURRENT         925
   #define E0_MICROSTEPS       16
 
-  #define E1_CURRENT         850
+  #define E1_CURRENT         925
   #define E1_MICROSTEPS       16
 
   #define E2_CURRENT         800
@@ -1180,7 +1180,7 @@
   //#define SENSORLESS_HOMING // TMC2130 only
 
     #define X_HOMING_SENSITIVITY  5
-    #define Y_HOMING_SENSITIVITY  6
+    #define Y_HOMING_SENSITIVITY  5
 
   /**
    * Enable M122 debugging command for TMC stepper drivers.
