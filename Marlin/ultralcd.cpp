@@ -4866,10 +4866,10 @@ void lcd_enqueue_filament_change() {
       MENU_BACK(_UxGT("Trinamic Settings"));
       _trinamic_update_current_values();
       #if ENABLED(X_IS_TMC2130)
-        MENU_ITEM_EDIT_CALLBACK(int3, MSG_X, &trinamic_tempXcurrent, 500, 950, _trinamic_setX_current);
+        MENU_ITEM_EDIT_CALLBACK(int3, MSG_X, &trinamic_tempXcurrent, 350, 950, _trinamic_setX_current);
       #endif
       #if ENABLED(Y_IS_TMC2130)
-        MENU_ITEM_EDIT_CALLBACK(int3, MSG_Y, &trinamic_tempYcurrent, 500, 950, _trinamic_setY_current);
+        MENU_ITEM_EDIT_CALLBACK(int3, MSG_Y, &trinamic_tempYcurrent, 400, 950, _trinamic_setY_current);
       #endif
       #if ENABLED(Z_IS_TMC2130)
         MENU_ITEM_EDIT_CALLBACK(int3, MSG_Z, &trinamic_tempZcurrent, 500, 950, _trinamic_setZ_current);
