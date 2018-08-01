@@ -968,7 +968,7 @@ void kill_screen(const char* lcd_msg) {
     else{
       // If the SD card is readable
       if (card.cardOK) {
-        if (!(card.isFileOpen())) {
+        if ((card.isFileOpen())) {
           MENU_ITEM(submenu, _UxGT("Print"), beevc_print_menu);
         }
       }
@@ -978,7 +978,7 @@ void kill_screen(const char* lcd_msg) {
       }
     }
 
-    MENU_ITEM(submenu, _UxGT("Machine Settings"), beevc_machine_menu);
+    MENU_ITEM(submenu, _UxGT("Machine settings"), beevc_machine_menu);
     MENU_ITEM(submenu, _UxGT("About"), beevc_about_menu);
     END_MENU();
   }
