@@ -11696,6 +11696,20 @@ inline void gcode_M502() {
             else
             xy_home_duration_sum += xy_home_duration_temp;
 
+            // Speeds up finding the correct value
+            if (xy_home_duration_temp < 150){
+              if(thermalManager.sg2_homing_x_calibration >= 10)
+                thermalManager.sg2_homing_x_calibration -= 5;
+            }
+
+            // If values seem too off change SGT
+            if ((thermalManager.sg2_homing_x_calibration == 0) && (xy_home_duration_temp > x_home_duration_limit)){
+              if(stepperX.sgt() < 7) {
+                stepperX.sgt(stepperX.sgt()+1);
+                thermalManager.sg2_homing_x_calibration = 50;
+              }
+            }
+
             safe_delay(250);
           }
           uint16_t x_home_duration = (xy_home_duration_sum/5);
@@ -11706,7 +11720,7 @@ inline void gcode_M502() {
             thermalManager.sg2_homing_x_calibration += 5;
           }
           else if (x_home_duration < xy_home_duration_expected){
-            if(thermalManager.sg2_homing_x_calibration >= 5)
+            if(thermalManager.sg2_homing_x_calibration >= 10)
             thermalManager.sg2_homing_x_calibration -= 5;
           }
           else
@@ -11737,32 +11751,44 @@ inline void gcode_M502() {
             do_blocking_move_to_xy(current_position[X_AXIS],current_position[Y_AXIS]-pre_home_move_mm,80);
             thermalManager.sg2_y_limit_hit = 0;
 
-            safe_delay(50);
+            safe_delay(100);
 
             xy_home_duration_temp = millis();
             //HOMEAXIS(Y);
             do_homing_move(Y_AXIS, (pre_home_move_mm+5)* home_dir(Y_AXIS));
             xy_home_duration_temp = millis()- xy_home_duration_temp;
 
-            SERIAL_ECHOLNPAIR("Y axis homing duration", xy_home_duration_temp);
+            // SERIAL_ECHOLNPAIR("Y axis homing duration", xy_home_duration_temp);
 
             // Makes sure the result never leads to false positives
             if (xy_home_duration_temp < xy_home_duration_expected)
             xy_home_duration_sum = 0;
             else
             xy_home_duration_sum += xy_home_duration_temp;
-            safe_delay(350);
+
+            // Speeds up finding the correct value
+            if (xy_home_duration_temp < 150){
+              if(thermalManager.sg2_homing_y_calibration >= 25)
+                thermalManager.sg2_homing_y_calibration -= 5;
+              else
+                if(stepperY.sgt() > 4) {
+                  stepperY.sgt(stepperY.sgt()-1);
+                  thermalManager.sg2_homing_y_calibration = 50;
+                }
+            }
+
+            safe_delay(450);
           }
           uint16_t y_home_duration = (xy_home_duration_sum/5);
 
           // Verifies if the homing values appear good if so exit
           if (y_home_duration > y_home_duration_limit){
             if(thermalManager.sg2_homing_y_calibration <= 195)
-            thermalManager.sg2_homing_y_calibration += 5;
+              thermalManager.sg2_homing_y_calibration += 5;
           }
           else if (y_home_duration < xy_home_duration_expected){
-            if(thermalManager.sg2_homing_y_calibration >= 60)
-            thermalManager.sg2_homing_y_calibration -= 5;
+            if(thermalManager.sg2_homing_y_calibration >= 25)
+              thermalManager.sg2_homing_y_calibration -= 5;
           }
           else
           y_home_to_calibrate = false;
@@ -11807,7 +11833,7 @@ inline void gcode_M502() {
         #endif // BEEVC_TMC2130READSG
 
         thermalManager.sg2_homing_x_calibration -= 5;
-        thermalManager.sg2_homing_y_calibration -= 5;
+        thermalManager.sg2_homing_y_calibration -= 10;
 
       }
     #endif //(ENABLED(X_IS_TMC2130) && ENABLED(Y_IS_TMC2130))
