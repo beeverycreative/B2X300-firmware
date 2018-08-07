@@ -1008,7 +1008,7 @@ void kill_screen(const char* lcd_msg) {
        MENU_ITEM(function, MSG_FILAMENTCHANGE, lcd_enqueue_filament_change);
 
      // Adjust Print settings
-     MENU_ITEM(function, _UxGT("Print settings"), beevc_print_settings_menu);
+     MENU_ITEM(submenu, _UxGT("Print settings"), beevc_print_settings_menu);
 
      END_MENU();
    }
@@ -3500,14 +3500,13 @@ void lcd_enqueue_filament_change() {
 	}
 
   void _lcd_z_offset_check_bed_homing() {
-      if (lcdDrawUpdate && !(axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS]))
-	  {
-	  START_SCREEN();
-	  STATIC_ITEM(_UxGT("Nozzle height"), true, true);
-      STATIC_ITEM("Homing XYZ axis ", true, true);
-      STATIC_ITEM("Allow movement to");
-	  STATIC_ITEM("finish and press!");
-      END_SCREEN();
+    if (lcdDrawUpdate && !(axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS])) {
+	     START_SCREEN();
+	     STATIC_ITEM(_UxGT("Nozzle height"), true, true);
+       STATIC_ITEM("Homing XYZ axis ", true, true);
+       STATIC_ITEM("Allow movement to");
+	     STATIC_ITEM("finish and press!");
+       END_SCREEN();
 	  }
 
 
@@ -3520,8 +3519,8 @@ void lcd_enqueue_filament_change() {
 	void _lcd_z_offset_start_bed_homing()
 	{
 		defer_return_to_status = true;
-        axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
-        enqueue_and_echo_commands_P(PSTR("G28"));
+    axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
+    enqueue_and_echo_commands_P(PSTR("G28"));
 		lcd_goto_screen(_lcd_z_offset_check_bed_homing);
 
 	}
