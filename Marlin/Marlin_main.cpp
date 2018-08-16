@@ -4413,7 +4413,7 @@ safe_delay(400);
 
     // Restores XY current
     stepperX.rms_current(currentX,HOLD_MULTIPLIER,R_SENSE);
-    stepperX.rms_current(currentY,HOLD_MULTIPLIER,R_SENSE);
+    stepperY.rms_current(currentY,HOLD_MULTIPLIER,R_SENSE);
 
     // Resets flags after homing
     thermalManager.sg2_stop = false;
