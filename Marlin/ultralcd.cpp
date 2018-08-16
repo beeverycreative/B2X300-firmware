@@ -4340,11 +4340,12 @@ void lcd_enqueue_filament_change() {
     START_MENU();
     MENU_BACK(MSG_CONTROL);
 
-    PID_MENU_ITEMS(" " MSG_E1, 0);
-    PID_MENU_ITEMS(" " MSG_E2, 1);
-
     MENU_ITEM(submenu, MSG_PREHEAT_1, lcd_preheat_m1_menu);
     MENU_ITEM(submenu, MSG_PREHEAT_2, lcd_preheat_m2_menu);
+    MENU_ITEM(function, MSG_COOLDOWN, lcd_cooldown);
+
+    PID_MENU_ITEMS(" " MSG_E1, 0);
+    PID_MENU_ITEMS(" " MSG_E2, 1);
 
   END_MENU();
   }
