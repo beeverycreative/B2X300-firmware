@@ -4087,6 +4087,12 @@ inline void gcode_G28(const bool always_home_all) {
 #ifdef BEEVC_TMC2130READSG
   uint8_t pre_home_move_mm = 20;
   bool restore_stealthchop_x = false, restore_stealthchop_y = false;
+  uint32_t homeduration = 0;
+
+  // Saves XY current and sets homing current
+  uint16_t currentX = stepperX.rms_current(), currentY = stepperY.rms_current();
+  stepperX.rms_current(BEEVC_HOMEXCURRENT,HOLD_MULTIPLIER,R_SENSE);
+  stepperX.rms_current(BEEVC_HOMEYCURRENT,HOLD_MULTIPLIER,R_SENSE);
 
   // Disables stallGuard2 filter for maximum time precision
   #ifdef BEEVC_TMC2130SGFILTER
@@ -4235,6 +4241,9 @@ safe_delay(400);
     // Home X
     if (home_all || homeX) {
       #ifdef BEEVC_TMC2130READSG
+        // Wait for planner moves to finish!
+        stepper.synchronize();
+
         // Moves X a little away from limit to avoid eroneous detections
         #ifdef BEEVC_TMC2130HOMEXREVERSE
           // Homes X to the right
@@ -4243,6 +4252,9 @@ safe_delay(400);
           // Homes X to the left
           do_blocking_move_to_xy((current_position[X_AXIS] < (X_MAX_POS - pre_home_move_mm) ? current_position[X_AXIS]+pre_home_move_mm : current_position[X_AXIS]),current_position[Y_AXIS],25);
         #endif //BEEVC_TMC2130HOMEXREVERSE
+
+        // Wait for planner moves to finish!
+        stepper.synchronize();
 
         thermalManager.sg2_x_limit_hit = 0;
       #endif // BEEVC_TMC2130READSG
@@ -4266,7 +4278,16 @@ safe_delay(400);
         active_extruder_parked = true;
 
       #else
+
+      homeduration = 0;
+      while (homeduration < 250) {
+        homeduration = millis();
         HOMEAXIS(X);
+        homeduration = millis()- homeduration;
+        //DEBUG
+        //SERIAL_ECHOLNPAIR("X axis homing duration", homeduration);
+      }
+
 
       #endif
 
@@ -4285,15 +4306,27 @@ safe_delay(400);
       if (home_all || homeY) {
 
         #ifdef BEEVC_TMC2130READSG
+          // Wait for planner moves to finish!
+          stepper.synchronize();
+
           // Moves Y a little away from limit to avoid eroneous detections
           do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] > (Y_MIN_POS + pre_home_move_mm) ? current_position[Y_AXIS]-pre_home_move_mm : current_position[Y_AXIS]),25);
+
+          // Wait for planner moves to finish!
+          stepper.synchronize();
+
           thermalManager.sg2_y_limit_hit = 0;
         #endif // BEEVC_TMC2130READSG
 
-        uint32_t temptime = millis();
-        HOMEAXIS(Y);
-        temptime = millis()- temptime;
-        SERIAL_ECHOLNPAIR("Y axis homing duration", temptime);
+        homeduration = 0;
+        while (homeduration < 250) {
+          homeduration = millis();
+          HOMEAXIS(Y);
+          homeduration = millis()- homeduration;
+          //DEBUG
+          //SERIAL_ECHOLNPAIR("Y axis homing duration", homeduration);
+        }
+
 
         #if ENABLED(DEBUG_LEVELING_FEATURE)
           if (DEBUGGING(LEVELING)) DEBUG_POS("> homeY", current_position);
@@ -4377,6 +4410,10 @@ safe_delay(400);
       thermalManager.sg2_to_read  = true;
       thermalManager.sg2_timeout = millis() + 2000;
     #endif
+
+    // Restores XY current
+    stepperX.rms_current(currentX,HOLD_MULTIPLIER,R_SENSE);
+    stepperX.rms_current(currentY,HOLD_MULTIPLIER,R_SENSE);
 
     // Resets flags after homing
     thermalManager.sg2_stop = false;
