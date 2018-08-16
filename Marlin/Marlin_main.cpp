@@ -4092,7 +4092,7 @@ inline void gcode_G28(const bool always_home_all) {
   // Saves XY current and sets homing current
   uint16_t currentX = stepperX.rms_current(), currentY = stepperY.rms_current();
   stepperX.rms_current(BEEVC_HOMEXCURRENT,HOLD_MULTIPLIER,R_SENSE);
-  stepperX.rms_current(BEEVC_HOMEYCURRENT,HOLD_MULTIPLIER,R_SENSE);
+  stepperY.rms_current(BEEVC_HOMEYCURRENT,HOLD_MULTIPLIER,R_SENSE);
 
   // Disables stallGuard2 filter for maximum time precision
   #ifdef BEEVC_TMC2130SGFILTER
