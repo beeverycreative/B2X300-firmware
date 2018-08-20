@@ -4679,8 +4679,14 @@ void home_all_axes() { gcode_G28(true); }
 
     #ifdef BEEVC_TMC2130READSG
 
-      thermalManager.sg2_timeout = millis() + 2000;
-      thermalManager.sg2_to_read  = true; // reactivates reading
+      #ifndef BEEVC_TMC2130STEPLOSS
+        // Stops further stallGuard2 status reading if step loss detection is inactive
+        thermalManager.sg2_to_read  = false;
+      #else
+        thermalManager.sg2_to_read  = true;
+        thermalManager.sg2_timeout = millis() + 2000;
+      #endif
+
       // Resets flags after homing
       thermalManager.sg2_stop = false;
       thermalManager.sg2_homing = false;
@@ -5617,11 +5623,18 @@ void home_all_axes() { gcode_G28(true); }
 	tool_change(extruderNumber);
 
   #ifdef BEEVC_TMC2130READSG
-    thermalManager.sg2_timeout = millis() + 2000;
+
+    #ifndef BEEVC_TMC2130STEPLOSS
+      // Stops further stallGuard2 status reading if step loss detection is inactive
+      thermalManager.sg2_to_read  = false;
+    #else
+      thermalManager.sg2_to_read  = true;
+      thermalManager.sg2_timeout = millis() + 2000;
+    #endif
+
     // Resets flags after homing
     thermalManager.sg2_stop = false;
     thermalManager.sg2_homing = false;
-    thermalManager.sg2_to_read  = true; // reactivates reading
   #endif // BEEVC_TMC2130READSG
 
   }
