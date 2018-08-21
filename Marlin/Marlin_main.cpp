@@ -4240,25 +4240,6 @@ safe_delay(400);
 
     // Home X
     if (home_all || homeX) {
-      #ifdef BEEVC_TMC2130READSG
-        // Wait for planner moves to finish!
-        stepper.synchronize();
-
-        // Moves X a little away from limit to avoid eroneous detections
-        #ifdef BEEVC_TMC2130HOMEXREVERSE
-          // Homes X to the right
-          do_blocking_move_to_xy((current_position[X_AXIS] > (X_MIN_POS + pre_home_move_mm) ? current_position[X_AXIS]-pre_home_move_mm : current_position[X_AXIS]),current_position[Y_AXIS],25);
-        #else
-          // Homes X to the left
-          do_blocking_move_to_xy((current_position[X_AXIS] < (X_MAX_POS - pre_home_move_mm) ? current_position[X_AXIS]+pre_home_move_mm : current_position[X_AXIS]),current_position[Y_AXIS],25);
-        #endif //BEEVC_TMC2130HOMEXREVERSE
-
-        // Wait for planner moves to finish!
-        stepper.synchronize();
-
-        thermalManager.sg2_x_limit_hit = 0;
-      #endif // BEEVC_TMC2130READSG
-
       #if ENABLED(DUAL_X_CARRIAGE)
 
         // Always home the 2nd (right) extruder first
@@ -4279,17 +4260,41 @@ safe_delay(400);
 
       #else
 
-      homeduration = 0;
-      while (homeduration < 250) {
-        homeduration = millis();
-        HOMEAXIS(X);
-        homeduration = millis()- homeduration;
-        //DEBUG
-        //SERIAL_ECHOLNPAIR("X axis homing duration", homeduration);
-      }
+        #ifdef BEEVC_TMC2130READSG
+        // Sensorless homing
+          // Enables X sensorless detection
+          thermalManager.sg2_x_limit_hit = 0;
 
+          homeduration = 0;
+          while (homeduration < 250) {
+            // Wait for planner moves to finish!
+            stepper.synchronize();
 
-      #endif
+            // Moves X a little away from limit to avoid eroneous detections
+            #ifdef BEEVC_TMC2130HOMEXREVERSE
+              // Homes X to the right
+              do_blocking_move_to_xy((current_position[X_AXIS] > (X_MIN_POS + pre_home_move_mm) ? current_position[X_AXIS]-pre_home_move_mm : current_position[X_AXIS]),current_position[Y_AXIS],25);
+            #else
+              // Homes X to the left
+              do_blocking_move_to_xy((current_position[X_AXIS] < (X_MAX_POS - pre_home_move_mm) ? current_position[X_AXIS]+pre_home_move_mm : current_position[X_AXIS]),current_position[Y_AXIS],25);
+            #endif //BEEVC_TMC2130HOMEXREVERSE
+
+            // Wait for planner moves to finish!
+            stepper.synchronize();
+
+            homeduration = millis();
+            HOMEAXIS(X);
+            homeduration = millis()- homeduration;
+            //DEBUG
+            //SERIAL_ECHOLNPAIR("X axis homing duration", homeduration);
+          }
+
+        #else
+        // Normal Homing
+          HOMEAXIS(X);
+        #endif // BEEVC_TMC2130READSG
+
+      #endif //DUAL_X_CARRIAGE
 
       #if ENABLED(DEBUG_LEVELING_FEATURE)
         if (DEBUGGING(LEVELING)) DEBUG_POS("> homeX", current_position);
@@ -4298,6 +4303,7 @@ safe_delay(400);
       #ifdef BEEVC_TMC2130READSG
       thermalManager.sg2_x_limit_hit = 1;
       #endif // BEEVC_TMC2130READSG
+
     }
 
 
@@ -4306,27 +4312,31 @@ safe_delay(400);
       if (home_all || homeY) {
 
         #ifdef BEEVC_TMC2130READSG
-          // Wait for planner moves to finish!
-          stepper.synchronize();
-
-          // Moves Y a little away from limit to avoid eroneous detections
-          do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] > (Y_MIN_POS + pre_home_move_mm) ? current_position[Y_AXIS]-pre_home_move_mm : current_position[Y_AXIS]),25);
-
-          // Wait for planner moves to finish!
-          stepper.synchronize();
-
+        // Sensorless homing
+          // Enables X sensorless detection
           thermalManager.sg2_y_limit_hit = 0;
-        #endif // BEEVC_TMC2130READSG
 
-        homeduration = 0;
-        while (homeduration < 250) {
-          homeduration = millis();
+          homeduration = 0;
+          while (homeduration < 250) {
+            // Wait for planner moves to finish!
+            stepper.synchronize();
+
+            // Moves Y a little away from limit to avoid eroneous detections
+            do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] > (Y_MIN_POS + pre_home_move_mm) ? current_position[Y_AXIS]-pre_home_move_mm : current_position[Y_AXIS]),25);
+
+            // Wait for planner moves to finish!
+            stepper.synchronize();
+
+            homeduration = millis();
+            HOMEAXIS(Y);
+            homeduration = millis()- homeduration;
+            //DEBUG
+            //SERIAL_ECHOLNPAIR("Y axis homing duration", homeduration);
+          }
+        #else
+        // Normal Homing
           HOMEAXIS(Y);
-          homeduration = millis()- homeduration;
-          //DEBUG
-          //SERIAL_ECHOLNPAIR("Y axis homing duration", homeduration);
-        }
-
+        #endif // BEEVC_TMC2130READSG
 
         #if ENABLED(DEBUG_LEVELING_FEATURE)
           if (DEBUGGING(LEVELING)) DEBUG_POS("> homeY", current_position);
