@@ -3502,32 +3502,57 @@ void lcd_enqueue_filament_change() {
 		current_position[Z_AXIS] -= 8;
 		manual_move_to_current(Z_AXIS);
 
+    // Tries forcing redraw
+    lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+    //idle(true);
+
 		lcd_goto_screen(_lcd_calibrate_z_offset);
 
 	}
 
+  void _lcd_z_offset_finish_homing() {
+
+    lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+    encoderPosition = 10;
+
+    if (lcdDrawUpdate) {
+      START_SCREEN();
+      STATIC_ITEM(_UxGT("Nozzle height"), true, true);
+      STATIC_ITEM("Movements complete ");
+      STATIC_ITEM("press to continue!");
+      END_SCREEN();
+  	}
+
+
+    if(lcd_clicked)
+    lcd_goto_screen( _lcd_z_offset_prepare_calibration);
+
+  }
+
   void _lcd_z_offset_check_bed_homing() {
-    if (lcdDrawUpdate && !(axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS])) {
+    // Tries forcing redraw
+    lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+    //idle(true);
+
+    if (lcdDrawUpdate) {
 	     START_SCREEN();
 	     STATIC_ITEM(_UxGT("Nozzle height"), true, true);
-       STATIC_ITEM("Homing XYZ axis ", true, true);
+       STATIC_ITEM("Homing XYZ axis ");
        STATIC_ITEM("Allow movement to");
 	     STATIC_ITEM("finish and press!");
        END_SCREEN();
 	  }
 
+    if  (axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS] && planner.leveling_active)
+		lcd_goto_screen( _lcd_z_offset_finish_homing);
 
-      if  (axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS])
-	  {
-		lcd_goto_screen( _lcd_z_offset_prepare_calibration);
-	  }
-    }
+  }
 
 	void _lcd_z_offset_start_bed_homing()
 	{
 		defer_return_to_status = true;
     axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
-    enqueue_and_echo_commands_P(PSTR("G28"));
+    enqueue_and_echo_commands_P(PSTR("G28\nG29\nG0 X150 Y100"));
 		lcd_goto_screen(_lcd_z_offset_check_bed_homing);
 
 	}
