@@ -4675,7 +4675,7 @@ void lcd_enqueue_filament_change() {
     // M201 settings
     MENU_ITEM_EDIT_CALLBACK(long5, MSG_AMAX MSG_X, &planner.max_acceleration_mm_per_s2[X_AXIS], 100, 99000, _reset_acceleration_rates);
     MENU_ITEM_EDIT_CALLBACK(long5, MSG_AMAX MSG_Y, &planner.max_acceleration_mm_per_s2[Y_AXIS], 100, 99000, _reset_acceleration_rates);
-    MENU_ITEM_EDIT_CALLBACK(long5, MSG_AMAX MSG_Z, &planner.max_acceleration_mm_per_s2[Z_AXIS], 300, 99000, _reset_acceleration_rates);
+    MENU_ITEM_EDIT_CALLBACK(long5, MSG_AMAX MSG_Z, &planner.max_acceleration_mm_per_s2[Z_AXIS], 10, 500, _reset_acceleration_rates);
 
     #if ENABLED(DISTINCT_E_FACTORS)
       MENU_ITEM_EDIT_CALLBACK(long5, MSG_AMAX MSG_E, &planner.max_acceleration_mm_per_s2[E_AXIS + active_extruder], 100, 99000, _reset_acceleration_rates);
@@ -5701,7 +5701,7 @@ void lcd_enqueue_filament_change() {
     } \
     typedef void _name
 
-  DEFINE_MENU_EDIT_TYPE(uint32_t, long5, ftostr5rj, 0.01);
+  DEFINE_MENU_EDIT_TYPE(uint32_t, long5, ftostr5rj, 0.1);
   DEFINE_MENU_EDIT_TYPE(int16_t, int3, itostr3, 1);
   DEFINE_MENU_EDIT_TYPE(uint8_t, int8, i8tostr3, 1);
   DEFINE_MENU_EDIT_TYPE(float, float3, ftostr3, 1.0);
