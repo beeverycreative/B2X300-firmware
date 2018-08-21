@@ -4131,17 +4131,408 @@ void lcd_enqueue_filament_change() {
   #endif
   ///////////////////////////////////////////////////////
 
+  void beevc_machine_setup_wait_click() {
+    wait_for_user = true;    // LCD click or M108 will clear this
+    while(wait_for_user){
+      // Avoid returning to status screen
+      defer_return_to_status = true;
+
+      // Manage idle time
+      idle(true);
+    }
+  }
+
+  void beevc_machine_setup_wait(uint16_t milliseconds) {
+    wait_for_user = true;    // LCD click or M108 will clear this
+    uint32_t temptime= millis() + milliseconds;
+    while((temptime > millis()) && wait_for_user){
+      // Avoid returning to status screen
+      defer_return_to_status = true;
+
+      // Manage idle time
+      idle(true);
+    }
+  }
+
+  void beevc_machine_setup_screen_start() {
+  START_SCREEN();
+  STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+  STATIC_ITEM(_UxGT("Welcome to the B2X300"), false, false);
+  STATIC_ITEM(_UxGT("setup wizard!"), false, false);
+  STATIC_ITEM(_UxGT("We will now help you"), false, false);
+  STATIC_ITEM(_UxGT("to set up and test"), false, false);
+  STATIC_ITEM(_UxGT("your printer for its"), false, false);
+  STATIC_ITEM(_UxGT("first print"), false, false);
+  END_SCREEN();
+}
+
+  void beevc_machine_setup_screen_hotend_start() {
+  START_SCREEN();
+  STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+  STATIC_ITEM(_UxGT("We will now test "), false, false);
+  STATIC_ITEM(_UxGT("hotend connections"), false, false);
+  END_SCREEN();
+}
+
+  void beevc_machine_setup_screen_hotend() {
+  START_SCREEN();
+  STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+  if(active_extruder == 0){
+    STATIC_ITEM(_UxGT("Extruder 1"), false, false);
+  }
+  else {
+    STATIC_ITEM(_UxGT("Extruder 2"), false, false);
+  }
+
+  STATIC_ITEM(_UxGT("Testing heating"), false, false);
+
+  u8g.setPrintPos(0, 48);
+  u8g.print("Nozzle: ");
+
+  if(round(thermalManager.degHotend(active_extruder)) <100)
+  u8g.print(" ");
+
+  u8g.print(round(thermalManager.degHotend(active_extruder)));
+  u8g.print("/");
+  u8g.print(round(thermalManager.degTargetHotend(active_extruder)));
+
+  END_SCREEN();
+}
+
+void beevc_machine_setup_screen_hotend_cooling() {
+START_SCREEN();
+STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+if(active_extruder == 0){
+  STATIC_ITEM(_UxGT("Extruder 1"), false, false);
+}
+else {
+  STATIC_ITEM(_UxGT("Extruder 2"), false, false);
+}
+
+STATIC_ITEM(_UxGT("Cooling down"), false, false);
+
+u8g.setPrintPos(0, 48);
+u8g.print("Nozzle: ");
+
+if(round(thermalManager.degHotend(active_extruder)) <100)
+u8g.print(" ");
+
+u8g.print(round(thermalManager.degHotend(active_extruder)));
+u8g.print("/");
+u8g.print(round(40));
+
+END_SCREEN();
+}
+
+void beevc_machine_setup_screen_hotbed() {
+START_SCREEN();
+STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+STATIC_ITEM(_UxGT("Hotbed - Testing heating"), false, false);
+
+u8g.setPrintPos(0, 48);
+u8g.print("Bed: ");
+
+if(round(thermalManager.degBed()) <100)
+u8g.print(" ");
+
+u8g.print(round(thermalManager.degBed()));
+u8g.print("/");
+u8g.print(round(thermalManager.degTargetBed()));
+
+END_SCREEN();
+}
+
+  void beevc_machine_setup_screen_error_hotend_hot() {
+  START_SCREEN();
+  STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+  STATIC_ITEM(_UxGT("Extruder already reading as hot"), false, false);
+
+  STATIC_ITEM(_UxGT("Please verify the"), false, false);
+  STATIC_ITEM(_UxGT("thermistor and"), false, false);
+  STATIC_ITEM(_UxGT("extruder output by"), false, false);
+  STATIC_ITEM(_UxGT("checking if proper"), false, false);
+  STATIC_ITEM(_UxGT("connection exists"), false, false);
+  STATIC_ITEM(_UxGT("on the motherboard."), false, false);
+  STATIC_ITEM(_UxGT("Read page XX of the"), false, false);
+  STATIC_ITEM(_UxGT("user manual for more"), false, false);
+  STATIC_ITEM(_UxGT("information"), false, false);
+  END_SCREEN();
+}
+
+void beevc_machine_setup_screen_error_hotend_timeout() {
+START_SCREEN();
+STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+if(active_extruder){
+  //E2
+  STATIC_ITEM(_UxGT("E2 timed out!"), false, false);
+}
+else{
+  //E1
+  STATIC_ITEM(_UxGT("E1 timed out!"), false, false);
+}
+STATIC_ITEM(_UxGT("Please verify the"), false, false);
+STATIC_ITEM(_UxGT("hotend resistor wire"), false, false);
+STATIC_ITEM(_UxGT("checking if proper"), false, false);
+STATIC_ITEM(_UxGT("connection exists"), false, false);
+STATIC_ITEM(_UxGT("on the motherboard."), false, false);
+STATIC_ITEM(_UxGT("Read page XX of the"), false, false);
+STATIC_ITEM(_UxGT("user manual for more"), false, false);
+STATIC_ITEM(_UxGT("information"), false, false);
+END_SCREEN();
+}
+
+void beevc_machine_setup_screen_error_hotend_sensor() {
+START_SCREEN();
+STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+if(active_extruder){
+  //E2
+  STATIC_ITEM(_UxGT("E2 read error!"), false, false);
+}
+else{
+  //E1
+  STATIC_ITEM(_UxGT("E1 read error!"), false, false);
+}
+STATIC_ITEM(_UxGT("Please verify the"), false, false);
+STATIC_ITEM(_UxGT("thermistor wire"), false, false);
+STATIC_ITEM(_UxGT("checking if proper"), false, false);
+STATIC_ITEM(_UxGT("connection exists"), false, false);
+STATIC_ITEM(_UxGT("on the motherboard."), false, false);
+STATIC_ITEM(_UxGT("Read page XX of the"), false, false);
+STATIC_ITEM(_UxGT("user manual for more"), false, false);
+STATIC_ITEM(_UxGT("information"), false, false);
+END_SCREEN();
+}
+
+void beevc_machine_setup_screen_error_hotbed_hot() {
+START_SCREEN();
+STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+STATIC_ITEM(_UxGT("Hotbed already reading as hot"), false, false);
+
+STATIC_ITEM(_UxGT("Please verify the"), false, false);
+STATIC_ITEM(_UxGT("thermistor and"), false, false);
+STATIC_ITEM(_UxGT("hotbed output by"), false, false);
+STATIC_ITEM(_UxGT("checking if proper"), false, false);
+STATIC_ITEM(_UxGT("connection exists"), false, false);
+STATIC_ITEM(_UxGT("on the motherboard."), false, false);
+STATIC_ITEM(_UxGT("Read page XX of the"), false, false);
+STATIC_ITEM(_UxGT("user manual for more"), false, false);
+STATIC_ITEM(_UxGT("information"), false, false);
+END_SCREEN();
+}
+
+void beevc_machine_setup_screen_error_hotbed_timeout() {
+START_SCREEN();
+STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+
+STATIC_ITEM(_UxGT("Bed timed out!"), false, false);
+
+STATIC_ITEM(_UxGT("Please verify the"), false, false);
+STATIC_ITEM(_UxGT("hotbed resistor wire"), false, false);
+STATIC_ITEM(_UxGT("checking if proper"), false, false);
+STATIC_ITEM(_UxGT("connection exists"), false, false);
+STATIC_ITEM(_UxGT("on the motherboard."), false, false);
+STATIC_ITEM(_UxGT("Read page XX of the"), false, false);
+STATIC_ITEM(_UxGT("user manual for more"), false, false);
+STATIC_ITEM(_UxGT("information"), false, false);
+END_SCREEN();
+}
+
+void beevc_machine_setup_screen_error_hotbed_sensor() {
+START_SCREEN();
+STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+
+STATIC_ITEM(_UxGT("Bed read error!"), false, false);
+
+STATIC_ITEM(_UxGT("Please verify the"), false, false);
+STATIC_ITEM(_UxGT("thermistor wire"), false, false);
+STATIC_ITEM(_UxGT("checking if proper"), false, false);
+STATIC_ITEM(_UxGT("connection exists"), false, false);
+STATIC_ITEM(_UxGT("on the motherboard."), false, false);
+STATIC_ITEM(_UxGT("Read page XX of the"), false, false);
+STATIC_ITEM(_UxGT("user manual for more"), false, false);
+STATIC_ITEM(_UxGT("information"), false, false);
+END_SCREEN();
+}
+
+void beevc_machine_setup_screen_blower_start() {
+  START_SCREEN();
+  STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+  STATIC_ITEM(_UxGT("We will now test "), false, false);
+  STATIC_ITEM(_UxGT("blower connection"), false, false);
+  END_SCREEN();
+}
+
+void beevc_machine_setup_screen_blower_test_ok() {
+  START_SCREEN();
+  STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+  STATIC_ITEM(_UxGT("blower ok"), false, false);
+  END_SCREEN();
+}
+
+void beevc_machine_setup_screen_error_blower() {
+  START_SCREEN();
+  STATIC_ITEM(_UxGT("Blower fan error!"), false, false);
+
+  STATIC_ITEM(_UxGT("Please verify the"), false, false);
+  STATIC_ITEM(_UxGT("blower wire"), false, false);
+  STATIC_ITEM(_UxGT("checking if proper"), false, false);
+  STATIC_ITEM(_UxGT("connection exists"), false, false);
+  STATIC_ITEM(_UxGT("on the motherboard."), false, false);
+  STATIC_ITEM(_UxGT("Read page XX of the"), false, false);
+  STATIC_ITEM(_UxGT("user manual for more"), false, false);
+  STATIC_ITEM(_UxGT("information"), false, false);
+  END_SCREEN();
+}
+
+void beevc_machine_setup_screen_blower_test() {
+  START_MENU();
+  STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+  STATIC_ITEM(_UxGT("Is the fan active"), false, false);
+  MENU_ITEM(function, _UxGT("Yes"), beevc_machine_setup_screen_blower_test_ok);
+  MENU_ITEM(function, _UxGT("No"), beevc_machine_setup_screen_error_blower);
+  END_MENU();
+}
+
+void beevc_machine_setup_test_hotend (uint8_t extruder){
+
+  // Time variable
+  uint32_t duration = 0, timeout =0;
+
+  active_extruder = extruder-1;
+
+  // Check for disconnected thermistor
+  if(thermalManager.degHotend(active_extruder) == -14){
+    lcd_goto_screen(beevc_machine_setup_screen_error_hotend_sensor);
+    while(1){
+      idle(true);
+    }
+  }
+
+  // Waits for the hotend to cool down enough to read the heating time
+  thermalManager.setTargetHotend(0, active_extruder);
+  duration = millis();
+  // Blower on to help cooling
+  fanSpeeds[0] = 255;
+  lcd_goto_screen(beevc_machine_setup_screen_hotend_cooling);
+  while(thermalManager.degHotend(active_extruder) > 40){
+    lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+    idle(true);
+    if(1){
+      idle(true);
+    }
+  }
+  // Blower off
+  fanSpeeds[0] = 0;
+
+  //Set E destination temperature
+  thermalManager.setTargetHotend(100, active_extruder);
+  //Start counting time
+  duration = millis();
+  //Sets a timeout of 60sec
+  timeout = duration + 60000;
+
+  lcd_goto_screen(beevc_machine_setup_screen_hotend);
+
+  while(thermalManager.degHotend(active_extruder) < thermalManager.degTargetHotend(active_extruder)){
+    lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+    idle(true);
+
+    if (millis() > timeout){
+      lcd_goto_screen(beevc_machine_setup_screen_error_hotend_timeout);
+      while(1){
+        idle(true);
+      }
+    }
+  }
+
+  //Disable E heating
+  thermalManager.setTargetHotend(0, active_extruder);
+
+}
+
+void beevc_machine_setup_test_hotbed (){
+
+  // Time variable
+  uint32_t duration = 0, timeout =0;
+
+  // Check for disconnected thermistor
+  if(thermalManager.degBed() == -14){
+    lcd_goto_screen(beevc_machine_setup_screen_error_hotbed_sensor);
+    while(1){
+      idle(true);
+    }
+  }
+  //Set bed destination temperature
+  thermalManager.setTargetBed(50);
+  //Start counting time
+  duration = millis();
+  //Sets a timeout of 120sec
+  timeout = duration + 120000;
+
+    lcd_goto_screen(beevc_machine_setup_screen_hotbed);
+
+  while(thermalManager.degBed() < thermalManager.degTargetBed()){
+    idle(true);
+
+    if (millis() > timeout){
+      lcd_goto_screen(beevc_machine_setup_screen_error_hotbed_timeout);
+      while(1){
+        idle(true);
+      }
+    }
+  }
+
+}
+
+void beevc_machine_setup_test_blower (){
+
+    lcd_goto_screen(beevc_machine_setup_screen_blower_start);
+
+    beevc_machine_setup_wait(5000);
+    fanSpeeds[0] = 255;
+
+    lcd_goto_screen(beevc_machine_setup_screen_blower_test);
+
+    beevc_machine_setup_wait_click();
+    fanSpeeds[0] = 0;
+
+}
+
   /**
    *  BEEVC
    * "Machine settings" > "Setup wizard"
    */
   void beevc_machine_setup() {
-    uint32_t duration = 0;
+
+    // Clear LCD
+    lcd_implementation_clear();
+
+    // Start screen
+
+    lcd_goto_screen(beevc_machine_setup_screen_start);
+
+    // Wait for click
+    beevc_machine_setup_wait_click();
+
     // Verify Hotend connections
+    lcd_goto_screen(beevc_machine_setup_screen_hotend_start);
+
+    // Wait for while to allow the user to read the message
+    beevc_machine_setup_wait(5000);
+
+    // Verify E1 connection
+      // Test E1
+      beevc_machine_setup_test_hotend(1);
+
+    // Verify E2 connection
+      // Test E2
+      beevc_machine_setup_test_hotend(2);
 
     // Verify hotbed connections
+    beevc_machine_setup_test_hotbed();
 
     // Verify blower connection
+    beevc_machine_setup_test_blower();
 
     // Calibrate sensorless homing
 
