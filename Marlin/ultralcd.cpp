@@ -232,6 +232,7 @@ uint16_t max_display_update_time = 0;
 
 	// Manual filament change feature
 	static void lcd_filament_change();
+  static void lcd_filament_change_start();
 	static void lcd_filament_change_move_to_position();
 	static void lcd_filament_change_extruder_0();
 	static void lcd_filament_change_extruder_1();
@@ -1024,7 +1025,7 @@ void kill_screen(const char* lcd_msg) {
       MENU_BACK(MSG_WATCH);
 
       // Change filament
-        MENU_ITEM(submenu, MSG_FILAMENTCHANGE, lcd_filament_change);
+        MENU_ITEM(submenu, MSG_FILAMENTCHANGE, lcd_filament_change_start);
       // Move axis
         MENU_ITEM(submenu, MSG_MOVE_AXIS, lcd_move_menu);
       // Set nozzle height / Z offset
@@ -1358,12 +1359,6 @@ void kill_screen(const char* lcd_msg) {
       STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
       STATIC_ITEM(" ");
 	    STATIC_ITEM("Press and hold ");
-
-      // Shows extra line if filament detection is active
-      #ifdef FILAMENT_RUNOUT_SENSOR
-        STATIC_ITEM("or insert filament");
-      #endif
-
 	    STATIC_ITEM("to continue... ");
       END_SCREEN();
     }
@@ -1687,11 +1682,23 @@ static void lcd_filament_change()
   // Go back to previous menu
   MENU_BACK(MSG_BACK);
 
-  MENU_ITEM(function, _UxGT("Move to position"), lcd_filament_change_move_to_position);
-  MENU_ITEM(submenu, _UxGT("Extruder 0"), lcd_filament_change_extruder_0);
-  MENU_ITEM(submenu, _UxGT("Extruder 1"), lcd_filament_change_extruder_1);
+  //MENU_ITEM(function, _UxGT("Move to position"), lcd_filament_change_move_to_position);
+  MENU_ITEM(submenu, _UxGT("Extruder 1"), lcd_filament_change_extruder_0);
+  MENU_ITEM(submenu, _UxGT("Extruder 2"), lcd_filament_change_extruder_1);
 
   END_MENU();
+}
+
+static void lcd_filament_change_start()
+{
+  defer_return_to_status = true;
+  lcd_goto_screen(lcd_filament_change_moving);
+
+  axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
+  enqueue_and_echo_commands_P(PSTR("G28"));
+  enqueue_and_echo_commands_P(PSTR("G1 Z50 F3000"));
+
+  lcd_goto_screen(lcd_filament_change);
 }
 
 void lcd_enqueue_filament_change() {
