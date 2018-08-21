@@ -4154,11 +4154,16 @@ void lcd_enqueue_filament_change() {
    *  BEEVC
    * "Machine settings" > "Save settings" submenu
    */
+  void beevc_machine_save_confirm_go_to_status() {
+      lcd_store_settings();
+      lcd_return_to_status();
+  }
+
   void beevc_machine_save_confirm() {
     START_MENU();
     MENU_BACK(MSG_MAIN);
 
-    MENU_ITEM(function, _UxGT("Confirm"), lcd_store_settings);
+    MENU_ITEM(function, _UxGT("Confirm"), beevc_machine_save_confirm_go_to_status);
 
     END_MENU();
   }
@@ -4167,11 +4172,16 @@ void lcd_enqueue_filament_change() {
    *  BEEVC
    * "Machine settings" > "Save settings" submenu
    */
+  void beevc_machine_reset_confirm_go_to_status() {
+       lcd_init_eeprom();
+       lcd_return_to_status();
+  }
+
   void beevc_machine_reset_confirm() {
     START_MENU();
     MENU_BACK(MSG_MAIN);
 
-    MENU_ITEM(function, _UxGT("Confirm"), lcd_init_eeprom);
+    MENU_ITEM(function, _UxGT("Confirm"), beevc_machine_reset_confirm_go_to_status);
 
     END_MENU();
   }
