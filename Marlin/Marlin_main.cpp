@@ -4267,9 +4267,6 @@ safe_delay(400);
 
           homeduration = 0;
           while (homeduration < 250) {
-            // Wait for planner moves to finish!
-            stepper.synchronize();
-
             // Moves X a little away from limit to avoid eroneous detections
             #ifdef BEEVC_TMC2130HOMEXREVERSE
               // Homes X to the right
@@ -4279,12 +4276,14 @@ safe_delay(400);
               do_blocking_move_to_xy((current_position[X_AXIS] < (X_MAX_POS - pre_home_move_mm) ? current_position[X_AXIS]+pre_home_move_mm : current_position[X_AXIS]),current_position[Y_AXIS],25);
             #endif //BEEVC_TMC2130HOMEXREVERSE
 
-            // Wait for planner moves to finish!
-            stepper.synchronize();
-
             homeduration = millis();
             HOMEAXIS(X);
             homeduration = millis()- homeduration;
+
+            // Avoids making too much homed calls
+            if(homeduration < 250)
+            safe_delay(300);
+
             //DEBUG
             //SERIAL_ECHOLNPAIR("X axis homing duration", homeduration);
           }
@@ -4318,18 +4317,17 @@ safe_delay(400);
 
           homeduration = 0;
           while (homeduration < 250) {
-            // Wait for planner moves to finish!
-            stepper.synchronize();
-
             // Moves Y a little away from limit to avoid eroneous detections
             do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] > (Y_MIN_POS + pre_home_move_mm) ? current_position[Y_AXIS]-pre_home_move_mm : current_position[Y_AXIS]),25);
-
-            // Wait for planner moves to finish!
-            stepper.synchronize();
 
             homeduration = millis();
             HOMEAXIS(Y);
             homeduration = millis()- homeduration;
+
+            // Avoids making too much homed calls
+            if(homeduration < 250)
+            safe_delay(300);
+
             //DEBUG
             //SERIAL_ECHOLNPAIR("Y axis homing duration", homeduration);
           }
