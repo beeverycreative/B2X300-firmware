@@ -4426,7 +4426,7 @@ void beevc_machine_setup_test_hotend (uint8_t extruder){
   active_extruder = extruder-1;
 
   // Check for disconnected thermistor
-  if(thermalManager.degHotend(active_extruder) == -14){
+  if(thermalManager.degHotend(active_extruder) <= -14){
     lcd_goto_screen(beevc_machine_setup_screen_error_hotend_sensor);
     while(1){
       idle(true);
@@ -4481,7 +4481,7 @@ void beevc_machine_setup_test_hotbed (){
   uint32_t duration = 0, timeout =0;
 
   // Check for disconnected thermistor
-  if(thermalManager.degBed() == -14){
+  if(thermalManager.degBed() <= -14){
     lcd_goto_screen(beevc_machine_setup_screen_error_hotbed_sensor);
     while(1){
       idle(true);
