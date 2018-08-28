@@ -4053,6 +4053,8 @@ void lcd_enqueue_filament_change() {
   #ifdef HAVE_TMC2130
   	void disable_silent_mode (void)
     {
+      cli();
+
       #ifdef X_IS_TMC2130
         stepperX.stealthChop(0);
       #endif
@@ -4088,12 +4090,15 @@ void lcd_enqueue_filament_change() {
       planner.max_feedrate_mm_s[E_AXIS+1] = temp_feed[3];
 
       // Ensures enough time for the stepper drives to stabilize
-      delay(200);
+      sei();
+
+      // Returns to machine menu
+      lcd_goto_screen(beevc_machine_menu);
     }
 
     void enable_silent_mode (void)
     {
-      delay(200);
+      cli();
 
       #ifdef X_IS_TMC2130
         stepperX.stealthChop(1);
@@ -4112,12 +4117,15 @@ void lcd_enqueue_filament_change() {
       silent_mode = 1;
 
       // Ensures enough time for the stepper drives to stabilize
-      delay(500);
+      sei();
+
+      // Returns to machine menu
+      lcd_goto_screen(beevc_machine_menu);
     }
 
     void enable_stealth_mode (void)
     {
-      delay(200);
+      cli();
 
       #ifdef X_IS_TMC2130
         stepperX.stealthChop(1);
@@ -4151,7 +4159,10 @@ void lcd_enqueue_filament_change() {
       planner.max_feedrate_mm_s[E_AXIS+1] = 40;
 
       // Ensures enough time for the stepper drives to stabilize
-      delay(500);
+      sei();
+
+      // Returns to machine menu
+      lcd_goto_screen(beevc_machine_menu);
     }
   #endif
   ///////////////////////////////////////////////////////
@@ -4611,6 +4622,19 @@ void beevc_machine_setup_test_blower (){
 
   /**
    *  BEEVC
+   * "Machine settings" > "Mode" submenu
+   */
+  void beevc_machine_mode() {
+    START_MENU();
+    MENU_ITEM(function, _UxGT("Normal mode"), disable_silent_mode);
+    MENU_ITEM(function, _UxGT("Silent mode"), enable_silent_mode);
+    MENU_ITEM(function, _UxGT("Stealth mode"), enable_stealth_mode);
+    END_MENU();
+  }
+
+
+  /**
+   *  BEEVC
    * "Machine settings" submenu
    */
   void beevc_machine_menu() {
@@ -4619,11 +4643,11 @@ void beevc_machine_setup_test_blower (){
 
     #ifdef HAVE_TMC2130
       if (silent_mode == 1)
-        MENU_ITEM(function, _UxGT("Enable silent+ mode"), enable_stealth_mode);
+        MENU_ITEM(submenu, _UxGT("Mode:       Silent "), beevc_machine_mode);
       else if (silent_mode == 2)
-        MENU_ITEM(function, _UxGT("Disable silent mode"), disable_silent_mode);
+        MENU_ITEM(submenu, _UxGT("Mode:       Stealth"), beevc_machine_mode);
       else
-        MENU_ITEM(function, _UxGT("Enable silent mode"), enable_silent_mode);
+        MENU_ITEM(submenu, _UxGT("Mode:       Normal "), beevc_machine_mode);
     #endif
 
     MENU_ITEM(submenu, MSG_TEMPERATURE, beevc_machine_temperature_menu);
