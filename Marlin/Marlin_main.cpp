@@ -737,6 +737,12 @@ XYZ_CONSTS_FROM_CONFIG(signed char, home_dir, HOME_DIR);
 #endif
 ///////////////////////////////////////////////////////
 
+////////////     Sensorless homing     //////////////
+#ifdef HAVE_TMC2130
+	bool calibrating_sensorless_homing_x = 0, calibrating_sensorless_homing_y = 0;
+#endif
+///////////////////////////////////////////////////////
+
 /**
  * ***************************************************************************
  * ******************************** FUNCTIONS ********************************
@@ -11630,16 +11636,18 @@ inline void gcode_M502() {
     #endif
 
     #if (ENABLED(X_IS_TMC2130) && ENABLED(Y_IS_TMC2130))
-      if (parser.seen('A'))
+      if (parser.seen('A') || calibrating_sensorless_homing_x)
       {
         //Variables
         bool x_home_to_calibrate = true;
         bool y_home_to_calibrate = true;
         uint16_t xy_home_duration_expected = 255;
-        uint16_t x_home_duration_limit = 280;
-        uint16_t y_home_duration_limit = 280;
+        uint16_t x_home_duration_limit = 300;
+        uint16_t y_home_duration_limit = 300;
         uint32_t xy_home_duration_temp = 0;
         uint32_t xy_home_duration_sum;
+        calibrating_sensorless_homing_x = true;
+        calibrating_sensorless_homing_y = true;
 
 
         //Reset default values
@@ -11797,6 +11805,7 @@ inline void gcode_M502() {
         }
 
         count = 0;
+        calibrating_sensorless_homing_x = false;
 
         //Loop while testing new values until a good value is found for Y
         while(y_home_to_calibrate)
@@ -11862,6 +11871,9 @@ inline void gcode_M502() {
           if (count > 20)
           break;
         }
+
+
+        calibrating_sensorless_homing_y = false;
 
         // Restores stealthChop if it was active
         if (restore_stealthchop_x)
