@@ -10,19 +10,24 @@ before_script:
     - mkdir build -p -v
     #- echo "--------------------------------"
     - export commit_sha=$(echo $CI_COMMIT_SHA | cut -c 1-8)
-    #- install_libs
+    - export build_date=$(date +'%Y%m%d')
+      #- install_libs
 
 build:
     script:
         - echo $commit_sha
         - echo $CI_COMMIT_REF_NAME
+        - echo $CI_COMMIT_REF_SLUG
         - echo $CI_COMMIT_SHA
+        - echo "#define BUILDBRANCH $CI_COMMIT_REF_NAME" >> "Marlin/Version.h"
+        - echo "#define BUILDCOMMIT $commit_sha" >> "Marlin/Version.h"
+        - echo "#define BUILDDATE $build_date" >> "Marlin/Version.h"
         - build_marlin
         - pwd && ls
         
 
     artifacts:
-        name: "marlin-bvc-$CI_COMMIT_REF_NAME-$CI_COMMIT_SHA"
+        name: "marlin-bvc-$CI_COMMIT_REF_SLUG-$commit_sha"
         paths:
             - build/*.hex
         expire_in: 1 week
