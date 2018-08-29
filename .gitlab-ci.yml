@@ -11,6 +11,7 @@ before_script:
     #- echo "--------------------------------"
     - export commit_sha=$(echo $CI_COMMIT_SHA | cut -c 1-8)
     - export build_date=$(date +'%Y%m%d')
+    - export commit_branch=$(echo $CI_COMMIT_REF_NAME | cut -c 1-3)
       #- install_libs
 
 build:
@@ -27,7 +28,7 @@ build:
         
 
     artifacts:
-        name: "marlin-bvc-$CI_COMMIT_REF_SLUG-"$(echo $_CI_COMMIT_SHA | cut -c 1-8)
+        name: "marlin-bvc-$CI_COMMIT_REF_SLUG-$_CI_COMMIT_SHA"
         paths:
             - build/*.hex
         expire_in: 1 week
