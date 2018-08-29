@@ -1068,7 +1068,7 @@ void kill_screen(const char* lcd_msg) {
       STATIC_ITEM("engineered by", false, false);
       STATIC_ITEM("BEEVERYCREATIVE", false, false);
 
-      char about_string[21];
+      char about_string[22];
       strcpy(about_string, BUILDDATE);
       strcat(about_string, "-");
       strcat(about_string, BUILDBRANCH);
