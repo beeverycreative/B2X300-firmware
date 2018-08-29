@@ -12,7 +12,7 @@ before_script:
     - export commit_sha=$(echo $CI_COMMIT_SHA | cut -c 1-7)
       #    - export build_date=$(date +'%Y%m%d')
     - export build_date=$(date +'%m%Y')
-    - export commit_branch=$(echo $CI_COMMIT_REF_NAME | cut -c 1-5)
+    - export commit_branch=$(echo $CI_COMMIT_REF_NAME | cut -c 1-6)
       #- install_libs
 
 build:
@@ -21,7 +21,7 @@ build:
         - echo $CI_COMMIT_REF_NAME
         - echo $CI_COMMIT_REF_SLUG
         - echo $CI_COMMIT_SHA
-          #- echo "#define BUILDBRANCH \"$commit_branch\"" >> "Marlin/Version.h"
+        - echo "#define BUILDBRANCH \"$commit_branch\"" >> "Marlin/Version.h"
         - echo "#define BUILDCOMMIT \"$commit_sha\"" >> "Marlin/Version.h"
         - echo "#define BUILDDATE \"$build_date\"" >> "Marlin/Version.h"
         - echo "$build_date-$commit_branch-$commit_sha"
