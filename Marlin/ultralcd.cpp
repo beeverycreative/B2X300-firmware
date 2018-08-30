@@ -1069,11 +1069,13 @@ void kill_screen(const char* lcd_msg) {
       STATIC_ITEM("BEEVERYCREATIVE", false, false);
 
       char about_string[22];
-      strcpy(about_string, BUILDDATE);
+      about_string[0] = '\0';
+
+      strncat(about_string, BUILDDATE,6);
       strcat(about_string, "-");
-      strcat(about_string, BUILDBRANCH);
+      strncat(about_string, BUILDBRANCH,6);
       strcat(about_string, "-");
-      strcat(about_string, BUILDCOMMIT);
+      strncat(about_string, BUILDCOMMIT,7);
       STATIC_ITEM("", false, false, about_string);
       END_SCREEN();
     }
