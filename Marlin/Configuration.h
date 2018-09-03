@@ -723,8 +723,8 @@
 		#define DEFAULT_AXIS_STEPS_PER_UNIT   { 80,80,4000, 90}
 	#else
 		// A4988 on all stepper drivers with trapezoidal threaded rod
-    #ifdef BEEVC_TMC2130
-      #define DEFAULT_AXIS_STEPS_PER_UNIT   { 160,160,1600, 400}
+    #ifdef BEEVC_B2X300
+      #define DEFAULT_AXIS_STEPS_PER_UNIT   { 80,80,1600, 100}
     #else
 		  #define DEFAULT_AXIS_STEPS_PER_UNIT   { 80,80,1600, 90}
     #endif
