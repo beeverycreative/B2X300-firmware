@@ -4824,6 +4824,9 @@ void beevc_machine_setup_test_blower (){
    */
   void beevc_machine_setup() {
 
+    // Resets the printer to the default configuration
+    lcd_init_eeprom();
+
     // Clear LCD
     lcd_implementation_clear();
 
@@ -4868,6 +4871,7 @@ void beevc_machine_setup_test_blower (){
     // Clears startup wizard flag
     gcode_M721();
 
+    lcd_store_settings();
 
     // Return to status screen
     lcd_return_to_status();
