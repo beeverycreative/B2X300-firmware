@@ -3536,7 +3536,7 @@ void lcd_enqueue_filament_change() {
 
     if (lcd_clicked)
 	{
-		zprobe_zoffset = (current_position[Z_AXIS] + zprobe_zoffset);
+		zprobe_zoffset = (current_position[Z_AXIS] + zprobe_zoffset) +1.2;
 		lcd_completion_feedback(settings.save());
 
     enqueue_and_echo_commands_P(PSTR("G28 X Y"));
