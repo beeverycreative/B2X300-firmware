@@ -11652,8 +11652,8 @@ inline void gcode_M502() {
         bool x_home_to_calibrate = true;
         bool y_home_to_calibrate = true;
         uint16_t xy_home_duration_expected = 255;
-        uint16_t x_home_duration_limit = 280;
-        uint16_t y_home_duration_limit = 280;
+        uint16_t x_home_duration_limit = 285;
+        uint16_t y_home_duration_limit = 285;
         uint32_t xy_home_duration_temp = 0;
         uint32_t xy_home_duration_sum;
         calibrating_sensorless_homing_x = true;
@@ -11779,7 +11779,7 @@ inline void gcode_M502() {
 
             xy_home_duration_temp = 0;
             while( xy_home_duration_temp < 50 ){
-              safe_delay(100);
+              //safe_delay(100);
 
               // Enables reading
               thermalManager.sg2_x_limit_hit = 0;
@@ -11875,12 +11875,18 @@ inline void gcode_M502() {
             endstops.enable(true); // Enable endstops for next homing move
             set_destination_from_current();
 
+            // Wait for planner moves to finish!
+            stepper.synchronize();
+
             // Homes Y to the front
             do_blocking_move_to_xy(current_position[X_AXIS],current_position[Y_AXIS]-pre_home_move_mm,80);
 
+            // Wait for planner moves to finish!
+            stepper.synchronize();
+
             xy_home_duration_temp = 0;
             while( xy_home_duration_temp < 50 ){
-              safe_delay(200);
+              //safe_delay(200);
 
               // Enables reading
               thermalManager.sg2_y_limit_hit = 0;
