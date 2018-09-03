@@ -270,6 +270,12 @@ uint16_t max_display_update_time = 0;
 	#endif // BEEVC_Restore
 	///////////////////////////////////////////////////////
 
+  ////////////   Startup wizard    //////////////
+	#ifdef BEEVC_B2X300
+		void beevc_machine_setup();
+	#endif // BEEVC_Restore
+	///////////////////////////////////////////////////////
+
   // Trinamic menu
   #if HAS_TRINAMIC
     // Variables
@@ -719,103 +725,111 @@ uint16_t max_display_update_time = 0;
 
 void lcd_status_screen() {
 
-  #if ENABLED(ULTIPANEL)
-    ENCODER_DIRECTION_NORMAL();
-    ENCODER_RATE_MULTIPLY(false);
-  #endif
+SERIAL_ECHOPAIR("status_screen: ", toCalibrate);
 
-  #if ENABLED(LCD_PROGRESS_BAR)
+  if (toCalibrate == 0){
+    beevc_machine_setup();
+  }
 
-    //
-    // HD44780 implements the following message blinking and
-    // message expiration because Status Line and Progress Bar
-    // share the same line on the display.
-    //
-
-    // Set current percentage from SD when actively printing
-    #if ENABLED(LCD_SET_PROGRESS_MANUALLY)
-      if (IS_SD_PRINTING)
-        progress_bar_percent = card.percentDone();
+  else{
+    #if ENABLED(ULTIPANEL)
+      ENCODER_DIRECTION_NORMAL();
+      ENCODER_RATE_MULTIPLY(false);
     #endif
 
-    millis_t ms = millis();
+    #if ENABLED(LCD_PROGRESS_BAR)
 
-    // If the message will blink rather than expire...
-    #if DISABLED(PROGRESS_MSG_ONCE)
-      if (ELAPSED(ms, progress_bar_ms + PROGRESS_BAR_MSG_TIME + PROGRESS_BAR_BAR_TIME))
-        progress_bar_ms = ms;
-    #endif
+      //
+      // HD44780 implements the following message blinking and
+      // message expiration because Status Line and Progress Bar
+      // share the same line on the display.
+      //
 
-    #if PROGRESS_MSG_EXPIRE > 0
+      // Set current percentage from SD when actively printing
+      #if ENABLED(LCD_SET_PROGRESS_MANUALLY)
+        if (IS_SD_PRINTING)
+          progress_bar_percent = card.percentDone();
+      #endif
 
-      // Handle message expire
-      if (expire_status_ms > 0) {
+      millis_t ms = millis();
 
-        #if DISABLED(LCD_SET_PROGRESS_MANUALLY)
-          const uint8_t progress_bar_percent = card.percentDone();
+      // If the message will blink rather than expire...
+      #if DISABLED(PROGRESS_MSG_ONCE)
+        if (ELAPSED(ms, progress_bar_ms + PROGRESS_BAR_MSG_TIME + PROGRESS_BAR_BAR_TIME))
+          progress_bar_ms = ms;
+      #endif
+
+      #if PROGRESS_MSG_EXPIRE > 0
+
+        // Handle message expire
+        if (expire_status_ms > 0) {
+
+          #if DISABLED(LCD_SET_PROGRESS_MANUALLY)
+            const uint8_t progress_bar_percent = card.percentDone();
+          #endif
+
+          // Expire the message if a job is active and the bar has ticks
+          if (progress_bar_percent > 2 && !print_job_timer.isPaused()) {
+            if (ELAPSED(ms, expire_status_ms)) {
+              lcd_status_message[0] = '\0';
+              expire_status_ms = 0;
+            }
+          }
+          else {
+            // Defer message expiration before bar appears
+            // and during any pause (not just SD)
+            expire_status_ms += LCD_UPDATE_INTERVAL;
+          }
+        }
+
+      #endif // PROGRESS_MSG_EXPIRE
+
+    #endif // LCD_PROGRESS_BAR
+
+    #if ENABLED(ULTIPANEL)
+
+      if (lcd_clicked) {
+        #if ENABLED(FILAMENT_LCD_DISPLAY) && ENABLED(SDSUPPORT)
+          previous_lcd_status_ms = millis();  // get status message to show up for a while
         #endif
+        lcd_implementation_init( // to maybe revive the LCD if static electricity killed it.
+          #if ENABLED(LCD_PROGRESS_BAR)
+            CHARSET_MENU
+          #endif
+        );
+        lcd_goto_screen(beevc_main_menu);
+        return;
+      }
 
-        // Expire the message if a job is active and the bar has ticks
-        if (progress_bar_percent > 2 && !print_job_timer.isPaused()) {
-          if (ELAPSED(ms, expire_status_ms)) {
-            lcd_status_message[0] = '\0';
-            expire_status_ms = 0;
+      #if ENABLED(ULTIPANEL_FEEDMULTIPLY)
+        const int16_t new_frm = feedrate_percentage + (int32_t)encoderPosition;
+        // Dead zone at 100% feedrate
+        if ((feedrate_percentage < 100 && new_frm > 100) || (feedrate_percentage > 100 && new_frm < 100)) {
+          feedrate_percentage = 100;
+          encoderPosition = 0;
+        }
+        else if (feedrate_percentage == 100) {
+          if ((int32_t)encoderPosition > ENCODER_FEEDRATE_DEADZONE) {
+            feedrate_percentage += (int32_t)encoderPosition - (ENCODER_FEEDRATE_DEADZONE);
+            encoderPosition = 0;
+          }
+          else if ((int32_t)encoderPosition < -(ENCODER_FEEDRATE_DEADZONE)) {
+            feedrate_percentage += (int32_t)encoderPosition + ENCODER_FEEDRATE_DEADZONE;
+            encoderPosition = 0;
           }
         }
         else {
-          // Defer message expiration before bar appears
-          // and during any pause (not just SD)
-          expire_status_ms += LCD_UPDATE_INTERVAL;
-        }
-      }
-
-    #endif // PROGRESS_MSG_EXPIRE
-
-  #endif // LCD_PROGRESS_BAR
-
-  #if ENABLED(ULTIPANEL)
-
-    if (lcd_clicked) {
-      #if ENABLED(FILAMENT_LCD_DISPLAY) && ENABLED(SDSUPPORT)
-        previous_lcd_status_ms = millis();  // get status message to show up for a while
-      #endif
-      lcd_implementation_init( // to maybe revive the LCD if static electricity killed it.
-        #if ENABLED(LCD_PROGRESS_BAR)
-          CHARSET_MENU
-        #endif
-      );
-      lcd_goto_screen(beevc_main_menu);
-      return;
-    }
-
-    #if ENABLED(ULTIPANEL_FEEDMULTIPLY)
-      const int16_t new_frm = feedrate_percentage + (int32_t)encoderPosition;
-      // Dead zone at 100% feedrate
-      if ((feedrate_percentage < 100 && new_frm > 100) || (feedrate_percentage > 100 && new_frm < 100)) {
-        feedrate_percentage = 100;
-        encoderPosition = 0;
-      }
-      else if (feedrate_percentage == 100) {
-        if ((int32_t)encoderPosition > ENCODER_FEEDRATE_DEADZONE) {
-          feedrate_percentage += (int32_t)encoderPosition - (ENCODER_FEEDRATE_DEADZONE);
+          feedrate_percentage = new_frm;
           encoderPosition = 0;
         }
-        else if ((int32_t)encoderPosition < -(ENCODER_FEEDRATE_DEADZONE)) {
-          feedrate_percentage += (int32_t)encoderPosition + ENCODER_FEEDRATE_DEADZONE;
-          encoderPosition = 0;
-        }
-      }
-      else {
-        feedrate_percentage = new_frm;
-        encoderPosition = 0;
-      }
-    #endif // ULTIPANEL_FEEDMULTIPLY
+      #endif // ULTIPANEL_FEEDMULTIPLY
 
-    feedrate_percentage = constrain(feedrate_percentage, 10, 999);
+      feedrate_percentage = constrain(feedrate_percentage, 10, 999);
 
-  #endif // ULTIPANEL
+    #endif // ULTIPANEL
 
-  lcd_implementation_status_screen();
+    lcd_implementation_status_screen();
+  }
 }
 
 void lcd_reset_status() { lcd_setstatusPGM(PSTR(""), -1); }
@@ -1413,9 +1427,23 @@ void kill_screen(const char* lcd_msg) {
       START_SCREEN();
       STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
       STATIC_ITEM(_UxGT("Calibrating X axis!"), false, false);
-      STATIC_ITEM(_UxGT("Please wait, some"), false, false);
-      STATIC_ITEM(_UxGT("noise and impacts are"), false, false);
+
+      STATIC_ITEM(_UxGT("Noise and impacts are"), false, false);
       STATIC_ITEM(_UxGT("to be expected."), false, false);
+
+      if(sensorless_homing_progress == 0) {
+        STATIC_ITEM(_UxGT("Working"), false, false);
+      }
+      else if (sensorless_homing_progress == 1){
+        STATIC_ITEM(_UxGT("Working."), false, false);
+      }
+      else if (sensorless_homing_progress == 2){
+        STATIC_ITEM(_UxGT("Working.."), false, false);
+      }
+      else if (sensorless_homing_progress >= 3){
+        STATIC_ITEM(_UxGT("Working..."), false, false);
+      }
+
       END_SCREEN();
     }
   void lcd_sensorless_homing_calibration_y()
@@ -1423,9 +1451,21 @@ void kill_screen(const char* lcd_msg) {
       START_SCREEN();
       STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
       STATIC_ITEM(_UxGT("Calibrating Y axis!"), false, false);
-      STATIC_ITEM(_UxGT("Please wait, some"), false, false);
-      STATIC_ITEM(_UxGT("noise and impacts are"), false, false);
+      STATIC_ITEM(_UxGT("Noise and impacts are"), false, false);
       STATIC_ITEM(_UxGT("to be expected."), false, false);
+
+      if(sensorless_homing_progress == 0) {
+        STATIC_ITEM(_UxGT("Working"), false, false);
+      }
+      else if (sensorless_homing_progress == 1){
+        STATIC_ITEM(_UxGT("Working."), false, false);
+      }
+      else if (sensorless_homing_progress == 2){
+        STATIC_ITEM(_UxGT("Working.."), false, false);
+      }
+      else if (sensorless_homing_progress >= 3){
+        STATIC_ITEM(_UxGT("Working..."), false, false);
+      }
       END_SCREEN();
     }
   void lcd_sensorless_homing_calibration_x_done()
@@ -4629,8 +4669,15 @@ void beevc_machine_setup_set_offset(){
   // enqueue_and_echo_commands_P(PSTR("G28\nG29\nG0 X150 Y100"));
 
   // Waits for homing to finish
-  if  (axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS] && planner.leveling_active)
-  lcd_goto_screen(beevc_machine_setup_screen_set_offset_home_complete);
+  uint32_t temp_time = millis() + 20000;
+  if  ((axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS] && planner.leveling_active)|| millis()> temp_time)
+  temp_time = millis() + 2000;
+  while(millis() < temp_time){
+    lcd_goto_screen(beevc_machine_setup_screen_set_offset_home_complete);
+    lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+    idle(true);
+  }
+
 
   // Lowers Z axis
   current_position[Z_AXIS] -= 8;
@@ -4819,6 +4866,12 @@ void beevc_machine_setup_test_blower (){
     beevc_machine_setup_set_offset();
 
     // Fine tune offset w/test print
+
+    // Clears startup wizard flag
+    gcode_M721();
+
+    // Return to status screen
+    lcd_return_to_status();
 
   }
 
@@ -6317,27 +6370,22 @@ void beevc_machine_setup_test_blower (){
     // BEEVC - Sensorless homing auto calibration
     case SENSORLESS_HOMING_CALIBRATION_X:
      defer_return_to_status = true;
-         advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
          lcd_goto_screen(lcd_sensorless_homing_calibration_x);
          break;
      case SENSORLESS_HOMING_CALIBRATION_Y:
       defer_return_to_status = true;
-          advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
           lcd_goto_screen(lcd_sensorless_homing_calibration_y);
           break;
       case SENSORLESS_HOMING_CALIBRATION_X_DONE:
        defer_return_to_status = true;
-           advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
            lcd_goto_screen(lcd_sensorless_homing_calibration_x_done);
            break;
        case SENSORLESS_HOMING_CALIBRATION_Y_DONE:
         defer_return_to_status = true;
-            advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
             lcd_goto_screen(lcd_sensorless_homing_calibration_y_done);
             break;
       case SENSORLESS_HOMING_CALIBRATION_HOMING:
        defer_return_to_status = true;
-           advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
            lcd_goto_screen(lcd_sensorless_homing_calibration_homing);
            break;
       }

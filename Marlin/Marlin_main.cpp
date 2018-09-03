@@ -244,6 +244,9 @@
  * M701 - Store current position to EEPROM
  * M710 - Loads position and restores print
  * M711 - Loads current position from EEPROM
+ * M712 - Reset recovery flag
+ * M720 - Sets startup wizard flag
+ * M721 - Disables startup wizard flag
  * M916 - Set chopping mode (Only works for TMC2130 or TMC2208)
  * M917 - Read stallGuard2 values
  * M918 - Set Sensorless_homing calibration value
@@ -731,6 +734,12 @@ XYZ_CONSTS_FROM_CONFIG(signed char, home_dir, HOME_DIR);
 #endif
 ///////////////////////////////////////////////////////
 
+////////////   Startup wizard   //////////////
+#ifdef BEEVC_B2X300
+	uint8_t toCalibrate = 0;
+#endif
+///////////////////////////////////////////////////////
+
 ////////////    Trinamic stealth mode    //////////////
 #ifdef HAVE_TMC2130
 	uint8_t silent_mode = 0;
@@ -740,6 +749,7 @@ XYZ_CONSTS_FROM_CONFIG(signed char, home_dir, HOME_DIR);
 ////////////     Sensorless homing     //////////////
 #ifdef HAVE_TMC2130
 	bool calibrating_sensorless_homing_x = 0, calibrating_sensorless_homing_y = 0;
+  uint8_t sensorless_homing_progress = 0;
 #endif
 ///////////////////////////////////////////////////////
 
@@ -11642,8 +11652,8 @@ inline void gcode_M502() {
         bool x_home_to_calibrate = true;
         bool y_home_to_calibrate = true;
         uint16_t xy_home_duration_expected = 255;
-        uint16_t x_home_duration_limit = 300;
-        uint16_t y_home_duration_limit = 300;
+        uint16_t x_home_duration_limit = 280;
+        uint16_t y_home_duration_limit = 280;
         uint32_t xy_home_duration_temp = 0;
         uint32_t xy_home_duration_sum;
         calibrating_sensorless_homing_x = true;
@@ -11744,7 +11754,6 @@ inline void gcode_M502() {
         // Show X calibration screen
         lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_X);
 
-
         //Loop while testing new values until a good value is found for X
         while(x_home_to_calibrate)
         {
@@ -11764,11 +11773,21 @@ inline void gcode_M502() {
               do_blocking_move_to_xy(current_position[X_AXIS]+pre_home_move_mm,current_position[Y_AXIS],80);
             #endif //BEEVC_TMC2130HOMEXREVERSE
 
-            thermalManager.sg2_x_limit_hit = 0;
-            xy_home_duration_temp = millis();
-            //HOMEAXIS(X);
-            do_homing_move(X_AXIS, (pre_home_move_mm+5)* home_dir(X_AXIS));
-            xy_home_duration_temp = millis()- xy_home_duration_temp;
+            xy_home_duration_temp = 0;
+            while( xy_home_duration_temp < 50 ){
+              safe_delay(100);
+
+              // Enables reading
+              thermalManager.sg2_x_limit_hit = 0;
+              thermalManager.sg2_to_read = 1;
+              // safe_delay(200);
+              // Homes and measures time taken
+                xy_home_duration_temp = millis();
+              do_homing_move(X_AXIS, (pre_home_move_mm+5)* home_dir(X_AXIS));
+                // Disables reading
+                thermalManager.sg2_to_read = 0;
+              xy_home_duration_temp = millis()- xy_home_duration_temp;
+            }
 
             SERIAL_ECHOLNPAIR("X axis homing duration", xy_home_duration_temp);
 
@@ -11792,8 +11811,18 @@ inline void gcode_M502() {
               }
             }
 
-            safe_delay(250);
-          }
+
+
+            sensorless_homing_progress++;
+            if(sensorless_homing_progress > 3)
+              sensorless_homing_progress = 0;
+
+            // Show and force update of X calibration screen
+            lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_X);
+            lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+            idle(true);
+
+         }
           uint16_t x_home_duration = (xy_home_duration_sum/5);
 
           // Verifies if the homing values appear good if so exit
@@ -11816,11 +11845,16 @@ inline void gcode_M502() {
         }
 
         count = 0;
+        sensorless_homing_progress = 0;
         calibrating_sensorless_homing_x = false;
 
         // Show X done screen
-        lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_X_DONE);
-        safe_delay(3000);
+        xy_home_duration_temp = millis()+3000;
+        while(millis() < xy_home_duration_temp){
+          lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_X_DONE);
+          lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+          idle(true);
+        }
 
         // Show Y calibration screen
         lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_Y);
@@ -11839,16 +11873,24 @@ inline void gcode_M502() {
 
             // Homes Y to the front
             do_blocking_move_to_xy(current_position[X_AXIS],current_position[Y_AXIS]-pre_home_move_mm,80);
-            thermalManager.sg2_y_limit_hit = 0;
 
-            safe_delay(100);
+            xy_home_duration_temp = 0;
+            while( xy_home_duration_temp < 50 ){
+              safe_delay(100);
 
-            xy_home_duration_temp = millis();
-            //HOMEAXIS(Y);
-            do_homing_move(Y_AXIS, (pre_home_move_mm+5)* home_dir(Y_AXIS));
-            xy_home_duration_temp = millis()- xy_home_duration_temp;
+              // Enables reading
+              thermalManager.sg2_y_limit_hit = 0;
+              thermalManager.sg2_to_read = 1;
+              // safe_delay(200);
+              // Homes and measures time taken
+                xy_home_duration_temp = millis();
+              do_homing_move(Y_AXIS, (pre_home_move_mm+5)* home_dir(Y_AXIS));
+                // Disables reading
+                thermalManager.sg2_to_read = 0;
+              xy_home_duration_temp = millis()- xy_home_duration_temp;
+            }
 
-            // SERIAL_ECHOLNPAIR("Y axis homing duration", xy_home_duration_temp);
+            SERIAL_ECHOLNPAIR("Y axis homing duration", xy_home_duration_temp);
 
             // Makes sure the result never leads to false positives
             if (xy_home_duration_temp < xy_home_duration_expected)
@@ -11867,7 +11909,16 @@ inline void gcode_M502() {
                 }
             }
 
-            safe_delay(450);
+
+            sensorless_homing_progress++;
+            if(sensorless_homing_progress > 3)
+              sensorless_homing_progress = 0;
+
+            // Show and forces update of Y calibration screen
+            lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_Y);
+            lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+            idle(true);
+
           }
           uint16_t y_home_duration = (xy_home_duration_sum/5);
 
@@ -11894,8 +11945,12 @@ inline void gcode_M502() {
         calibrating_sensorless_homing_y = false;
 
         // Show Y done screen
-        lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_Y_DONE);
-        safe_delay(3000);
+        xy_home_duration_temp = millis()+3000;
+        while(millis() < xy_home_duration_temp){
+          lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_Y_DONE);
+          lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+          idle(true);
+        }
 
 
         // Restores stealthChop if it was active
@@ -12208,6 +12263,9 @@ inline void gcode_M999() {
  * M701 - Store current position to EEPROM
  * M710 - Loads position and restores print
  * M711 - Loads current position from EEPROM
+ * M712 - Resets restore print flag
+ * M720 - Sets startup wizard flag
+ * M721 - Disables startup wizard flag
  *
  */
 
@@ -12428,6 +12486,38 @@ inline void gcode_M999() {
 		kill(PSTR(MSG_KILLED));
 
 	}
+
+  /**
+    * M720 - Resets startup wizard flag
+    *
+    * Signals to start setup wizard on next boot
+    *
+    *
+   */
+   inline void gcode_M720()
+ 	{
+      //Sets the startup wizard flag
+      uint8_t temp = 0;
+      int eeprom_index = 100-sizeof(temp);
+      EEPROM_write(eeprom_index, (uint8_t*)&temp, sizeof(temp));
+
+  }
+
+  /**
+    * M721 - Disables startup wizard flag
+    *
+    * Signals to disable startup wizard
+    *
+    *
+   */
+
+   inline void gcode_M721()
+ 	{
+    // Disables the startup wizard flag
+    uint8_t temp = 255;
+    int eeprom_index = 100-sizeof(temp);
+    EEPROM_write(eeprom_index, (uint8_t*)&temp, sizeof(temp));
+    }
 
   /**
     * M712 - Clears the Z height register
@@ -14528,6 +14618,14 @@ void process_parsed_command() {
 
       case 712:  //Resets recover flag
   				gcode_M712();
+  				break;
+
+      case 720:  //Sets startup wizard flag
+  				gcode_M720();
+  				break;
+
+      case 721:  //Disables startup wizard flag
+  				gcode_M721();
   				break;
 
 		#endif
@@ -16701,6 +16799,21 @@ void setup() {
 			toRecover = true;
 			lcd_setstatus("Print Restored! ");
 		}
+	#endif
+	///////////////////////////////////////////////////////
+
+  ////////////  Startup wizard    //////////////
+  #ifdef BEEVC_B2X300
+
+    SERIAL_ECHOPAIR("Before read: ", toCalibrate);
+
+    //Reads the stored startup Wizard flag
+    eeprom_index = 100-sizeof(toCalibrate);
+    EEPROM_read(eeprom_index, (uint8_t*)&toCalibrate, sizeof(toCalibrate));
+
+    SERIAL_ECHOPAIR("After read: ", toCalibrate);
+
+
 	#endif
 	///////////////////////////////////////////////////////
 

@@ -74,6 +74,13 @@ void manage_inactivity(bool ignore_stepper_queue = false);
 ////////////     Sensorless homing     //////////////
 #ifdef HAVE_TMC2130
 	extern bool calibrating_sensorless_homing_x, calibrating_sensorless_homing_y;
+  extern uint8_t sensorless_homing_progress;
+#endif
+///////////////////////////////////////////////////////
+
+////////////     Sensorless homing     //////////////
+#ifdef BEEVC_B2X300
+	extern uint8_t toCalibrate;
 #endif
 ///////////////////////////////////////////////////////
 
@@ -220,6 +227,7 @@ void enqueue_and_echo_commands_P(const char * const cmd);          // Set one or
 void gcode_M918();
 void gcode_G28(const bool always_home_all);
 void gcode_G29();
+void gcode_M721();
 void clear_command_queue();
 
 extern millis_t previous_cmd_ms;
