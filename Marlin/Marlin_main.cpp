@@ -11649,6 +11649,13 @@ inline void gcode_M502() {
         calibrating_sensorless_homing_x = true;
         calibrating_sensorless_homing_y = true;
 
+        // Show homing screen
+        lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_HOMING);
+
+        // Saves XY current and sets homing current
+        uint16_t currentX = stepperX.rms_current(), currentY = stepperY.rms_current();
+        stepperX.rms_current(BEEVC_HOMEXCURRENT,HOLD_MULTIPLIER,R_SENSE);
+        stepperY.rms_current(BEEVC_HOMEYCURRENT,HOLD_MULTIPLIER,R_SENSE);
 
         //Reset default values
         thermalManager.sg2_homing_x_calibration = 0;
@@ -11734,6 +11741,10 @@ inline void gcode_M502() {
 
           uint8_t count = 0;
 
+        // Show X calibration screen
+        lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_X);
+
+
         //Loop while testing new values until a good value is found for X
         while(x_home_to_calibrate)
         {
@@ -11807,6 +11818,13 @@ inline void gcode_M502() {
         count = 0;
         calibrating_sensorless_homing_x = false;
 
+        // Show X done screen
+        lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_X_DONE);
+        safe_delay(3000);
+
+        // Show Y calibration screen
+        lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_Y);
+
         //Loop while testing new values until a good value is found for Y
         while(y_home_to_calibrate)
         {
@@ -11875,6 +11893,11 @@ inline void gcode_M502() {
 
         calibrating_sensorless_homing_y = false;
 
+        // Show Y done screen
+        lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_Y_DONE);
+        safe_delay(3000);
+
+
         // Restores stealthChop if it was active
         if (restore_stealthchop_x)
         {
@@ -11901,12 +11924,26 @@ inline void gcode_M502() {
 
 
         #ifdef BEEVC_TMC2130READSG
+
+          #ifndef BEEVC_TMC2130STEPLOSS
+            // Stops further stallGuard2 status reading if step loss detection is inactive
+            thermalManager.sg2_to_read  = false;
+          #else
+            thermalManager.sg2_to_read  = true;
+            thermalManager.sg2_timeout = millis() + 2000;
+          #endif
+
           thermalManager.sg2_polling_wait_cycles = 255; // Temporarily increases the polling frequency to the lowest possible to avoid problems with homing Z
           // Resets flags after homing
           thermalManager.sg2_stop = false;
           thermalManager.sg2_homing = false;
         #endif // BEEVC_TMC2130READSG
 
+        // Restores XY current
+        stepperX.rms_current(currentX,HOLD_MULTIPLIER,R_SENSE);
+        stepperY.rms_current(currentY,HOLD_MULTIPLIER,R_SENSE);
+
+        // Applies offset to avoid false detections
         thermalManager.sg2_homing_x_calibration -= 5;
         thermalManager.sg2_homing_y_calibration -= 10;
 

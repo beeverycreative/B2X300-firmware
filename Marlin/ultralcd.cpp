@@ -1395,8 +1395,6 @@ void kill_screen(const char* lcd_msg) {
       END_MENU();
     }
 
-
-
 	void lcd_filament_change_unload_menu() {
       START_MENU();
       #if LCD_HEIGHT > 2
@@ -1406,6 +1404,55 @@ void kill_screen(const char* lcd_msg) {
 
 	  MENU_ITEM(function, _UxGT("Load filament"), lcd_filament_change_extrude_more);
       END_MENU();
+    }
+
+  // Sensorless homing
+
+  void lcd_sensorless_homing_calibration_x()
+    {
+      START_SCREEN();
+      STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+      STATIC_ITEM(_UxGT("Calibrating X axis!"), false, false);
+      STATIC_ITEM(_UxGT("Please wait, some"), false, false);
+      STATIC_ITEM(_UxGT("noise and impacts are"), false, false);
+      STATIC_ITEM(_UxGT("to be expected."), false, false);
+      END_SCREEN();
+    }
+  void lcd_sensorless_homing_calibration_y()
+    {
+      START_SCREEN();
+      STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+      STATIC_ITEM(_UxGT("Calibrating Y axis!"), false, false);
+      STATIC_ITEM(_UxGT("Please wait, some"), false, false);
+      STATIC_ITEM(_UxGT("noise and impacts are"), false, false);
+      STATIC_ITEM(_UxGT("to be expected."), false, false);
+      END_SCREEN();
+    }
+  void lcd_sensorless_homing_calibration_x_done()
+    {
+      START_SCREEN();
+      STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+      STATIC_ITEM(_UxGT("Calibrating X axis!"), false, false);
+      STATIC_ITEM(_UxGT("Process complete,"), false, false);
+      STATIC_ITEM(_UxGT("finishing up"), false, false);
+      END_SCREEN();
+    }
+  void lcd_sensorless_homing_calibration_y_done()
+    {
+      START_SCREEN();
+      STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+      STATIC_ITEM(_UxGT("Calibrating Y axis!"), false, false);
+      STATIC_ITEM(_UxGT("Process complete,"), false, false);
+      STATIC_ITEM(_UxGT("finishing up"), false, false);
+      END_SCREEN();
+    }
+  void lcd_sensorless_homing_calibration_homing()
+    {
+      START_SCREEN();
+      STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+      STATIC_ITEM(_UxGT("Homing axes!"), false, false);
+      STATIC_ITEM(_UxGT("Please wait..."), false, false);
+      END_SCREEN();
     }
 
 
@@ -6266,6 +6313,33 @@ void beevc_machine_setup_test_blower (){
           advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
           lcd_goto_screen(lcd_filament_change_unload_option_menu);
           break;
+
+    // BEEVC - Sensorless homing auto calibration
+    case SENSORLESS_HOMING_CALIBRATION_X:
+     defer_return_to_status = true;
+         advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
+         lcd_goto_screen(lcd_sensorless_homing_calibration_x);
+         break;
+     case SENSORLESS_HOMING_CALIBRATION_Y:
+      defer_return_to_status = true;
+          advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
+          lcd_goto_screen(lcd_sensorless_homing_calibration_y);
+          break;
+      case SENSORLESS_HOMING_CALIBRATION_X_DONE:
+       defer_return_to_status = true;
+           advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
+           lcd_goto_screen(lcd_sensorless_homing_calibration_x_done);
+           break;
+       case SENSORLESS_HOMING_CALIBRATION_Y_DONE:
+        defer_return_to_status = true;
+            advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
+            lcd_goto_screen(lcd_sensorless_homing_calibration_y_done);
+            break;
+      case SENSORLESS_HOMING_CALIBRATION_HOMING:
+       defer_return_to_status = true;
+           advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
+           lcd_goto_screen(lcd_sensorless_homing_calibration_homing);
+           break;
       }
     }
 
