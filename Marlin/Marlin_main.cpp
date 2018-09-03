@@ -11723,6 +11723,10 @@ inline void gcode_M502() {
             tool_change(0, 0, true);
           #endif
 
+          // Raise Z
+          destination[Z_AXIS] = Z_HOMING_HEIGHT;
+          do_blocking_move_to_z(destination[Z_AXIS]);
+
           setup_for_endstop_or_probe_move();
           endstops.enable(true); // Enable endstops for next homing move
           set_destination_from_current();
@@ -11876,7 +11880,7 @@ inline void gcode_M502() {
 
             xy_home_duration_temp = 0;
             while( xy_home_duration_temp < 50 ){
-              safe_delay(100);
+              safe_delay(200);
 
               // Enables reading
               thermalManager.sg2_y_limit_hit = 0;
@@ -12501,6 +12505,7 @@ inline void gcode_M999() {
       int eeprom_index = 100-sizeof(temp);
       EEPROM_write(eeprom_index, (uint8_t*)&temp, sizeof(temp));
 
+      SERIAL_ECHOLNPGM("Startup wizard set up!");
   }
 
   /**
@@ -12514,9 +12519,11 @@ inline void gcode_M999() {
    inline void gcode_M721()
  	{
     // Disables the startup wizard flag
-    uint8_t temp = 255;
-    int eeprom_index = 100-sizeof(temp);
-    EEPROM_write(eeprom_index, (uint8_t*)&temp, sizeof(temp));
+    toCalibrate = 255;
+    int eeprom_index = 100-sizeof(toCalibrate);
+    EEPROM_write(eeprom_index, (uint8_t*)&toCalibrate, sizeof(toCalibrate));
+
+    SERIAL_ECHOLNPGM("Startup wizard disabled!");
     }
 
   /**
@@ -16805,14 +16812,10 @@ void setup() {
   ////////////  Startup wizard    //////////////
   #ifdef BEEVC_B2X300
 
-    SERIAL_ECHOPAIR("Before read: ", toCalibrate);
 
     //Reads the stored startup Wizard flag
     eeprom_index = 100-sizeof(toCalibrate);
     EEPROM_read(eeprom_index, (uint8_t*)&toCalibrate, sizeof(toCalibrate));
-
-    SERIAL_ECHOPAIR("After read: ", toCalibrate);
-
 
 	#endif
 	///////////////////////////////////////////////////////

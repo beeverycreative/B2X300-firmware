@@ -725,8 +725,6 @@ uint16_t max_display_update_time = 0;
 
 void lcd_status_screen() {
 
-SERIAL_ECHOPAIR("status_screen: ", toCalibrate);
-
   if (toCalibrate == 0){
     beevc_machine_setup();
   }
@@ -4549,7 +4547,8 @@ void beevc_machine_setup_screen_sensorless_homing_complete(){
 void beevc_machine_setup_screen_set_offset_home_complete(){
   MACHINE_SETUP_TITLE;
   STATIC_ITEM(_UxGT("Leveling done!"), false, false);
-  STATIC_ITEM(_UxGT("Press to continue"), false, false);
+  STATIC_ITEM(_UxGT("Moving to calibration"), false, false);
+  STATIC_ITEM(_UxGT("position"), false, false);
   MACHINE_SETUP_END;
 }
 
@@ -4613,10 +4612,8 @@ void beevc_machine_setup_sensorless_homing (){
   // Show info screen
   lcd_goto_screen(beevc_machine_setup_screen_sensorless_homing);
 
-  card.startFileprint();
-
   // Waits for click or timeout
-  beevc_machine_setup_wait(5000);
+  beevc_machine_setup_wait(1000);
 
   // Starts variables to force waiting
   calibrating_sensorless_homing_x = true;
@@ -4627,24 +4624,24 @@ void beevc_machine_setup_sensorless_homing (){
   // enqueue_and_echo_command(PSTR("G28"));
   gcode_M918();
 
-  // Show info screen
-  lcd_goto_screen(beevc_machine_setup_screen_sensorless_homing_x);
-
-  // Wait for calibration to finish, while waiting refresh screen
-  while(calibrating_sensorless_homing_x){
-    idle(true);
-  }
-
-  // Show info screen
-  lcd_goto_screen(beevc_machine_setup_screen_sensorless_homing_y);
-
-  // Wait for calibration to finish
-  while(calibrating_sensorless_homing_y){
-    idle(true);
-  }
+  // // Show info screen
+  // lcd_goto_screen(beevc_machine_setup_screen_sensorless_homing_x);
+  //
+  // // Wait for calibration to finish, while waiting refresh screen
+  // while(calibrating_sensorless_homing_x){
+  //   idle(true);
+  // }
+  //
+  // // Show info screen
+  // lcd_goto_screen(beevc_machine_setup_screen_sensorless_homing_y);
+  //
+  // // Wait for calibration to finish
+  // while(calibrating_sensorless_homing_y){
+  //   idle(true);
+  // }
 
   // Waits for click or timeout
-  beevc_machine_setup_wait(5000);
+  beevc_machine_setup_wait(1000);
 }
 
 void beevc_machine_setup_measure_xy(){
@@ -4668,25 +4665,26 @@ void beevc_machine_setup_set_offset(){
   gcode_G28(1);
   // enqueue_and_echo_commands_P(PSTR("G28\nG29\nG0 X150 Y100"));
 
-  // Waits for homing to finish
-  uint32_t temp_time = millis() + 20000;
-  if  ((axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS] && planner.leveling_active)|| millis()> temp_time)
-  temp_time = millis() + 2000;
+  // // Waits for homing to finish
+  // uint32_t temp_time = millis() + 20000;
+  // while (!((axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS] && planner.leveling_active)|| millis()> temp_time))
+  // {
+  //
+  // }
+
+  // Lowers Z axis
+  current_position[Z_AXIS] -= 8;
+  manual_move_to_current(Z_AXIS);
+
+  uint32_t temp_time = millis() + 2000;
   while(millis() < temp_time){
     lcd_goto_screen(beevc_machine_setup_screen_set_offset_home_complete);
     lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
     idle(true);
   }
 
-
-  // Lowers Z axis
-  current_position[Z_AXIS] -= 8;
-  manual_move_to_current(Z_AXIS);
-
-  // Waits for click
-  beevc_machine_setup_wait_click();
-
-  lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+  // // Waits for click
+  // beevc_machine_setup_wait_click();
 
   // Shows the leveling screen
   lcd_goto_screen(beevc_machine_setup_screen_set_offset_calibrate);
@@ -4697,7 +4695,7 @@ void beevc_machine_setup_set_offset(){
   }
 
   // Waits for click or timeout
-  beevc_machine_setup_wait(5000);
+  beevc_machine_setup_wait(1000);
 }
 
 void beevc_machine_setup_test_hotend (uint8_t extruder){
@@ -4869,6 +4867,7 @@ void beevc_machine_setup_test_blower (){
 
     // Clears startup wizard flag
     gcode_M721();
+
 
     // Return to status screen
     lcd_return_to_status();
