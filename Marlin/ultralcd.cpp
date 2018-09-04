@@ -4149,12 +4149,12 @@ void lcd_enqueue_filament_change() {
       #ifdef Y_IS_TMC2130
         stepperY.stealthChop(0);
       #endif
-      #ifdef E0_IS_TMC2130
-        stepperE0.stealthChop(0);
-      #endif
-      #ifdef E1_IS_TMC2130
-        stepperE1.stealthChop(0);
-      #endif
+      // #ifdef E0_IS_TMC2130
+      //   stepperE0.stealthChop(0);
+      // #endif
+      // #ifdef E1_IS_TMC2130
+      //   stepperE1.stealthChop(0);
+      // #endif
 
       // Stores the global flag
       silent_mode = 0;
@@ -4194,12 +4194,12 @@ void lcd_enqueue_filament_change() {
       #ifdef Y_IS_TMC2130
         stepperY.stealthChop(1);
       #endif
-      #ifdef E0_IS_TMC2130
-        stepperE0.stealthChop(1);
-      #endif
-      #ifdef E1_IS_TMC2130
-        stepperE1.stealthChop(1);
-      #endif
+      // #ifdef E0_IS_TMC2130
+      //   stepperE0.stealthChop(1);
+      // #endif
+      // #ifdef E1_IS_TMC2130
+      //   stepperE1.stealthChop(1);
+      // #endif
 
       // Stores the global flag
       silent_mode = 1;
@@ -4221,12 +4221,12 @@ void lcd_enqueue_filament_change() {
       #ifdef Y_IS_TMC2130
         stepperY.stealthChop(1);
       #endif
-      #ifdef E0_IS_TMC2130
-        stepperE0.stealthChop(1);
-      #endif
-      #ifdef E1_IS_TMC2130
-        stepperE1.stealthChop(1);
-      #endif
+      // #ifdef E0_IS_TMC2130
+      //   stepperE0.stealthChop(1);
+      // #endif
+      // #ifdef E1_IS_TMC2130
+      //   stepperE1.stealthChop(1);
+      // #endif
 
       // Stores the global flag
       silent_mode = 2;
