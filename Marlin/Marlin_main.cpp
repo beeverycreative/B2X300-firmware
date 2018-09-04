@@ -4131,7 +4131,7 @@ inline void gcode_G28(const bool always_home_all) {
       stepperX.stealthChop(0);
       restore_stealthchop_x = true;
 
-      safe_delay(400);
+      //safe_delay(400);
     }
 
     if (stepperY.stealthChop())
@@ -4140,14 +4140,14 @@ inline void gcode_G28(const bool always_home_all) {
       stepperY.stealthChop(0);
       restore_stealthchop_y = true;
 
-      safe_delay(400);
+      //safe_delay(400);
     }
 
 #endif // BEEVC_TMC2130READSG
 
 // Ensures the stepper have been preactivated to avoid eroneous detection
 enable_all_steppers();
-safe_delay(400);
+//safe_delay(400);
 
   #if ENABLED(DEBUG_LEVELING_FEATURE)
     if (DEBUGGING(LEVELING)) {
@@ -4292,13 +4292,16 @@ safe_delay(400);
               do_blocking_move_to_xy((current_position[X_AXIS] < (X_MAX_POS - pre_home_move_mm) ? current_position[X_AXIS]+pre_home_move_mm : current_position[X_AXIS]),current_position[Y_AXIS],25);
             #endif //BEEVC_TMC2130HOMEXREVERSE
 
+            // Wait for planner moves to finish!
+            stepper.synchronize();
+
             homeduration = millis();
             HOMEAXIS(X);
             homeduration = millis()- homeduration;
 
             // Avoids making too much homed calls
             if(homeduration < 250)
-            safe_delay(300);
+            safe_delay(100);
 
             //DEBUG
             //SERIAL_ECHOLNPAIR("X axis homing duration", homeduration);
@@ -4336,13 +4339,16 @@ safe_delay(400);
             // Moves Y a little away from limit to avoid eroneous detections
             do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] > (Y_MIN_POS + pre_home_move_mm) ? current_position[Y_AXIS]-pre_home_move_mm : current_position[Y_AXIS]),25);
 
+            // Wait for planner moves to finish!
+            stepper.synchronize();
+
             homeduration = millis();
             HOMEAXIS(Y);
             homeduration = millis()- homeduration;
 
             // Avoids making too much homed calls
             if(homeduration < 250)
-            safe_delay(300);
+            safe_delay(100);
 
             //DEBUG
             //SERIAL_ECHOLNPAIR("Y axis homing duration", homeduration);
@@ -11698,7 +11704,7 @@ inline void gcode_M502() {
             stepperX.stealthChop(0);
             restore_stealthchop_x = true;
 
-            safe_delay(400);
+            //safe_delay(400);
           }
 
           if (stepperY.stealthChop())
@@ -11707,12 +11713,12 @@ inline void gcode_M502() {
             stepperY.stealthChop(0);
             restore_stealthchop_y = true;
 
-            safe_delay(400);
+            //safe_delay(400);
           }
 
           // Ensures the stepper have been preactivated to avoid eroneous detection
           enable_all_steppers();
-          safe_delay(400);
+          //safe_delay(400);
 
           // Wait for planner moves to finish!
           stepper.synchronize();
@@ -11769,6 +11775,9 @@ inline void gcode_M502() {
             endstops.enable(true); // Enable endstops for next homing move
             set_destination_from_current();
 
+            // Wait for planner moves to finish!
+            stepper.synchronize();
+
             #ifdef BEEVC_TMC2130HOMEXREVERSE
               // Homes X to the right
               do_blocking_move_to_xy(current_position[X_AXIS]-pre_home_move_mm ,current_position[Y_AXIS],80);
@@ -11776,6 +11785,9 @@ inline void gcode_M502() {
               // Homes X to the left
               do_blocking_move_to_xy(current_position[X_AXIS]+pre_home_move_mm,current_position[Y_AXIS],80);
             #endif //BEEVC_TMC2130HOMEXREVERSE
+
+            // Wait for planner moves to finish!
+            stepper.synchronize();
 
             xy_home_duration_temp = 0;
             while( xy_home_duration_temp < 50 ){
