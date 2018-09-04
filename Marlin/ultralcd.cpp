@@ -4615,7 +4615,7 @@ void beevc_machine_setup_sensorless_homing (){
   // Waits for click or timeout
   beevc_machine_setup_wait(1000);
 
-  // Starts variables to force waiting
+  // Starts variables to force calibration
   calibrating_sensorless_homing_x = true;
   calibrating_sensorless_homing_y = true;
 
@@ -4656,21 +4656,13 @@ void beevc_machine_setup_set_offset(){
   lcd_goto_screen(beevc_machine_setup_screen_set_offset);
 
   // Waits for click or timeout
-  beevc_machine_setup_wait(5000);
+  beevc_machine_setup_wait(1000);
 
   // Homes and autoleves axes
   gcode_G28(1);
   gcode_G29();
   axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
   gcode_G28(1);
-  // enqueue_and_echo_commands_P(PSTR("G28\nG29\nG0 X150 Y100"));
-
-  // // Waits for homing to finish
-  // uint32_t temp_time = millis() + 20000;
-  // while (!((axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS] && planner.leveling_active)|| millis()> temp_time))
-  // {
-  //
-  // }
 
   // Lowers Z axis
   current_position[Z_AXIS] -= 8;
@@ -4682,9 +4674,6 @@ void beevc_machine_setup_set_offset(){
     lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
     idle(true);
   }
-
-  // // Waits for click
-  // beevc_machine_setup_wait_click();
 
   // Shows the leveling screen
   lcd_goto_screen(beevc_machine_setup_screen_set_offset_calibrate);
@@ -4868,9 +4857,12 @@ void beevc_machine_setup_test_blower (){
 
     // Fine tune offset w/test print
 
+    // PID Calibration
+
     // Clears startup wizard flag
     gcode_M721();
 
+    // Stores EEPROM data
     lcd_store_settings();
 
     // Return to status screen
@@ -5639,6 +5631,18 @@ void beevc_machine_setup_test_blower (){
    * "Control" > "Trinamic Settings" > "Sensorless homing" submenu
    *
    */
+   void lcd_trinamic_sensorless_auto_adjust(){
+     // Starts variables to force calibration
+     calibrating_sensorless_homing_x = true;
+     calibrating_sensorless_homing_y = true;
+
+     // Sensorless homing auto calibration
+     gcode_M918();
+
+     // Return to status screen
+     lcd_return_to_status();
+   }
+
    void lcd_trinamic_sensorless() {
      START_MENU();
      MENU_BACK(_UxGT("Trinamic Settings"));
@@ -5651,7 +5655,7 @@ void beevc_machine_setup_test_blower (){
        MENU_ITEM(gcode, _UxGT("Test Y homing"), PSTR("G28 Y\nG28 Y\nG28 Y\nG28 Y\nG28 Y"));
      #endif
      #if (ENABLED(Y_IS_TMC2130) && ENABLED(X_IS_TMC2130))
-       MENU_ITEM(gcode, _UxGT("Auto adjust"), PSTR("M918 A"));
+       MENU_ITEM(function, _UxGT("Auto adjust"), lcd_trinamic_sensorless_auto_adjust);
      #endif
 
    END_MENU();
