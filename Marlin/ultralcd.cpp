@@ -1047,9 +1047,9 @@ void kill_screen(const char* lcd_msg) {
     	  #endif
 
       // Cold pull
-        MENU_ITEM(submenu, _UxGT("Cold pull"), _lcd_menu_z_offset);
+        //MENU_ITEM(submenu, _UxGT("Cold pull"), _lcd_menu_z_offset);
 
-        // Auto Home
+      // Auto Home
         MENU_ITEM(gcode, MSG_AUTO_HOME, PSTR("G28"));
 
       // Auto Home/ Level Bed
