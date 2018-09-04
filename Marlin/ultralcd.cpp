@@ -233,7 +233,7 @@ uint16_t max_display_update_time = 0;
 	// Manual filament change feature
 	static void lcd_filament_change();
   static void lcd_filament_change_start();
-	static void lcd_filament_change_move_to_position();
+	//static void lcd_filament_change_move_to_position();
 	static void lcd_filament_change_extruder_0();
 	static void lcd_filament_change_extruder_1();
 	static void lcd_filament_change_ext0_pla ();
@@ -1492,6 +1492,15 @@ void kill_screen(const char* lcd_msg) {
       STATIC_ITEM(_UxGT("Please wait..."), false, false);
       END_SCREEN();
     }
+  // void lcd_sensorless_homing_calibration_done()
+  //   {
+  //     START_SCREEN();
+  //     STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+  //     STATIC_ITEM(_UxGT(" "), false, false);
+  //     STATIC_ITEM(_UxGT("Process complete,"), false, false);
+  //     STATIC_ITEM(_UxGT("press to continue!"), false, false);
+  //     END_SCREEN();
+  //   }
 
 
 static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool unload_load)
@@ -4255,6 +4264,11 @@ void lcd_enqueue_filament_change() {
   #endif
   ///////////////////////////////////////////////////////
 
+  void beevc_machine_setup_buzz(){
+    lcd_buzz(100, 659);
+    lcd_buzz(100, 698);
+  }
+
   void beevc_machine_setup_wait_click() {
     wait_for_user = true;    // LCD click or M108 will clear this
     while(wait_for_user){
@@ -4353,6 +4367,23 @@ void lcd_enqueue_filament_change() {
   MACHINE_SETUP_END;
 }
 
+void beevc_machine_setup_screen_hotend_ok() {
+MACHINE_SETUP_TITLE;
+
+if(active_extruder == 0){
+  STATIC_ITEM(_UxGT("Extruder 1 test"), false, false);
+}
+else {
+  STATIC_ITEM(_UxGT("Extruder 2 test"), false, false);
+}
+
+STATIC_ITEM(_UxGT("sucesseful!"), false, false);
+STATIC_ITEM(_UxGT(" "), true, false);
+STATIC_ITEM(_UxGT("Press to continue!"), false, false);
+
+MACHINE_SETUP_END;
+}
+
 void beevc_machine_setup_screen_hotend_cooling() {
 MACHINE_SETUP_TITLE_WAIT;
 
@@ -4372,6 +4403,17 @@ u8g.print(" ");
 u8g.print(round(thermalManager.degHotend(active_extruder)));
 u8g.print("/");
 u8g.print(round(40));
+
+MACHINE_SETUP_END;
+}
+
+void beevc_machine_setup_screen_hotbed_ok() {
+MACHINE_SETUP_TITLE;
+
+STATIC_ITEM(_UxGT("Hotbed test"), false, false);
+STATIC_ITEM(_UxGT("sucesseful!"), false, false);
+STATIC_ITEM(_UxGT(" "), true, false);
+STATIC_ITEM(_UxGT("Press to continue!"), false, false);
 
 MACHINE_SETUP_END;
 }
@@ -4492,7 +4534,10 @@ void beevc_machine_setup_screen_blower_start() {
 
 void beevc_machine_setup_screen_blower_test_ok() {
   MACHINE_SETUP_TITLE;
-  STATIC_ITEM(_UxGT("Blower ok"), false, false);
+  STATIC_ITEM(_UxGT("Blower test"), false, false);
+  STATIC_ITEM(_UxGT("sucesseful!"), false, false);
+  STATIC_ITEM(_UxGT(" "), true, false);
+  STATIC_ITEM(_UxGT("Press to continue!"), false, false);
   MACHINE_SETUP_END;
 }
 
@@ -4504,11 +4549,19 @@ void beevc_machine_setup_screen_error_blower() {
   MACHINE_SETUP_CHECK_MANUAL;
   STATIC_ITEM(_UxGT("XX"), false, false);
   MACHINE_SETUP_END;
+
+  while(1){
+    // Avoid returning to status screen
+    defer_return_to_status = true;
+
+    // Manage idle time
+    idle(true);
+  }
 }
 
 void beevc_machine_setup_screen_blower_test() {
   MACHINE_SETUP_TITLE_CHOICE;
-  STATIC_ITEM(_UxGT("Is the fan active"), false, false);
+  STATIC_ITEM(_UxGT("Is the blower active?"), false, false);
   MENU_ITEM(submenu, _UxGT("Yes"), beevc_machine_setup_screen_blower_test_ok);
   MENU_ITEM(submenu, _UxGT("No"), beevc_machine_setup_screen_error_blower);
   MACHINE_SETUP_END_CHOICE;
@@ -4518,22 +4571,6 @@ void beevc_machine_setup_screen_sensorless_homing(){
   MACHINE_SETUP_TITLE;
 
   MACHINE_SETUP_WAIT_FOR("Calibrating home!");
-
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_sensorless_homing_x(){
-  MACHINE_SETUP_TITLE;
-
-  MACHINE_SETUP_WAIT_FOR("Calibrating X axis!");
-
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_sensorless_homing_y(){
-  MACHINE_SETUP_TITLE;
-
-  MACHINE_SETUP_WAIT_FOR("Calibrating Y axis!");
 
   MACHINE_SETUP_END;
 }
@@ -4552,6 +4589,25 @@ void beevc_machine_setup_screen_set_offset_home_complete(){
   MACHINE_SETUP_END;
 }
 
+void beevc_machine_setup_screen_set_offset_explain(){
+  MACHINE_SETUP_TITLE;
+  STATIC_ITEM(_UxGT("You will now adjust Z"), false, false);
+  STATIC_ITEM(_UxGT("by rotating the LCD"), false, false);
+  STATIC_ITEM(_UxGT("knob, using a paper"), false, false);
+  STATIC_ITEM(_UxGT("sheet between the"), false, false);
+  STATIC_ITEM(_UxGT("nozzle and the bed."), false, false);
+  STATIC_ITEM(_UxGT("Adjust until there is"), false, false);
+  STATIC_ITEM(_UxGT("some fricion between"), false, false);
+  STATIC_ITEM(_UxGT("the paper and nozzle,"), false, false);
+  STATIC_ITEM(_UxGT("light enough so you "), false, false);
+  STATIC_ITEM(_UxGT("can still move the "), false, false);
+  STATIC_ITEM(_UxGT("paper while squeezed"), false, false);
+  STATIC_ITEM(_UxGT("between the nozzle"), false, false);
+  STATIC_ITEM(_UxGT("and hotbed."), false, false);
+  STATIC_ITEM(_UxGT("Press to continue!"), false, false);
+  MACHINE_SETUP_END;
+}
+
 void beevc_machine_setup_screen_set_offset(){
   MACHINE_SETUP_TITLE;
   STATIC_ITEM(_UxGT("Leveling axes!"), false, false);
@@ -4564,6 +4620,19 @@ void beevc_machine_setup_screen_set_offset(){
 void beevc_machine_setup_screen_set_offset_complete(){
   MACHINE_SETUP_TITLE;
   STATIC_ITEM(_UxGT("Z offset calibrated!"), false, false);
+  STATIC_ITEM(_UxGT(" "), true, false);
+  STATIC_ITEM(_UxGT(" "), true, false);
+  STATIC_ITEM(_UxGT("Press to continue!"), false, false);
+  MACHINE_SETUP_END;
+}
+
+void beevc_machine_setup_screen_complete(){
+  MACHINE_SETUP_TITLE;
+  STATIC_ITEM(_UxGT("Calibration complete"), false, false);
+  STATIC_ITEM(_UxGT("and settings stored!"), false, false);
+  STATIC_ITEM(_UxGT("You can now use your"), false, false);
+  STATIC_ITEM(_UxGT("B2X300!"), false, false);
+  STATIC_ITEM(_UxGT("Press to continue!"), false, false);
   MACHINE_SETUP_END;
 }
 
@@ -4609,6 +4678,9 @@ void beevc_machine_setup_screen_set_offset_calibrate(){
 }
 
 void beevc_machine_setup_sensorless_homing (){
+
+  beevc_machine_setup_buzz();
+
   // Show info screen
   lcd_goto_screen(beevc_machine_setup_screen_sensorless_homing);
 
@@ -4620,28 +4692,13 @@ void beevc_machine_setup_sensorless_homing (){
   calibrating_sensorless_homing_y = true;
 
   // Start sensorless homing calibration procedure
-  // enqueue_and_echo_commands_P(PSTR("G28\nM918 A"));
-  // enqueue_and_echo_command(PSTR("G28"));
   gcode_M918();
 
-  // // Show info screen
-  // lcd_goto_screen(beevc_machine_setup_screen_sensorless_homing_x);
-  //
-  // // Wait for calibration to finish, while waiting refresh screen
-  // while(calibrating_sensorless_homing_x){
-  //   idle(true);
-  // }
-  //
-  // // Show info screen
-  // lcd_goto_screen(beevc_machine_setup_screen_sensorless_homing_y);
-  //
-  // // Wait for calibration to finish
-  // while(calibrating_sensorless_homing_y){
-  //   idle(true);
-  // }
+  //Display Hotbed ok screen
+  lcd_goto_screen(beevc_machine_setup_screen_sensorless_homing_complete);
 
-  // Waits for click or timeout
-  beevc_machine_setup_wait(1000);
+  //Wait for 5sec or click
+  beevc_machine_setup_wait(5000);
 }
 
 void beevc_machine_setup_measure_xy(){
@@ -4675,6 +4732,10 @@ void beevc_machine_setup_set_offset(){
     idle(true);
   }
 
+  // Shows the help screen
+  lcd_goto_screen(beevc_machine_setup_screen_set_offset_explain);
+  beevc_machine_setup_wait(15000);
+
   // Shows the leveling screen
   lcd_goto_screen(beevc_machine_setup_screen_set_offset_calibrate);
 
@@ -4683,12 +4744,13 @@ void beevc_machine_setup_set_offset(){
     idle(true);
   }
 
+  beevc_machine_setup_buzz();
+
   // Waits for click or timeout
   beevc_machine_setup_wait(1000);
 }
 
 void beevc_machine_setup_test_hotend (uint8_t extruder){
-
   // Time variable
   uint32_t duration = 0, timeout =0;
 
@@ -4753,10 +4815,18 @@ void beevc_machine_setup_test_hotend (uint8_t extruder){
   //Disable E heating
   thermalManager.setTargetHotend(0, active_extruder);
 
+  //Beep
+  beevc_machine_setup_buzz();
+
+  //Display Hotbed ok screen
+  lcd_goto_screen(beevc_machine_setup_screen_hotend_ok);
+
+  //Wait for 5sec or click
+  beevc_machine_setup_wait(5000);
+
 }
 
 void beevc_machine_setup_test_hotbed (){
-
   // Time variable
   uint32_t duration = 0, timeout =0;
 
@@ -4791,9 +4861,18 @@ void beevc_machine_setup_test_hotbed (){
   //Disable Hotbed
   thermalManager.setTargetBed(0);
 
+  //Beep
+  beevc_machine_setup_buzz();
+
+  //Display Hotbed ok screen
+  lcd_goto_screen(beevc_machine_setup_screen_hotbed_ok);
+
+  //Wait for 5sec or click
+  beevc_machine_setup_wait(5000);
 }
 
 void beevc_machine_setup_test_blower (){
+
 
     lcd_goto_screen(beevc_machine_setup_screen_blower_start);
 
@@ -4801,6 +4880,12 @@ void beevc_machine_setup_test_blower (){
     fanSpeeds[0] = 255;
 
     lcd_goto_screen(beevc_machine_setup_screen_blower_test);
+
+    //Wait for 5sec or click
+    beevc_machine_setup_wait(5000);
+
+    //Beep
+    beevc_machine_setup_buzz();
 
     beevc_machine_setup_wait_click();
     fanSpeeds[0] = 0;
@@ -4864,6 +4949,15 @@ void beevc_machine_setup_test_blower (){
 
     // Stores EEPROM data
     lcd_store_settings();
+
+    // Enqueue a XY home
+    enqueue_and_echo_commands_P(PSTR("G28 X Y"));
+
+    // Shows complete screen
+    lcd_goto_screen(beevc_machine_setup_screen_complete);
+
+    // Waits for a max of 5s
+    beevc_machine_setup_wait(5000);
 
     // Return to status screen
     lcd_return_to_status();
@@ -6395,6 +6489,10 @@ void beevc_machine_setup_test_blower (){
        defer_return_to_status = true;
            lcd_goto_screen(lcd_sensorless_homing_calibration_homing);
            break;
+      // case SENSORLESS_HOMING_CALIBRATION_DONE:
+      //  defer_return_to_status = true;
+      //      lcd_goto_screen(lcd_sensorless_homing_calibration_done);
+      //      break;
       }
     }
 
