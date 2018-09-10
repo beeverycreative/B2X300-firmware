@@ -4152,11 +4152,17 @@ void lcd_enqueue_filament_change() {
     {
       cli();
 
+      uint16_t temp_current = 0 ;
+
       #ifdef X_IS_TMC2130
+        temp_current = stepperX.getCurrent();
         stepperX.stealthChop(0);
+        stepperX.setCurrent(temp_current, R_SENSE, HOLD_MULTIPLIER);
       #endif
       #ifdef Y_IS_TMC2130
+        temp_current = stepperY.getCurrent();
         stepperY.stealthChop(0);
+        stepperY.setCurrent(temp_current, R_SENSE, HOLD_MULTIPLIER);
       #endif
       // #ifdef E0_IS_TMC2130
       //   stepperE0.stealthChop(0);
@@ -4197,11 +4203,17 @@ void lcd_enqueue_filament_change() {
     {
       cli();
 
+      uint16_t temp_current = 0 ;
+
       #ifdef X_IS_TMC2130
+        temp_current = stepperX.getCurrent();
         stepperX.stealthChop(1);
+        stepperX.setCurrent(temp_current, R_SENSE, HOLD_MULTIPLIER);
       #endif
       #ifdef Y_IS_TMC2130
+        temp_current = stepperY.getCurrent();
         stepperY.stealthChop(1);
+        stepperY.setCurrent(temp_current, R_SENSE, HOLD_MULTIPLIER);
       #endif
       // #ifdef E0_IS_TMC2130
       //   stepperE0.stealthChop(1);
@@ -4224,11 +4236,17 @@ void lcd_enqueue_filament_change() {
     {
       cli();
 
+      uint16_t temp_current = 0 ;
+
       #ifdef X_IS_TMC2130
+        temp_current = stepperX.getCurrent();
         stepperX.stealthChop(1);
+        stepperX.setCurrent(temp_current, R_SENSE, HOLD_MULTIPLIER);
       #endif
       #ifdef Y_IS_TMC2130
+        temp_current = stepperY.getCurrent();
         stepperY.stealthChop(1);
+        stepperY.setCurrent(temp_current, R_SENSE, HOLD_MULTIPLIER);
       #endif
       // #ifdef E0_IS_TMC2130
       //   stepperE0.stealthChop(1);
