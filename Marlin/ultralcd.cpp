@@ -4597,7 +4597,7 @@ void beevc_machine_setup_screen_set_offset_explain(){
   STATIC_ITEM(_UxGT("sheet between the"), false, false);
   STATIC_ITEM(_UxGT("nozzle and the bed."), false, false);
   STATIC_ITEM(_UxGT("Adjust until there is"), false, false);
-  STATIC_ITEM(_UxGT("some fricion between"), false, false);
+  STATIC_ITEM(_UxGT("some friction between"), false, false);
   STATIC_ITEM(_UxGT("the paper and nozzle,"), false, false);
   STATIC_ITEM(_UxGT("light enough so you "), false, false);
   STATIC_ITEM(_UxGT("can still move the "), false, false);
