@@ -27,10 +27,12 @@ build:
         - echo "$build_date-$commit_branch-$commit_sha"
         - build_marlin
         - pwd && ls
+	- cp build/*bootloader.hex .
         
 
     artifacts:
         name: "marlin-bvc-$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHA"
         paths:
-            - build/*.hex
+            - *.hex
+            #- build/*.hex
         expire_in: 1 week
