@@ -187,10 +187,10 @@
     st.sync(5);                 // Phase frequency matching at maximm rate
     st.dedge(0);                // Double edge step
     st.chm(0);                  // Enable spreadCycle
-    st.hysterisis_start(7);     // Histeresis start = 11
-    st.hysterisis_end(0);      // Histeresis end = 7
-    st.blank_time(24);          // 36 Clocks blank time
-    st.off_time(5);             // Off time during chopping
+    st.hysterisis_start(8);     // Histeresis start = 11
+    st.hysterisis_end(-1);      // Histeresis end = 7
+    st.blank_time(36);          // 36 Clocks blank time
+    st.off_time(3);             // Off time during chopping
 
 
     st.stealth_freq(0);         // f_pwm = 2/1024 f_clk

@@ -1201,7 +1201,6 @@
    * }
    */
   #define  TMC_ADV() {                  \
-    stepperZ.stealthChop(1);            \
     stepperE0.stealthChop(1);           \
     stepperE1.stealthChop(1);           \
     }

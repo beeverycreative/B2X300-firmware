@@ -723,7 +723,11 @@
 		#define DEFAULT_AXIS_STEPS_PER_UNIT   { 80,80,4000, 90}
 	#else
 		// A4988 on all stepper drivers with trapezoidal threaded rod
-		#define DEFAULT_AXIS_STEPS_PER_UNIT   { 80,80,1600, 90}
+    #ifdef BEEVC_B2X300
+      #define DEFAULT_AXIS_STEPS_PER_UNIT   { 80,80,1600, 100}
+    #else
+		  #define DEFAULT_AXIS_STEPS_PER_UNIT   { 80,80,1600, 90}
+    #endif
 	#endif
 
 #endif
@@ -1267,15 +1271,13 @@
 
   #define GRID_MAX_POINTS_Y 3
 
-  //DR - 17-10-17 13h00 The probing place is closer to the edge of the bed
-  //DR - 31-10-17 15h Different probing positions depending on the bed X size
   // Set the boundaries for probing (where the probe can reach).
 
 
-		#define LEFT_PROBE_BED_POSITION 10
-		#define RIGHT_PROBE_BED_POSITION X_BED_SIZE-10
-		#define FRONT_PROBE_BED_POSITION ((Y_MIN_POS+Y_PROBE_OFFSET_FROM_EXTRUDER)<=20  ? 20 : (Y_MIN_POS+Y_PROBE_OFFSET_FROM_EXTRUDER))
-		#define BACK_PROBE_BED_POSITION Y_BED_SIZE - 20
+		#define LEFT_PROBE_BED_POSITION 20
+		#define RIGHT_PROBE_BED_POSITION X_BED_SIZE-20
+		#define FRONT_PROBE_BED_POSITION ((Y_MIN_POS+Y_PROBE_OFFSET_FROM_EXTRUDER)<=25  ? 25 : (Y_MIN_POS+Y_PROBE_OFFSET_FROM_EXTRUDER))
+		#define BACK_PROBE_BED_POSITION Y_BED_SIZE - 25
 
 
 

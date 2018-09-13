@@ -233,7 +233,7 @@ uint16_t max_display_update_time = 0;
 	// Manual filament change feature
 	static void lcd_filament_change();
   static void lcd_filament_change_start();
-	static void lcd_filament_change_move_to_position();
+	//static void lcd_filament_change_move_to_position();
 	static void lcd_filament_change_extruder_0();
 	static void lcd_filament_change_extruder_1();
 	static void lcd_filament_change_ext0_pla ();
@@ -267,6 +267,12 @@ uint16_t max_display_update_time = 0;
 	////////////   Power recovery feature    //////////////
 	#ifdef BEEVC_Restore
 		void recover_print();
+	#endif // BEEVC_Restore
+	///////////////////////////////////////////////////////
+
+  ////////////   Startup wizard    //////////////
+	#ifdef BEEVC_B2X300
+		void beevc_machine_setup();
 	#endif // BEEVC_Restore
 	///////////////////////////////////////////////////////
 
@@ -719,103 +725,109 @@ uint16_t max_display_update_time = 0;
 
 void lcd_status_screen() {
 
-  #if ENABLED(ULTIPANEL)
-    ENCODER_DIRECTION_NORMAL();
-    ENCODER_RATE_MULTIPLY(false);
-  #endif
+  if (toCalibrate == 0){
+    beevc_machine_setup();
+  }
 
-  #if ENABLED(LCD_PROGRESS_BAR)
-
-    //
-    // HD44780 implements the following message blinking and
-    // message expiration because Status Line and Progress Bar
-    // share the same line on the display.
-    //
-
-    // Set current percentage from SD when actively printing
-    #if ENABLED(LCD_SET_PROGRESS_MANUALLY)
-      if (IS_SD_PRINTING)
-        progress_bar_percent = card.percentDone();
+  else{
+    #if ENABLED(ULTIPANEL)
+      ENCODER_DIRECTION_NORMAL();
+      ENCODER_RATE_MULTIPLY(false);
     #endif
 
-    millis_t ms = millis();
+    #if ENABLED(LCD_PROGRESS_BAR)
 
-    // If the message will blink rather than expire...
-    #if DISABLED(PROGRESS_MSG_ONCE)
-      if (ELAPSED(ms, progress_bar_ms + PROGRESS_BAR_MSG_TIME + PROGRESS_BAR_BAR_TIME))
-        progress_bar_ms = ms;
-    #endif
+      //
+      // HD44780 implements the following message blinking and
+      // message expiration because Status Line and Progress Bar
+      // share the same line on the display.
+      //
 
-    #if PROGRESS_MSG_EXPIRE > 0
+      // Set current percentage from SD when actively printing
+      #if ENABLED(LCD_SET_PROGRESS_MANUALLY)
+        if (IS_SD_PRINTING)
+          progress_bar_percent = card.percentDone();
+      #endif
 
-      // Handle message expire
-      if (expire_status_ms > 0) {
+      millis_t ms = millis();
 
-        #if DISABLED(LCD_SET_PROGRESS_MANUALLY)
-          const uint8_t progress_bar_percent = card.percentDone();
+      // If the message will blink rather than expire...
+      #if DISABLED(PROGRESS_MSG_ONCE)
+        if (ELAPSED(ms, progress_bar_ms + PROGRESS_BAR_MSG_TIME + PROGRESS_BAR_BAR_TIME))
+          progress_bar_ms = ms;
+      #endif
+
+      #if PROGRESS_MSG_EXPIRE > 0
+
+        // Handle message expire
+        if (expire_status_ms > 0) {
+
+          #if DISABLED(LCD_SET_PROGRESS_MANUALLY)
+            const uint8_t progress_bar_percent = card.percentDone();
+          #endif
+
+          // Expire the message if a job is active and the bar has ticks
+          if (progress_bar_percent > 2 && !print_job_timer.isPaused()) {
+            if (ELAPSED(ms, expire_status_ms)) {
+              lcd_status_message[0] = '\0';
+              expire_status_ms = 0;
+            }
+          }
+          else {
+            // Defer message expiration before bar appears
+            // and during any pause (not just SD)
+            expire_status_ms += LCD_UPDATE_INTERVAL;
+          }
+        }
+
+      #endif // PROGRESS_MSG_EXPIRE
+
+    #endif // LCD_PROGRESS_BAR
+
+    #if ENABLED(ULTIPANEL)
+
+      if (lcd_clicked) {
+        #if ENABLED(FILAMENT_LCD_DISPLAY) && ENABLED(SDSUPPORT)
+          previous_lcd_status_ms = millis();  // get status message to show up for a while
         #endif
+        lcd_implementation_init( // to maybe revive the LCD if static electricity killed it.
+          #if ENABLED(LCD_PROGRESS_BAR)
+            CHARSET_MENU
+          #endif
+        );
+        lcd_goto_screen(beevc_main_menu);
+        return;
+      }
 
-        // Expire the message if a job is active and the bar has ticks
-        if (progress_bar_percent > 2 && !print_job_timer.isPaused()) {
-          if (ELAPSED(ms, expire_status_ms)) {
-            lcd_status_message[0] = '\0';
-            expire_status_ms = 0;
+      #if ENABLED(ULTIPANEL_FEEDMULTIPLY)
+        const int16_t new_frm = feedrate_percentage + (int32_t)encoderPosition;
+        // Dead zone at 100% feedrate
+        if ((feedrate_percentage < 100 && new_frm > 100) || (feedrate_percentage > 100 && new_frm < 100)) {
+          feedrate_percentage = 100;
+          encoderPosition = 0;
+        }
+        else if (feedrate_percentage == 100) {
+          if ((int32_t)encoderPosition > ENCODER_FEEDRATE_DEADZONE) {
+            feedrate_percentage += (int32_t)encoderPosition - (ENCODER_FEEDRATE_DEADZONE);
+            encoderPosition = 0;
+          }
+          else if ((int32_t)encoderPosition < -(ENCODER_FEEDRATE_DEADZONE)) {
+            feedrate_percentage += (int32_t)encoderPosition + ENCODER_FEEDRATE_DEADZONE;
+            encoderPosition = 0;
           }
         }
         else {
-          // Defer message expiration before bar appears
-          // and during any pause (not just SD)
-          expire_status_ms += LCD_UPDATE_INTERVAL;
-        }
-      }
-
-    #endif // PROGRESS_MSG_EXPIRE
-
-  #endif // LCD_PROGRESS_BAR
-
-  #if ENABLED(ULTIPANEL)
-
-    if (lcd_clicked) {
-      #if ENABLED(FILAMENT_LCD_DISPLAY) && ENABLED(SDSUPPORT)
-        previous_lcd_status_ms = millis();  // get status message to show up for a while
-      #endif
-      lcd_implementation_init( // to maybe revive the LCD if static electricity killed it.
-        #if ENABLED(LCD_PROGRESS_BAR)
-          CHARSET_MENU
-        #endif
-      );
-      lcd_goto_screen(beevc_main_menu);
-      return;
-    }
-
-    #if ENABLED(ULTIPANEL_FEEDMULTIPLY)
-      const int16_t new_frm = feedrate_percentage + (int32_t)encoderPosition;
-      // Dead zone at 100% feedrate
-      if ((feedrate_percentage < 100 && new_frm > 100) || (feedrate_percentage > 100 && new_frm < 100)) {
-        feedrate_percentage = 100;
-        encoderPosition = 0;
-      }
-      else if (feedrate_percentage == 100) {
-        if ((int32_t)encoderPosition > ENCODER_FEEDRATE_DEADZONE) {
-          feedrate_percentage += (int32_t)encoderPosition - (ENCODER_FEEDRATE_DEADZONE);
+          feedrate_percentage = new_frm;
           encoderPosition = 0;
         }
-        else if ((int32_t)encoderPosition < -(ENCODER_FEEDRATE_DEADZONE)) {
-          feedrate_percentage += (int32_t)encoderPosition + ENCODER_FEEDRATE_DEADZONE;
-          encoderPosition = 0;
-        }
-      }
-      else {
-        feedrate_percentage = new_frm;
-        encoderPosition = 0;
-      }
-    #endif // ULTIPANEL_FEEDMULTIPLY
+      #endif // ULTIPANEL_FEEDMULTIPLY
 
-    feedrate_percentage = constrain(feedrate_percentage, 10, 999);
+      feedrate_percentage = constrain(feedrate_percentage, 10, 999);
 
-  #endif // ULTIPANEL
+    #endif // ULTIPANEL
 
-  lcd_implementation_status_screen();
+    lcd_implementation_status_screen();
+  }
 }
 
 void lcd_reset_status() { lcd_setstatusPGM(PSTR(""), -1); }
@@ -1035,9 +1047,9 @@ void kill_screen(const char* lcd_msg) {
     	  #endif
 
       // Cold pull
-        MENU_ITEM(submenu, _UxGT("Cold pull"), _lcd_menu_z_offset);
+        //MENU_ITEM(submenu, _UxGT("Cold pull"), _lcd_menu_z_offset);
 
-        // Auto Home
+      // Auto Home
         MENU_ITEM(gcode, MSG_AUTO_HOME, PSTR("G28"));
 
       // Auto Home/ Level Bed
@@ -1069,11 +1081,13 @@ void kill_screen(const char* lcd_msg) {
       STATIC_ITEM("BEEVERYCREATIVE", false, false);
 
       char about_string[22];
-      strcpy(about_string, BUILDDATE);
+      about_string[0] = '\0';
+
+      strncat(about_string, BUILDDATE,6);
       strcat(about_string, "-");
-      strcat(about_string, BUILDBRANCH);
+      strncat(about_string, BUILDBRANCH,6);
       strcat(about_string, "-");
-      strcat(about_string, BUILDCOMMIT);
+      strncat(about_string, BUILDCOMMIT,7);
       STATIC_ITEM("", false, false, about_string);
       END_SCREEN();
     }
@@ -1393,8 +1407,6 @@ void kill_screen(const char* lcd_msg) {
       END_MENU();
     }
 
-
-
 	void lcd_filament_change_unload_menu() {
       START_MENU();
       #if LCD_HEIGHT > 2
@@ -1405,6 +1417,90 @@ void kill_screen(const char* lcd_msg) {
 	  MENU_ITEM(function, _UxGT("Load filament"), lcd_filament_change_extrude_more);
       END_MENU();
     }
+
+  // Sensorless homing
+
+  void lcd_sensorless_homing_calibration_x()
+    {
+      START_SCREEN();
+      STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+      STATIC_ITEM(_UxGT("Calibrating X axis!"), false, false);
+
+      STATIC_ITEM(_UxGT("Noise and impacts are"), false, false);
+      STATIC_ITEM(_UxGT("to be expected."), false, false);
+
+      if(sensorless_homing_progress == 0) {
+        STATIC_ITEM(_UxGT("Working"), false, false);
+      }
+      else if (sensorless_homing_progress == 1){
+        STATIC_ITEM(_UxGT("Working."), false, false);
+      }
+      else if (sensorless_homing_progress == 2){
+        STATIC_ITEM(_UxGT("Working.."), false, false);
+      }
+      else if (sensorless_homing_progress >= 3){
+        STATIC_ITEM(_UxGT("Working..."), false, false);
+      }
+
+      END_SCREEN();
+    }
+  void lcd_sensorless_homing_calibration_y()
+    {
+      START_SCREEN();
+      STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+      STATIC_ITEM(_UxGT("Calibrating Y axis!"), false, false);
+      STATIC_ITEM(_UxGT("Noise and impacts are"), false, false);
+      STATIC_ITEM(_UxGT("to be expected."), false, false);
+
+      if(sensorless_homing_progress == 0) {
+        STATIC_ITEM(_UxGT("Working"), false, false);
+      }
+      else if (sensorless_homing_progress == 1){
+        STATIC_ITEM(_UxGT("Working."), false, false);
+      }
+      else if (sensorless_homing_progress == 2){
+        STATIC_ITEM(_UxGT("Working.."), false, false);
+      }
+      else if (sensorless_homing_progress >= 3){
+        STATIC_ITEM(_UxGT("Working..."), false, false);
+      }
+      END_SCREEN();
+    }
+  void lcd_sensorless_homing_calibration_x_done()
+    {
+      START_SCREEN();
+      STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+      STATIC_ITEM(_UxGT("Calibrating X axis!"), false, false);
+      STATIC_ITEM(_UxGT("Process complete,"), false, false);
+      STATIC_ITEM(_UxGT("finishing up"), false, false);
+      END_SCREEN();
+    }
+  void lcd_sensorless_homing_calibration_y_done()
+    {
+      START_SCREEN();
+      STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+      STATIC_ITEM(_UxGT("Calibrating Y axis!"), false, false);
+      STATIC_ITEM(_UxGT("Process complete,"), false, false);
+      STATIC_ITEM(_UxGT("finishing up"), false, false);
+      END_SCREEN();
+    }
+  void lcd_sensorless_homing_calibration_homing()
+    {
+      START_SCREEN();
+      STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+      STATIC_ITEM(_UxGT("Homing axes!"), false, false);
+      STATIC_ITEM(_UxGT("Please wait..."), false, false);
+      END_SCREEN();
+    }
+  // void lcd_sensorless_homing_calibration_done()
+  //   {
+  //     START_SCREEN();
+  //     STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+  //     STATIC_ITEM(_UxGT(" "), false, false);
+  //     STATIC_ITEM(_UxGT("Process complete,"), false, false);
+  //     STATIC_ITEM(_UxGT("press to continue!"), false, false);
+  //     END_SCREEN();
+  //   }
 
 
 static void lcd_filament_change_unload_load (bool extruder, bool pla_abs, bool unload_load)
@@ -4062,12 +4158,12 @@ void lcd_enqueue_filament_change() {
       #ifdef Y_IS_TMC2130
         stepperY.stealthChop(0);
       #endif
-      #ifdef E0_IS_TMC2130
-        stepperE0.stealthChop(0);
-      #endif
-      #ifdef E1_IS_TMC2130
-        stepperE1.stealthChop(0);
-      #endif
+      // #ifdef E0_IS_TMC2130
+      //   stepperE0.stealthChop(0);
+      // #endif
+      // #ifdef E1_IS_TMC2130
+      //   stepperE1.stealthChop(0);
+      // #endif
 
       // Stores the global flag
       silent_mode = 0;
@@ -4107,12 +4203,12 @@ void lcd_enqueue_filament_change() {
       #ifdef Y_IS_TMC2130
         stepperY.stealthChop(1);
       #endif
-      #ifdef E0_IS_TMC2130
-        stepperE0.stealthChop(1);
-      #endif
-      #ifdef E1_IS_TMC2130
-        stepperE1.stealthChop(1);
-      #endif
+      // #ifdef E0_IS_TMC2130
+      //   stepperE0.stealthChop(1);
+      // #endif
+      // #ifdef E1_IS_TMC2130
+      //   stepperE1.stealthChop(1);
+      // #endif
 
       // Stores the global flag
       silent_mode = 1;
@@ -4134,12 +4230,12 @@ void lcd_enqueue_filament_change() {
       #ifdef Y_IS_TMC2130
         stepperY.stealthChop(1);
       #endif
-      #ifdef E0_IS_TMC2130
-        stepperE0.stealthChop(1);
-      #endif
-      #ifdef E1_IS_TMC2130
-        stepperE1.stealthChop(1);
-      #endif
+      // #ifdef E0_IS_TMC2130
+      //   stepperE0.stealthChop(1);
+      // #endif
+      // #ifdef E1_IS_TMC2130
+      //   stepperE1.stealthChop(1);
+      // #endif
 
       // Stores the global flag
       silent_mode = 2;
@@ -4167,6 +4263,11 @@ void lcd_enqueue_filament_change() {
     }
   #endif
   ///////////////////////////////////////////////////////
+
+  void beevc_machine_setup_buzz(){
+    lcd_buzz(100, 659);
+    lcd_buzz(100, 698);
+  }
 
   void beevc_machine_setup_wait_click() {
     wait_for_user = true;    // LCD click or M108 will clear this
@@ -4266,6 +4367,23 @@ void lcd_enqueue_filament_change() {
   MACHINE_SETUP_END;
 }
 
+void beevc_machine_setup_screen_hotend_ok() {
+MACHINE_SETUP_TITLE;
+
+if(active_extruder == 0){
+  STATIC_ITEM(_UxGT("Extruder 1 test"), false, false);
+}
+else {
+  STATIC_ITEM(_UxGT("Extruder 2 test"), false, false);
+}
+
+STATIC_ITEM(_UxGT("sucesseful!"), false, false);
+STATIC_ITEM(_UxGT(" "), true, false);
+STATIC_ITEM(_UxGT("Press to continue!"), false, false);
+
+MACHINE_SETUP_END;
+}
+
 void beevc_machine_setup_screen_hotend_cooling() {
 MACHINE_SETUP_TITLE_WAIT;
 
@@ -4285,6 +4403,17 @@ u8g.print(" ");
 u8g.print(round(thermalManager.degHotend(active_extruder)));
 u8g.print("/");
 u8g.print(round(40));
+
+MACHINE_SETUP_END;
+}
+
+void beevc_machine_setup_screen_hotbed_ok() {
+MACHINE_SETUP_TITLE;
+
+STATIC_ITEM(_UxGT("Hotbed test"), false, false);
+STATIC_ITEM(_UxGT("sucesseful!"), false, false);
+STATIC_ITEM(_UxGT(" "), true, false);
+STATIC_ITEM(_UxGT("Press to continue!"), false, false);
 
 MACHINE_SETUP_END;
 }
@@ -4405,7 +4534,10 @@ void beevc_machine_setup_screen_blower_start() {
 
 void beevc_machine_setup_screen_blower_test_ok() {
   MACHINE_SETUP_TITLE;
-  STATIC_ITEM(_UxGT("Blower ok"), false, false);
+  STATIC_ITEM(_UxGT("Blower test"), false, false);
+  STATIC_ITEM(_UxGT("sucesseful!"), false, false);
+  STATIC_ITEM(_UxGT(" "), true, false);
+  STATIC_ITEM(_UxGT("Press to continue!"), false, false);
   MACHINE_SETUP_END;
 }
 
@@ -4417,11 +4549,19 @@ void beevc_machine_setup_screen_error_blower() {
   MACHINE_SETUP_CHECK_MANUAL;
   STATIC_ITEM(_UxGT("XX"), false, false);
   MACHINE_SETUP_END;
+
+  while(1){
+    // Avoid returning to status screen
+    defer_return_to_status = true;
+
+    // Manage idle time
+    idle(true);
+  }
 }
 
 void beevc_machine_setup_screen_blower_test() {
   MACHINE_SETUP_TITLE_CHOICE;
-  STATIC_ITEM(_UxGT("Is the fan active"), false, false);
+  STATIC_ITEM(_UxGT("Is the blower active?"), false, false);
   MENU_ITEM(submenu, _UxGT("Yes"), beevc_machine_setup_screen_blower_test_ok);
   MENU_ITEM(submenu, _UxGT("No"), beevc_machine_setup_screen_error_blower);
   MACHINE_SETUP_END_CHOICE;
@@ -4435,22 +4575,6 @@ void beevc_machine_setup_screen_sensorless_homing(){
   MACHINE_SETUP_END;
 }
 
-void beevc_machine_setup_screen_sensorless_homing_x(){
-  MACHINE_SETUP_TITLE;
-
-  MACHINE_SETUP_WAIT_FOR("Calibrating X axis!");
-
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_sensorless_homing_y(){
-  MACHINE_SETUP_TITLE;
-
-  MACHINE_SETUP_WAIT_FOR("Calibrating Y axis!");
-
-  MACHINE_SETUP_END;
-}
-
 void beevc_machine_setup_screen_sensorless_homing_complete(){
   MACHINE_SETUP_TITLE;
   STATIC_ITEM(_UxGT("Calibration done!"), false, false);
@@ -4460,7 +4584,27 @@ void beevc_machine_setup_screen_sensorless_homing_complete(){
 void beevc_machine_setup_screen_set_offset_home_complete(){
   MACHINE_SETUP_TITLE;
   STATIC_ITEM(_UxGT("Leveling done!"), false, false);
-  STATIC_ITEM(_UxGT("Press to continue"), false, false);
+  STATIC_ITEM(_UxGT("Moving to calibration"), false, false);
+  STATIC_ITEM(_UxGT("position"), false, false);
+  MACHINE_SETUP_END;
+}
+
+void beevc_machine_setup_screen_set_offset_explain(){
+  MACHINE_SETUP_TITLE;
+  STATIC_ITEM(_UxGT("You will now adjust Z"), false, false);
+  STATIC_ITEM(_UxGT("by rotating the LCD"), false, false);
+  STATIC_ITEM(_UxGT("knob, using a paper"), false, false);
+  STATIC_ITEM(_UxGT("sheet between the"), false, false);
+  STATIC_ITEM(_UxGT("nozzle and the bed."), false, false);
+  STATIC_ITEM(_UxGT("Adjust until there is"), false, false);
+  STATIC_ITEM(_UxGT("some fricion between"), false, false);
+  STATIC_ITEM(_UxGT("the paper and nozzle,"), false, false);
+  STATIC_ITEM(_UxGT("light enough so you "), false, false);
+  STATIC_ITEM(_UxGT("can still move the "), false, false);
+  STATIC_ITEM(_UxGT("paper while squeezed"), false, false);
+  STATIC_ITEM(_UxGT("between the nozzle"), false, false);
+  STATIC_ITEM(_UxGT("and hotbed."), false, false);
+  STATIC_ITEM(_UxGT("Press to continue!"), false, false);
   MACHINE_SETUP_END;
 }
 
@@ -4476,6 +4620,19 @@ void beevc_machine_setup_screen_set_offset(){
 void beevc_machine_setup_screen_set_offset_complete(){
   MACHINE_SETUP_TITLE;
   STATIC_ITEM(_UxGT("Z offset calibrated!"), false, false);
+  STATIC_ITEM(_UxGT(" "), true, false);
+  STATIC_ITEM(_UxGT(" "), true, false);
+  STATIC_ITEM(_UxGT("Press to continue!"), false, false);
+  MACHINE_SETUP_END;
+}
+
+void beevc_machine_setup_screen_complete(){
+  MACHINE_SETUP_TITLE;
+  STATIC_ITEM(_UxGT("Calibration complete"), false, false);
+  STATIC_ITEM(_UxGT("and settings stored!"), false, false);
+  STATIC_ITEM(_UxGT("You can now use your"), false, false);
+  STATIC_ITEM(_UxGT("B2X300!"), false, false);
+  STATIC_ITEM(_UxGT("Press to continue!"), false, false);
   MACHINE_SETUP_END;
 }
 
@@ -4521,40 +4678,26 @@ void beevc_machine_setup_screen_set_offset_calibrate(){
 }
 
 void beevc_machine_setup_sensorless_homing (){
+
+  beevc_machine_setup_buzz();
+
   // Show info screen
   lcd_goto_screen(beevc_machine_setup_screen_sensorless_homing);
 
-  card.startFileprint();
-
   // Waits for click or timeout
-  beevc_machine_setup_wait(5000);
+  beevc_machine_setup_wait(1000);
 
-  // Starts variables to force waiting
+  // Starts variables to force calibration
   calibrating_sensorless_homing_x = true;
   calibrating_sensorless_homing_y = true;
 
   // Start sensorless homing calibration procedure
-  // enqueue_and_echo_commands_P(PSTR("G28\nM918 A"));
-  // enqueue_and_echo_command(PSTR("G28"));
   gcode_M918();
 
-  // Show info screen
-  lcd_goto_screen(beevc_machine_setup_screen_sensorless_homing_x);
+  //Display Hotbed ok screen
+  lcd_goto_screen(beevc_machine_setup_screen_sensorless_homing_complete);
 
-  // Wait for calibration to finish, while waiting refresh screen
-  while(calibrating_sensorless_homing_x){
-    idle(true);
-  }
-
-  // Show info screen
-  lcd_goto_screen(beevc_machine_setup_screen_sensorless_homing_y);
-
-  // Wait for calibration to finish
-  while(calibrating_sensorless_homing_y){
-    idle(true);
-  }
-
-  // Waits for click or timeout
+  //Wait for 5sec or click
   beevc_machine_setup_wait(5000);
 }
 
@@ -4570,27 +4713,28 @@ void beevc_machine_setup_set_offset(){
   lcd_goto_screen(beevc_machine_setup_screen_set_offset);
 
   // Waits for click or timeout
-  beevc_machine_setup_wait(5000);
+  beevc_machine_setup_wait(1000);
 
   // Homes and autoleves axes
   gcode_G28(1);
   gcode_G29();
   axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
   gcode_G28(1);
-  // enqueue_and_echo_commands_P(PSTR("G28\nG29\nG0 X150 Y100"));
-
-  // Waits for homing to finish
-  if  (axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS] && planner.leveling_active)
-  lcd_goto_screen(beevc_machine_setup_screen_set_offset_home_complete);
 
   // Lowers Z axis
   current_position[Z_AXIS] -= 8;
   manual_move_to_current(Z_AXIS);
 
-  // Waits for click
-  beevc_machine_setup_wait_click();
+  uint32_t temp_time = millis() + 2000;
+  while(millis() < temp_time){
+    lcd_goto_screen(beevc_machine_setup_screen_set_offset_home_complete);
+    lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+    idle(true);
+  }
 
-  lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+  // Shows the help screen
+  lcd_goto_screen(beevc_machine_setup_screen_set_offset_explain);
+  beevc_machine_setup_wait(15000);
 
   // Shows the leveling screen
   lcd_goto_screen(beevc_machine_setup_screen_set_offset_calibrate);
@@ -4600,12 +4744,13 @@ void beevc_machine_setup_set_offset(){
     idle(true);
   }
 
+  beevc_machine_setup_buzz();
+
   // Waits for click or timeout
-  beevc_machine_setup_wait(5000);
+  beevc_machine_setup_wait(1000);
 }
 
 void beevc_machine_setup_test_hotend (uint8_t extruder){
-
   // Time variable
   uint32_t duration = 0, timeout =0;
 
@@ -4670,10 +4815,18 @@ void beevc_machine_setup_test_hotend (uint8_t extruder){
   //Disable E heating
   thermalManager.setTargetHotend(0, active_extruder);
 
+  //Beep
+  beevc_machine_setup_buzz();
+
+  //Display Hotbed ok screen
+  lcd_goto_screen(beevc_machine_setup_screen_hotend_ok);
+
+  //Wait for 5sec or click
+  beevc_machine_setup_wait(5000);
+
 }
 
 void beevc_machine_setup_test_hotbed (){
-
   // Time variable
   uint32_t duration = 0, timeout =0;
 
@@ -4708,9 +4861,18 @@ void beevc_machine_setup_test_hotbed (){
   //Disable Hotbed
   thermalManager.setTargetBed(0);
 
+  //Beep
+  beevc_machine_setup_buzz();
+
+  //Display Hotbed ok screen
+  lcd_goto_screen(beevc_machine_setup_screen_hotbed_ok);
+
+  //Wait for 5sec or click
+  beevc_machine_setup_wait(5000);
 }
 
 void beevc_machine_setup_test_blower (){
+
 
     lcd_goto_screen(beevc_machine_setup_screen_blower_start);
 
@@ -4718,6 +4880,12 @@ void beevc_machine_setup_test_blower (){
     fanSpeeds[0] = 255;
 
     lcd_goto_screen(beevc_machine_setup_screen_blower_test);
+
+    //Wait for 5sec or click
+    beevc_machine_setup_wait(5000);
+
+    //Beep
+    beevc_machine_setup_buzz();
 
     beevc_machine_setup_wait_click();
     fanSpeeds[0] = 0;
@@ -4729,6 +4897,9 @@ void beevc_machine_setup_test_blower (){
    * "Machine settings" > "Setup wizard"
    */
   void beevc_machine_setup() {
+
+    // Resets the printer to the default configuration
+    lcd_init_eeprom();
 
     // Clear LCD
     lcd_implementation_clear();
@@ -4770,6 +4941,26 @@ void beevc_machine_setup_test_blower (){
     beevc_machine_setup_set_offset();
 
     // Fine tune offset w/test print
+
+    // PID Calibration
+
+    // Clears startup wizard flag
+    gcode_M721();
+
+    // Stores EEPROM data
+    lcd_store_settings();
+
+    // Enqueue a XY home
+    enqueue_and_echo_commands_P(PSTR("G28 X Y"));
+
+    // Shows complete screen
+    lcd_goto_screen(beevc_machine_setup_screen_complete);
+
+    // Waits for a max of 5s
+    beevc_machine_setup_wait(5000);
+
+    // Return to status screen
+    lcd_return_to_status();
 
   }
 
@@ -5534,6 +5725,18 @@ void beevc_machine_setup_test_blower (){
    * "Control" > "Trinamic Settings" > "Sensorless homing" submenu
    *
    */
+   void lcd_trinamic_sensorless_auto_adjust(){
+     // Starts variables to force calibration
+     calibrating_sensorless_homing_x = true;
+     calibrating_sensorless_homing_y = true;
+
+     // Sensorless homing auto calibration
+     gcode_M918();
+
+     // Return to status screen
+     lcd_return_to_status();
+   }
+
    void lcd_trinamic_sensorless() {
      START_MENU();
      MENU_BACK(_UxGT("Trinamic Settings"));
@@ -5546,7 +5749,7 @@ void beevc_machine_setup_test_blower (){
        MENU_ITEM(gcode, _UxGT("Test Y homing"), PSTR("G28 Y\nG28 Y\nG28 Y\nG28 Y\nG28 Y"));
      #endif
      #if (ENABLED(Y_IS_TMC2130) && ENABLED(X_IS_TMC2130))
-       MENU_ITEM(gcode, _UxGT("Auto adjust"), PSTR("M918 A"));
+       MENU_ITEM(function, _UxGT("Auto adjust"), lcd_trinamic_sensorless_auto_adjust);
      #endif
 
    END_MENU();
@@ -6264,6 +6467,32 @@ void beevc_machine_setup_test_blower (){
           advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
           lcd_goto_screen(lcd_filament_change_unload_option_menu);
           break;
+
+    // BEEVC - Sensorless homing auto calibration
+    case SENSORLESS_HOMING_CALIBRATION_X:
+     defer_return_to_status = true;
+         lcd_goto_screen(lcd_sensorless_homing_calibration_x);
+         break;
+     case SENSORLESS_HOMING_CALIBRATION_Y:
+      defer_return_to_status = true;
+          lcd_goto_screen(lcd_sensorless_homing_calibration_y);
+          break;
+      case SENSORLESS_HOMING_CALIBRATION_X_DONE:
+       defer_return_to_status = true;
+           lcd_goto_screen(lcd_sensorless_homing_calibration_x_done);
+           break;
+       case SENSORLESS_HOMING_CALIBRATION_Y_DONE:
+        defer_return_to_status = true;
+            lcd_goto_screen(lcd_sensorless_homing_calibration_y_done);
+            break;
+      case SENSORLESS_HOMING_CALIBRATION_HOMING:
+       defer_return_to_status = true;
+           lcd_goto_screen(lcd_sensorless_homing_calibration_homing);
+           break;
+      // case SENSORLESS_HOMING_CALIBRATION_DONE:
+      //  defer_return_to_status = true;
+      //      lcd_goto_screen(lcd_sensorless_homing_calibration_done);
+      //      break;
       }
     }
 
