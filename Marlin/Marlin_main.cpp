@@ -12849,7 +12849,10 @@ inline void gcode_M999() {
   		}
 
     //Lifts Z 20mm and homes X Y not moving the Z axis
-    do_blocking_move_to_z((current_position[2]+20), 4);
+    set_destination_from_current();
+    do_blocking_move_to_z(current_position[Z_AXIS], 4);
+    safe_delay(1000);
+    do_blocking_move_to_z((current_position[Z_AXIS]+20), 4);
     lcd_setstatus("Homing XY...");
 
     #ifdef BEEVC_TMC2130READSG
