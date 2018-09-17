@@ -4152,11 +4152,17 @@ void lcd_enqueue_filament_change() {
     {
       cli();
 
+      uint16_t temp_current = 0 ;
+
       #ifdef X_IS_TMC2130
+        temp_current = stepperX.getCurrent();
         stepperX.stealthChop(0);
+        stepperX.setCurrent(temp_current, R_SENSE, HOLD_MULTIPLIER);
       #endif
       #ifdef Y_IS_TMC2130
+        temp_current = stepperY.getCurrent();
         stepperY.stealthChop(0);
+        stepperY.setCurrent(temp_current, R_SENSE, HOLD_MULTIPLIER);
       #endif
       // #ifdef E0_IS_TMC2130
       //   stepperE0.stealthChop(0);
@@ -4197,11 +4203,17 @@ void lcd_enqueue_filament_change() {
     {
       cli();
 
+      uint16_t temp_current = 0 ;
+
       #ifdef X_IS_TMC2130
+        temp_current = stepperX.getCurrent();
         stepperX.stealthChop(1);
+        stepperX.setCurrent(temp_current, R_SENSE, HOLD_MULTIPLIER);
       #endif
       #ifdef Y_IS_TMC2130
+        temp_current = stepperY.getCurrent();
         stepperY.stealthChop(1);
+        stepperY.setCurrent(temp_current, R_SENSE, HOLD_MULTIPLIER);
       #endif
       // #ifdef E0_IS_TMC2130
       //   stepperE0.stealthChop(1);
@@ -4224,11 +4236,17 @@ void lcd_enqueue_filament_change() {
     {
       cli();
 
+      uint16_t temp_current = 0 ;
+
       #ifdef X_IS_TMC2130
+        temp_current = stepperX.getCurrent();
         stepperX.stealthChop(1);
+        stepperX.setCurrent(temp_current, R_SENSE, HOLD_MULTIPLIER);
       #endif
       #ifdef Y_IS_TMC2130
+        temp_current = stepperY.getCurrent();
         stepperY.stealthChop(1);
+        stepperY.setCurrent(temp_current, R_SENSE, HOLD_MULTIPLIER);
       #endif
       // #ifdef E0_IS_TMC2130
       //   stepperE0.stealthChop(1);
@@ -4597,7 +4615,7 @@ void beevc_machine_setup_screen_set_offset_explain(){
   STATIC_ITEM(_UxGT("sheet between the"), false, false);
   STATIC_ITEM(_UxGT("nozzle and the bed."), false, false);
   STATIC_ITEM(_UxGT("Adjust until there is"), false, false);
-  STATIC_ITEM(_UxGT("some fricion between"), false, false);
+  STATIC_ITEM(_UxGT("some friction between"), false, false);
   STATIC_ITEM(_UxGT("the paper and nozzle,"), false, false);
   STATIC_ITEM(_UxGT("light enough so you "), false, false);
   STATIC_ITEM(_UxGT("can still move the "), false, false);
@@ -4842,7 +4860,7 @@ void beevc_machine_setup_test_hotbed (){
   //Start counting time
   duration = millis();
   //Sets a timeout of 120sec
-  timeout = duration + 120000;
+  timeout = duration + 180000;
 
     lcd_goto_screen(beevc_machine_setup_screen_hotbed);
 

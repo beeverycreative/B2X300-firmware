@@ -507,7 +507,7 @@
 
 // hBp - Checks if the extended bed is being used and adjusts the power limit
 #ifndef BEEVC_Addon_bed
-#define MAX_BED_POWER 255 // limits duty cycle to bed; 255=full current
+#define MAX_BED_POWER 205 // limits duty cycle to bed; 255=full current
 
 #else
 #define MAX_BED_POWER 140 // limits duty cycle to bed; 140= 55% of the maximum current
