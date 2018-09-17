@@ -4860,7 +4860,7 @@ void beevc_machine_setup_test_hotbed (){
   //Start counting time
   duration = millis();
   //Sets a timeout of 120sec
-  timeout = duration + 120000;
+  timeout = duration + 180000;
 
     lcd_goto_screen(beevc_machine_setup_screen_hotbed);
 
