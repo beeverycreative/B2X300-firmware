@@ -4281,8 +4281,12 @@ enable_all_steppers();
           // Enables X sensorless detection
           thermalManager.sg2_x_limit_hit = 0;
 
+
+
           homeduration = 0;
           while (homeduration < 250) {
+            set_destination_from_current();
+
             // Moves X a little away from limit to avoid eroneous detections
             #ifdef BEEVC_TMC2130HOMEXREVERSE
               // Homes X to the right
@@ -11674,7 +11678,7 @@ inline void gcode_M502() {
         stepperY.rms_current(BEEVC_HOMEYCURRENT,HOLD_MULTIPLIER,R_SENSE);
 
         //Reset default values
-        thermalManager.sg2_homing_x_calibration = 0;
+        thermalManager.sg2_homing_x_calibration = 5;
         thermalManager.sg2_homing_y_calibration = 60;
         axis_homed[X_AXIS] = false;
         axis_homed[Y_AXIS] = false;
