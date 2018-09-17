@@ -505,6 +505,10 @@
 // so you shouldn't use it unless you are OK with PWM on your bed.  (see the comment on enabling PIDTEMPBED)
 
 
+
+//!!!!!!!! WARNING !!!!!!!!!!!!!
+// Changing this define will require recalibrating PID and changing statup wizard bed test time
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // hBp - Checks if the extended bed is being used and adjusts the power limit
 #ifndef BEEVC_Addon_bed
 #define MAX_BED_POWER 205 // limits duty cycle to bed; 255=full current
