@@ -33,6 +33,6 @@ build:
     artifacts:
         name: "marlin-bvc-$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHA"
         paths:
-            - *.hex
+            - ./*.hex
             #- build/*.hex
         expire_in: 1 week
