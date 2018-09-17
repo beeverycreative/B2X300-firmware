@@ -27,7 +27,7 @@ build:
         - echo "$build_date-$commit_branch-$commit_sha"
         - build_marlin
         - pwd && ls
-	- cp build/*bootloader.hex .
+        - cp build/*bootloader.hex .
         
 
     artifacts:
