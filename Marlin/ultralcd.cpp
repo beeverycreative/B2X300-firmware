@@ -280,18 +280,18 @@ uint16_t max_display_update_time = 0;
   #if HAS_TRINAMIC
     // Variables
     #if ENABLED(X_IS_TMC2130)
-      int16_t trinamic_tempXcurrent = 0;
+      uint32_t trinamic_tempXcurrent = 0;
       uint8_t trinamic_tempXsgt = 0;
     #endif
     #if ENABLED(Y_IS_TMC2130)
-      int16_t trinamic_tempYcurrent = 0;
+      uint32_t trinamic_tempYcurrent = 0;
       uint8_t trinamic_tempYsgt = 0;
     #endif
     #if ENABLED(Z_IS_TMC2130)
-      int16_t trinamic_tempZcurrent = 0;
+      uint32_t trinamic_tempZcurrent = 0;
     #endif
     #if (ENABLED(E0_IS_TMC2130) || ENABLED(E1_IS_TMC2130))
-      int16_t trinamic_tempEcurrent = 0;
+      uint32_t trinamic_tempEcurrent = 0;
       uint8_t trinamic_tempEsgt = 0;
     #endif
 
@@ -5646,18 +5646,18 @@ void beevc_machine_setup_test_blower (){
   #if HAS_TRINAMIC
   // Auxiliary funcitons
   #if ENABLED(X_IS_TMC2130)
-    inline void _trinamic_setX_current() {stepperX.setCurrent(trinamic_tempXcurrent, R_SENSE, HOLD_MULTIPLIER);}
+    inline void _trinamic_setX_current() {stepperX.setCurrent((uint16_t)trinamic_tempXcurrent, R_SENSE, HOLD_MULTIPLIER);}
     inline void _trinamic_setX_sgt() {stepperX.sgt(trinamic_tempXsgt);}
   #endif
   #if ENABLED(Y_IS_TMC2130)
-    inline void _trinamic_setY_current() {stepperY.setCurrent(trinamic_tempYcurrent, R_SENSE, HOLD_MULTIPLIER);}
+    inline void _trinamic_setY_current() {stepperY.setCurrent((uint16_t)trinamic_tempYcurrent, R_SENSE, HOLD_MULTIPLIER);}
     inline void _trinamic_setY_sgt() {stepperY.sgt(trinamic_tempYsgt);}
   #endif
   #if ENABLED(Z_IS_TMC2130)
-    inline void _trinamic_setZ_current() {stepperZ.setCurrent(trinamic_tempZcurrent, R_SENSE, HOLD_MULTIPLIER);}
+    inline void _trinamic_setZ_current() {stepperZ.setCurrent((uint16_t)trinamic_tempZcurrent, R_SENSE, HOLD_MULTIPLIER);}
   #endif
   #if (ENABLED(E0_IS_TMC2130) || ENABLED(E1_IS_TMC2130))
-    inline void _trinamic_setE_current() {stepperE0.setCurrent(trinamic_tempEcurrent, R_SENSE, HOLD_MULTIPLIER);stepperE1.setCurrent(trinamic_tempEcurrent, R_SENSE, HOLD_MULTIPLIER);}
+    inline void _trinamic_setE_current() {stepperE0.setCurrent((uint16_t)trinamic_tempEcurrent, R_SENSE, HOLD_MULTIPLIER);stepperE1.setCurrent((uint16_t)trinamic_tempEcurrent, R_SENSE, HOLD_MULTIPLIER);}
     inline void _trinamic_setE_sgt() {stepperE0.sgt((int8_t)trinamic_tempEsgt);stepperE1.sgt((int8_t)trinamic_tempEsgt);}
   #endif
 
@@ -5724,16 +5724,16 @@ void beevc_machine_setup_test_blower (){
       MENU_BACK(_UxGT("Trinamic Settings"));
       _trinamic_update_current_values();
       #if ENABLED(X_IS_TMC2130)
-        MENU_ITEM_EDIT_CALLBACK(int3, MSG_X, &trinamic_tempXcurrent, 350, 950, _trinamic_setX_current);
+        MENU_ITEM_EDIT_CALLBACK(long5, MSG_X, &trinamic_tempXcurrent, 500, 1200, _trinamic_setX_current);
       #endif
       #if ENABLED(Y_IS_TMC2130)
-        MENU_ITEM_EDIT_CALLBACK(int3, MSG_Y, &trinamic_tempYcurrent, 400, 950, _trinamic_setY_current);
+        MENU_ITEM_EDIT_CALLBACK(long5, MSG_Y, &trinamic_tempYcurrent, 500, 1200, _trinamic_setY_current);
       #endif
       #if ENABLED(Z_IS_TMC2130)
-        MENU_ITEM_EDIT_CALLBACK(int3, MSG_Z, &trinamic_tempZcurrent, 500, 950, _trinamic_setZ_current);
+        MENU_ITEM_EDIT_CALLBACK(long5, MSG_Z, &trinamic_tempZcurrent, 500, 1200, _trinamic_setZ_current);
       #endif
       #if (ENABLED(E0_IS_TMC2130) || ENABLED(E1_IS_TMC2130))
-        MENU_ITEM_EDIT_CALLBACK(int3, MSG_E, &trinamic_tempEcurrent, 500, 950, _trinamic_setE_current);
+        MENU_ITEM_EDIT_CALLBACK(long5, MSG_E, &trinamic_tempEcurrent, 500, 1200, _trinamic_setE_current);
       #endif
       END_MENU();
     }
