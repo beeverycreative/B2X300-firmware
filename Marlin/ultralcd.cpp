@@ -3577,7 +3577,7 @@ void lcd_enqueue_filament_change() {
 	{
 		START_SCREEN();
 		STATIC_ITEM(_UxGT("Nozzle height"), true, true);
-		lcd_implementation_drawedit(PSTR(_UxGT("Z height")), ftostr41sign((current_position[Z_AXIS] + zprobe_zoffset)));
+		lcd_implementation_drawedit(PSTR(_UxGT("Z height")), ftostr42sign((current_position[Z_AXIS] + zprobe_zoffset)));
 		lcd_implementation_drawmenu_static(3,PSTR("Press to save"));
 
 		END_SCREEN();
@@ -4688,7 +4688,7 @@ void beevc_machine_setup_screen_set_offset_calibrate(){
 {
   START_SCREEN();
   STATIC_ITEM(_UxGT("Nozzle height"), true, true);
-  lcd_implementation_drawedit(PSTR(_UxGT("Z height")), ftostr41sign((current_position[Z_AXIS] + zprobe_zoffset)));
+  lcd_implementation_drawedit(PSTR(_UxGT("Z height")), ftostr42sign((current_position[Z_AXIS] + zprobe_zoffset)));
   lcd_implementation_drawmenu_static(3,PSTR("Press to save"));
 
   END_SCREEN();
