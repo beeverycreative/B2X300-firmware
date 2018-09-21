@@ -926,7 +926,7 @@ void kill_screen(const char* lcd_msg) {
 	     lcd_setstatusPGM(PSTR(MSG_PRINT_ABORTED), -1);
       lcd_return_to_status();
 
-      enqueue_and_echo_commands_P(PSTR("G91\nG1 Z5\nG90\nG28 X Y\nM84"));
+      enqueue_and_echo_commands_P(PSTR("G91\nG1 Z5\nG28 X Y\nG1 X-20\nG90\nM84"));
     }
 
   #endif // SDSUPPORT
