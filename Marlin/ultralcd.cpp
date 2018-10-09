@@ -3890,6 +3890,9 @@ void lcd_enqueue_filament_change() {
         }
       #endif
 
+      // Apply a multiplyer if the move is long
+      encoderPosition = encoderPosition *(abs((int32_t)encoderPosition));
+
       // Get the new position
       const float diff = float((int32_t)encoderPosition) * move_menu_scale;
       #if IS_KINEMATIC
@@ -4001,6 +4004,12 @@ void lcd_enqueue_filament_change() {
     move_menu_scale = scale;
     lcd_goto_screen(_manual_move_func_ptr);
   }
+  void _goto_manual_move_small(const screenFunc_t func) {
+    defer_return_to_status = true;
+    move_menu_scale = 0.1;
+    lcd_goto_screen(func);
+  }
+
   void lcd_move_menu_10mm() { _goto_manual_move(10.0); }
   void lcd_move_menu_1mm()  { _goto_manual_move( 1.0); }
   void lcd_move_menu_01mm() { _goto_manual_move( 0.1); }
@@ -4026,9 +4035,9 @@ void lcd_enqueue_filament_change() {
     MENU_ITEM(submenu, MSG_MOVE_01MM, lcd_move_menu_01mm);
     END_MENU();
   }
-  void lcd_move_get_x_amount()        { _lcd_move_distance_menu(X_AXIS, lcd_move_x); }
-  void lcd_move_get_y_amount()        { _lcd_move_distance_menu(Y_AXIS, lcd_move_y); }
-  void lcd_move_get_z_amount()        { _lcd_move_distance_menu(Z_AXIS, lcd_move_z); }
+  void lcd_move_get_x_amount()        { _goto_manual_move_small(lcd_move_x); }
+  void lcd_move_get_y_amount()        { _goto_manual_move_small(lcd_move_y); }
+  void lcd_move_get_z_amount()        { _goto_manual_move_small(lcd_move_z); }
   void lcd_move_get_e_amount()        { _lcd_move_distance_menu(E_AXIS, lcd_move_e); }
   #if E_MANUAL > 1
     void lcd_move_get_e0_amount()     { _lcd_move_distance_menu(E_AXIS, lcd_move_e0); }
@@ -4092,24 +4101,24 @@ void lcd_enqueue_filament_change() {
         MENU_ITEM(gcode, MSG_SELECT " " MSG_E2, PSTR("T1"));
     #endif
 
-	// DR - added if to avoid unnecessary Extruder showing up
-	#if E_MANUAL == 1
-    MENU_ITEM(submenu, MSG_MOVE_E, lcd_move_get_e_amount);
-	#endif
-
-    #if E_MANUAL > 1
-      MENU_ITEM(submenu, MSG_MOVE_E MSG_MOVE_E1, lcd_move_get_e0_amount);
-      MENU_ITEM(submenu, MSG_MOVE_E MSG_MOVE_E2, lcd_move_get_e1_amount);
-      #if E_MANUAL > 2
-        MENU_ITEM(submenu, MSG_MOVE_E MSG_MOVE_E3, lcd_move_get_e2_amount);
-        #if E_MANUAL > 3
-          MENU_ITEM(submenu, MSG_MOVE_E MSG_MOVE_E4, lcd_move_get_e3_amount);
-          #if E_MANUAL > 4
-            MENU_ITEM(submenu, MSG_MOVE_E MSG_MOVE_E5, lcd_move_get_e4_amount);
-          #endif // E_MANUAL > 4
-        #endif // E_MANUAL > 3
-      #endif // E_MANUAL > 2
-    #endif // E_MANUAL > 1
+	// // DR - added if to avoid unnecessary Extruder showing up
+	// #if E_MANUAL == 1
+  //   MENU_ITEM(submenu, MSG_MOVE_E, lcd_move_get_e_amount);
+	// #endif
+  //
+  //   #if E_MANUAL > 1
+  //     MENU_ITEM(submenu, MSG_MOVE_E MSG_MOVE_E1, lcd_move_get_e0_amount);
+  //     MENU_ITEM(submenu, MSG_MOVE_E MSG_MOVE_E2, lcd_move_get_e1_amount);
+  //     #if E_MANUAL > 2
+  //       MENU_ITEM(submenu, MSG_MOVE_E MSG_MOVE_E3, lcd_move_get_e2_amount);
+  //       #if E_MANUAL > 3
+  //         MENU_ITEM(submenu, MSG_MOVE_E MSG_MOVE_E4, lcd_move_get_e3_amount);
+  //         #if E_MANUAL > 4
+  //           MENU_ITEM(submenu, MSG_MOVE_E MSG_MOVE_E5, lcd_move_get_e4_amount);
+  //         #endif // E_MANUAL > 4
+  //       #endif // E_MANUAL > 3
+  //     #endif // E_MANUAL > 2
+  //   #endif // E_MANUAL > 1
 
     END_MENU();
   }
