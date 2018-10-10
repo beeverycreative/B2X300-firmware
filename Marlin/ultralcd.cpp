@@ -250,7 +250,7 @@ uint16_t max_display_update_time = 0;
 	#endif // BEEVC_Restore
 	///////////////////////////////////////////////////////
 
-  ////////////   Startup wizard    //////////////
+  ////////////   Self-test Wizard    //////////////
 	#ifdef BEEVC_B2X300
 		void beevc_machine_setup();
 	#endif // BEEVC_Restore
@@ -1456,7 +1456,7 @@ void kill_screen(const char* lcd_msg) {
   void lcd_sensorless_homing_calibration_x()
     {
       START_SCREEN();
-      STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+      STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
       STATIC_ITEM(_UxGT("Calibrating X axis!"), false, false);
 
       STATIC_ITEM(_UxGT("Noise and impacts are"), false, false);
@@ -1480,7 +1480,7 @@ void kill_screen(const char* lcd_msg) {
   void lcd_sensorless_homing_calibration_y()
     {
       START_SCREEN();
-      STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+      STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
       STATIC_ITEM(_UxGT("Calibrating Y axis!"), false, false);
       STATIC_ITEM(_UxGT("Noise and impacts are"), false, false);
       STATIC_ITEM(_UxGT("to be expected."), false, false);
@@ -1502,7 +1502,7 @@ void kill_screen(const char* lcd_msg) {
   void lcd_sensorless_homing_calibration_x_done()
     {
       START_SCREEN();
-      STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+      STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
       STATIC_ITEM(_UxGT("Calibrating X axis!"), false, false);
       STATIC_ITEM(_UxGT("Process complete,"), false, false);
       STATIC_ITEM(_UxGT("finishing up"), false, false);
@@ -1511,7 +1511,7 @@ void kill_screen(const char* lcd_msg) {
   void lcd_sensorless_homing_calibration_y_done()
     {
       START_SCREEN();
-      STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+      STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
       STATIC_ITEM(_UxGT("Calibrating Y axis!"), false, false);
       STATIC_ITEM(_UxGT("Process complete,"), false, false);
       STATIC_ITEM(_UxGT("finishing up"), false, false);
@@ -1520,7 +1520,7 @@ void kill_screen(const char* lcd_msg) {
   void lcd_sensorless_homing_calibration_homing()
     {
       START_SCREEN();
-      STATIC_ITEM(_UxGT("Startup Wizard"), true, true);
+      STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
       STATIC_ITEM(_UxGT("Homing axes!"), false, false);
       STATIC_ITEM(_UxGT("Please wait..."), false, false);
       END_SCREEN();
@@ -4286,18 +4286,18 @@ void lcd_enqueue_filament_change() {
 
   #define MACHINE_SETUP_TITLE \
     START_SCREEN();\
-    STATIC_ITEM(_UxGT("Startup Wizard"), true, true)
+    STATIC_ITEM(_UxGT("Self-test Wizard"), true, true)
 
   #define MACHINE_SETUP_TITLE_WAIT \
     START_SCREEN();\
-    STATIC_ITEM(_UxGT("Startup Wizard"), true, true);\
+    STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);\
     STATIC_ITEM(_UxGT("Please wait, while"), false, false)
 
   #define MACHINE_SETUP_END END_SCREEN()
 
   #define MACHINE_SETUP_TITLE_CHOICE \
     START_MENU();\
-    STATIC_ITEM(_UxGT("Startup Wizard"), true, true)
+    STATIC_ITEM(_UxGT("Self-test Wizard"), true, true)
 
   #define MACHINE_SETUP_END_CHOICE END_MENU()
 
@@ -4308,95 +4308,109 @@ void lcd_enqueue_filament_change() {
     STATIC_ITEM(_UxGT("to finish"), false, false)
 
   #define MACHINE_SETUP_CHECK_MANUAL \
-    STATIC_ITEM(_UxGT("checking if proper"), false, false);\
-    STATIC_ITEM(_UxGT("connection exists"), false, false);\
-    STATIC_ITEM(_UxGT("on the motherboard."), false, false);\
-    STATIC_ITEM(_UxGT("For more information"), false, false);\
-    STATIC_ITEM(_UxGT("check the manual"), false, false);\
-    STATIC_ITEM(_UxGT("chapter :"), false, false)
+    STATIC_ITEM(_UxGT(" "),false,false);\
+    STATIC_ITEM(_UxGT("(scroll to read more)"),false,false);\
+    STATIC_ITEM(_UxGT("A error occured"), false, false);\
+    STATIC_ITEM(_UxGT("during the self-test"), false, false);\
+    STATIC_ITEM(_UxGT("Please, check the"), false, false);\
+    STATIC_ITEM(_UxGT("'Error Codes' chapter"), false, false);\
+    STATIC_ITEM(_UxGT("on the User Manual."), false, false)
 
+  #define MACHINE_SETUP_SHUTDOWN \
+    STATIC_ITEM(_UxGT("Please shutdown the"), false, false);\
+    STATIC_ITEM(_UxGT("printer, fix the"), false, false);\
+    STATIC_ITEM(_UxGT("issue and try again."), false, false)
 
   void beevc_machine_setup_screen_start() {
   MACHINE_SETUP_TITLE;
   STATIC_ITEM(_UxGT("Welcome to the B2X300"), false, false);
-  STATIC_ITEM(_UxGT("setup wizard!"), false, false);
-  STATIC_ITEM(_UxGT("We will now help you"), false, false);
-  STATIC_ITEM(_UxGT("to set up and test"), false, false);
-  STATIC_ITEM(_UxGT("your printer for its"), false, false);
-  STATIC_ITEM(_UxGT("first print"), false, false);
+  STATIC_ITEM(_UxGT("self-test wizard!"), false, false);
+  STATIC_ITEM(_UxGT(" "), false, false);
+  STATIC_ITEM(_UxGT("(scroll to read more)"), false, false);
+  STATIC_ITEM(_UxGT("---------------------"), false, false);
+  STATIC_ITEM(_UxGT("I will guide you"), false, false);
+  STATIC_ITEM(_UxGT("through the initial"), false, false);
+  STATIC_ITEM(_UxGT("printer setup."), false, false);
+  STATIC_ITEM(_UxGT(" "), false, false);
+  STATIC_ITEM(_UxGT("Click to continue."), false, false);
   MACHINE_SETUP_END;
 }
 
   void beevc_machine_setup_screen_hotend_start() {
   MACHINE_SETUP_TITLE;
-  STATIC_ITEM(_UxGT("We will now test "), false, false);
-  STATIC_ITEM(_UxGT("hotend connections"), false, false);
+  STATIC_ITEM(_UxGT("The machine will now"), false, false);
+  STATIC_ITEM(_UxGT("test the hotends."), false, false);
   MACHINE_SETUP_END;
 }
 
   void beevc_machine_setup_screen_hotend() {
-  MACHINE_SETUP_TITLE_WAIT;
+  MACHINE_SETUP_TITLE;
 
-  if(active_extruder == 0){
-    STATIC_ITEM(_UxGT("Extruder 1 is tested."), false, false);
-  }
-  else {
-    STATIC_ITEM(_UxGT("Extruder 2 is tested."), false, false);
-  }
+  STATIC_ITEM(_UxGT(" "));
 
-  STATIC_ITEM(_UxGT("Testing heating"), true, false);
-
-  u8g.setPrintPos(24, 60);
-  u8g.print("Nozzle: ");
-
+  u8g.setPrintPos(0, 26);
+  u8g.print("Extruder ");
+  u8g.print(active_extruder);
+  u8g.print(": ");
   if(round(thermalManager.degHotend(active_extruder)) <100)
-  u8g.print(" ");
-
+    u8g.print(" ");
   u8g.print(round(thermalManager.degHotend(active_extruder)));
   u8g.print("/");
   u8g.print(round(thermalManager.degTargetHotend(active_extruder)));
+  lcd_printPGM(PSTR(LCD_STR_DEGREE));
+  u8g.print("C");
+
+  STATIC_ITEM(_UxGT("Status:  heating test"));
+  STATIC_ITEM(_UxGT(" "));
+  STATIC_ITEM(_UxGT("Please wait."));
 
   MACHINE_SETUP_END;
 }
 
 void beevc_machine_setup_screen_hotend_ok() {
-MACHINE_SETUP_TITLE;
+  MACHINE_SETUP_TITLE;
 
-if(active_extruder == 0){
-  STATIC_ITEM(_UxGT("Extruder 1 test"), false, false);
-}
-else {
-  STATIC_ITEM(_UxGT("Extruder 2 test"), false, false);
-}
+  STATIC_ITEM(_UxGT(" "));
 
-STATIC_ITEM(_UxGT("sucesseful!"), false, false);
-STATIC_ITEM(_UxGT(" "), true, false);
-STATIC_ITEM(_UxGT("Press to continue!"), false, false);
+  u8g.setPrintPos(0, 26);
+  u8g.print("Extruder ");
+  u8g.print(active_extruder);
+  u8g.print(": ");
+  u8g.print(100);
+  u8g.print("/");
+  u8g.print(round(thermalManager.degTargetHotend(active_extruder)));
+  lcd_printPGM(PSTR(LCD_STR_DEGREE));
+  u8g.print("C");
 
-MACHINE_SETUP_END;
+  STATIC_ITEM(_UxGT("Status: OK!"), false,false );
+  STATIC_ITEM(_UxGT(" "));
+  STATIC_ITEM(_UxGT("Click to continue."),false,false);
+
+  MACHINE_SETUP_END;
 }
 
 void beevc_machine_setup_screen_hotend_cooling() {
-MACHINE_SETUP_TITLE_WAIT;
+  MACHINE_SETUP_TITLE;
 
-if(active_extruder == 0){
-  STATIC_ITEM(_UxGT("Extruder 1 is tested."), false, false);
-}
-else {
-  STATIC_ITEM(_UxGT("Extruder 2 is tested."), false, false);
-}
+  STATIC_ITEM(_UxGT(" "));
 
-STATIC_ITEM(_UxGT("Cooling down"), true, false);
+  u8g.setPrintPos(0, 26);
+  u8g.print("Extruder ");
+  u8g.print(active_extruder);
+  u8g.print(": ");
+  if(round(thermalManager.degHotend(active_extruder)) <100)
+    u8g.print(" ");
+  u8g.print(round(thermalManager.degHotend(active_extruder)));
+  u8g.print("/");
+  u8g.print(round(40));;
+  lcd_printPGM(PSTR(LCD_STR_DEGREE));
+  u8g.print("C");
 
-u8g.setPrintPos(24, 60);
-u8g.print("Nozzle: ");
-if(round(thermalManager.degHotend(active_extruder)) <100)
-u8g.print(" ");
-u8g.print(round(thermalManager.degHotend(active_extruder)));
-u8g.print("/");
-u8g.print(round(40));
+  STATIC_ITEM(_UxGT("Status:  cooling down"));
+  STATIC_ITEM(_UxGT(" "));
+  STATIC_ITEM(_UxGT("Please wait."));
 
-MACHINE_SETUP_END;
+  MACHINE_SETUP_END;
 }
 
 void beevc_machine_setup_screen_hotbed_ok() {
@@ -4440,50 +4454,105 @@ MACHINE_SETUP_END;
 }
 
 void beevc_machine_setup_screen_error_hotend_timeout() {
-MACHINE_SETUP_TITLE;
-if(active_extruder){
-  //E2
-  STATIC_ITEM(_UxGT("E2 timed out!"), false, false);
-}
-else{
-  //E1
-  STATIC_ITEM(_UxGT("E1 timed out!"), false, false);
-}
-STATIC_ITEM(_UxGT("Please verify the"), false, false);
-STATIC_ITEM(_UxGT("hotend resistor wire"), false, false);
-MACHINE_SETUP_CHECK_MANUAL;
-STATIC_ITEM(_UxGT("XX"), false, false);
-MACHINE_SETUP_END;
+  MACHINE_SETUP_TITLE;
+
+  STATIC_ITEM(_UxGT(" "));
+
+  u8g.setPrintPos(0, 26);
+  u8g.print("Extruder ");
+  u8g.print(active_extruder);
+  u8g.print(":  xx");
+  u8g.print("/");
+  u8g.print(round(thermalManager.degTargetHotend(active_extruder)));
+  lcd_printPGM(PSTR(LCD_STR_DEGREE));
+  u8g.print("C");
+
+  if(active_extruder){
+    STATIC_ITEM(_UxGT("Status: ST23 - ERROR!"));
+  }
+  else{
+    STATIC_ITEM(_UxGT("Status: ST13 - ERROR!"));
+  }
+
+  MACHINE_SETUP_CHECK_MANUAL;
+
+  if(active_extruder){
+    STATIC_ITEM(_UxGT("Error code: ST23"));
+  }
+  else{
+    STATIC_ITEM(_UxGT("Error code: ST13"));
+  }
+
+  MACHINE_SETUP_SHUTDOWN;
+  MACHINE_SETUP_END;
 }
 
 void beevc_machine_setup_screen_error_hotend_sensor() {
-MACHINE_SETUP_TITLE;
-if(active_extruder){
-  //E2
-  STATIC_ITEM(_UxGT("E2 read error!"), false, false);
-}
-else{
-  //E1
-  STATIC_ITEM(_UxGT("E1 read error!"), false, false);
-}
-STATIC_ITEM(_UxGT("Please verify the"), false, false);
-STATIC_ITEM(_UxGT("thermistor wire"), false, false);
-MACHINE_SETUP_CHECK_MANUAL;
-STATIC_ITEM(_UxGT("XX"), false, false);
-MACHINE_SETUP_END;
+  MACHINE_SETUP_TITLE;
+
+  STATIC_ITEM(_UxGT(" "));
+
+  u8g.setPrintPos(0, 26);
+  u8g.print("Extruder ");
+  u8g.print(active_extruder);
+  u8g.print(":  xx");
+  u8g.print("/");
+  u8g.print(round(thermalManager.degTargetHotend(active_extruder)));
+  lcd_printPGM(PSTR(LCD_STR_DEGREE));
+  u8g.print("C");
+
+  if(active_extruder){
+    STATIC_ITEM(_UxGT("Status: ST21 - ERROR!"));
+  }
+  else{
+    STATIC_ITEM(_UxGT("Status: ST11 - ERROR!"));
+  }
+
+  MACHINE_SETUP_CHECK_MANUAL;
+
+  if(active_extruder){
+    STATIC_ITEM(_UxGT("Error code: ST21"));
+  }
+  else{
+    STATIC_ITEM(_UxGT("Error code: ST11"));
+  }
+
+  MACHINE_SETUP_SHUTDOWN;
+  MACHINE_SETUP_END;
 }
 
 void beevc_machine_setup_screen_error_hotend_sensor_swaped() {
-MACHINE_SETUP_TITLE;
-STATIC_ITEM(_UxGT("Incorrect reading!"), false, false);
-STATIC_ITEM(_UxGT("Please check if the"), false, false);
-STATIC_ITEM(_UxGT("thermistor wires"), false, false);
-STATIC_ITEM(_UxGT("or heating resistors"), false, false);
-STATIC_ITEM(_UxGT("for both extruders"), false, false);
-STATIC_ITEM(_UxGT("aren't swaped,"), false, false);
-MACHINE_SETUP_CHECK_MANUAL;
-STATIC_ITEM(_UxGT("XX"), false, false);
-MACHINE_SETUP_END;
+  MACHINE_SETUP_TITLE;
+
+  STATIC_ITEM(_UxGT(" "));
+
+  u8g.setPrintPos(0, 26);
+  u8g.print("Extruder ");
+  u8g.print(active_extruder);
+  u8g.print(":  xx");
+  u8g.print("/");
+  u8g.print(round(thermalManager.degTargetHotend(active_extruder)));
+  lcd_printPGM(PSTR(LCD_STR_DEGREE));
+  u8g.print("C");
+
+  if(active_extruder){
+    STATIC_ITEM(_UxGT("Status: ST22 - ERROR!"));
+  }
+  else{
+    STATIC_ITEM(_UxGT("Status: ST12 - ERROR!"));
+  }
+
+  MACHINE_SETUP_CHECK_MANUAL;
+
+  if(active_extruder){
+    STATIC_ITEM(_UxGT("Error code: ST22"));
+  }
+  else{
+    STATIC_ITEM(_UxGT("Error code: ST12"));
+  }
+
+  MACHINE_SETUP_SHUTDOWN;
+  MACHINE_SETUP_END;
 }
 
 void beevc_machine_setup_screen_error_hotbed_hot() {
@@ -4886,7 +4955,7 @@ void beevc_machine_setup_test_blower (){
 
   /**
    *  BEEVC
-   * "Machine settings" > "Setup wizard"
+   * "Machine settings" > "Self-test Wizard"
    */
   void beevc_machine_setup() {
 
@@ -4936,7 +5005,7 @@ void beevc_machine_setup_test_blower (){
 
     // PID Calibration
 
-    // Clears startup wizard flag
+    // Clears Self-test Wizard flag
     gcode_M721();
 
     // Stores EEPROM data
@@ -5029,7 +5098,7 @@ void beevc_machine_setup_test_blower (){
 
     MENU_ITEM(submenu, MSG_MOTION, beevc_machine_motion_menu);
 
-    MENU_ITEM(function, _UxGT("Setup wizard"), beevc_machine_setup);
+    MENU_ITEM(function, _UxGT("Self-test Wizard"), beevc_machine_setup);
 
     MENU_ITEM(submenu, MSG_STORE_EEPROM, beevc_machine_save_confirm);
 
