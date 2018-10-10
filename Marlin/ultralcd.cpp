@@ -258,8 +258,8 @@ uint16_t max_display_update_time = 0;
 
   ////////////   Filament Change   //////////////
 	uint16_t filament_change_temp = 0;
-  bool filament_change_extruder = 0;
-  bool filament_change_load = 0;
+  bool filament_change_load = false;
+  bool filament_change_manual = false;
 
   static void lcd_filament_change();
   static void lcd_filament_change_start();
@@ -273,7 +273,7 @@ uint16_t max_display_update_time = 0;
   static void lcd_filament_change_choose_action ();
   static void lcd_filament_change_action_load ();
   static void lcd_filament_change_action_unload ();
-  static void lcd_filament_change_unload_load (bool extruder, uint16_t changetemp, bool just_heating, bool unload_load);
+  static void lcd_filament_change_unload_load (uint16_t changetemp, bool just_heating, bool unload_load);
   static void manual_move_to_current(AxisEnum axis
     #if E_MANUAL > 1
       , int8_t eindex
@@ -1322,9 +1322,9 @@ void kill_screen(const char* lcd_msg) {
 	void lcd_filament_change_hotendStatus() {
 		START_SCREEN();
       STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_1 "  ", true, true);
+      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_1 "  ", true, false);
       #ifdef MSG_FILAMENT_CHANGE_HEATING_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_2 "  ", true, true);
+        STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_2 "  ", true, false);
         #define _FC_LINES_C 3
       #else
         #define _FC_LINES_C 2
@@ -1345,7 +1345,7 @@ void kill_screen(const char* lcd_msg) {
 			lcd.print("/");
 			lcd.print(round(thermalManager.degTargetHotend(active_extruder)));
 	  #else
-		  u8g.setPrintPos(24, 48);
+		  u8g.setPrintPos(16, 48);
 			u8g.print("Nozzle: ");
 
 			if(round(thermalManager.degHotend(active_extruder)) <100)
@@ -1377,8 +1377,8 @@ void kill_screen(const char* lcd_msg) {
       START_SCREEN();
       STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
       STATIC_ITEM(" ");
-	    STATIC_ITEM("Press and hold ");
-	    STATIC_ITEM("to continue... ");
+	    STATIC_ITEM("   Press to   ");
+	    STATIC_ITEM("  continue... ");
       END_SCREEN();
     }
 
@@ -1391,10 +1391,19 @@ void kill_screen(const char* lcd_msg) {
       END_SCREEN();
     }
 
+    void lcd_filament_change_moving_wait()
+      {
+        START_SCREEN();
+        STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
+        STATIC_ITEM(" ");
+  	    STATIC_ITEM("Moving, please wait...");
+        END_SCREEN();
+      }
+
 	void lcd_filament_change_option_menu() {
       START_MENU();
       #if LCD_HEIGHT > 2
-        STATIC_ITEM(MSG_FILAMENTCHANGE, true, false);
+        STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
       #endif
       MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_RESUME, lcd_filament_change_resume_print);
       MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_EXTRUDE, lcd_filament_change_extrude_more);
@@ -1404,7 +1413,7 @@ void kill_screen(const char* lcd_msg) {
 	void lcd_filament_change_unload_option_menu() {
       START_MENU();
       #if LCD_HEIGHT > 2
-        STATIC_ITEM(MSG_FILAMENTCHANGE, true, false);
+        STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
       #endif
 	  MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_LOAD, lcd_filament_change_load);
       MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_RESUME, lcd_filament_change_resume_print);
@@ -1414,7 +1423,7 @@ void kill_screen(const char* lcd_msg) {
 	void lcd_filament_change_unload_menu() {
       START_MENU();
       #if LCD_HEIGHT > 2
-        STATIC_ITEM(MSG_FILAMENTCHANGE, true, false);
+        STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
       #endif
       MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_RESUME, lcd_filament_change_resume_print);
 
@@ -1423,30 +1432,22 @@ void kill_screen(const char* lcd_msg) {
     }
 
    void lcd_filament_change_move_e() {
-     if (lcd_clicked) { return lcd_goto_previous_menu(); }
+     // if (lcd_clicked) { return lcd_goto_previous_menu_no_defer(); }
+     defer_return_to_status = true;
      ENCODER_DIRECTION_NORMAL();
-     if (encoderPosition) {
-       if (!processing_manual_move) {
-         const float diff = float((int32_t)encoderPosition) * 10;
-           current_position[E_AXIS] += diff;
-         manual_move_to_current(E_AXIS, active_extruder);
-         lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
-       }
+     if (encoderPosition && (!processing_manual_move)) {
+       const float diff = float((int32_t)encoderPosition) * 10;
+       current_position[E_AXIS] += diff;
+       manual_move_to_current(E_AXIS, active_extruder);
+       lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
        encoderPosition = 0;
      }
-     if (lcdDrawUpdate && !processing_manual_move) {
-       PGM_P pos_label;
 
+     if (lcdDrawUpdate && (!processing_manual_move)) {
        switch (active_extruder) {
-           default: pos_label = PSTR(MSG_MOVE_E MSG_MOVE_E1); break;
-           case 1: pos_label = PSTR(MSG_MOVE_E MSG_MOVE_E2); break;
+           default: lcd_implementation_drawedit(PSTR(MSG_MOVE_E MSG_MOVE_E1), ftostr41sign(current_position[E_AXIS]));; break;
+           case 1: lcd_implementation_drawedit(PSTR(MSG_MOVE_E MSG_MOVE_E2), ftostr41sign(current_position[E_AXIS]));; break;
          }
-
-       lcd_implementation_drawedit(pos_label, ftostr41sign(current_position[E_AXIS]
-         #if IS_KINEMATIC
-           + manual_move_offset
-         #endif
-       ));
      }
    }
 
@@ -1525,23 +1526,10 @@ void kill_screen(const char* lcd_msg) {
       END_SCREEN();
     }
 
-static void lcd_filament_change_unload_load (bool extruder, uint16_t changetemp, bool just_heating, bool unload_load)
+static void lcd_filament_change_unload_load (uint16_t changetemp, bool just_heating, bool unload_load)
 {
-  //change the tool/extruder
-	if (extruder)
-	{
-		enqueue_and_echo_commands_P(PSTR("T1"));
-		active_extruder=1;
-	}
-	else
-	{
-		enqueue_and_echo_commands_P(PSTR("T0"));
-		active_extruder = 0;
-	}
-
-  // Starts heating to 5 degrees above required temperature
-  changetemp += 5;
-	HOTEND_LOOP() thermalManager.setTargetHotend(changetemp, extruder);
+  // Starts heating
+	HOTEND_LOOP() thermalManager.setTargetHotend(changetemp, active_extruder);
 
   //Disables the timeout to status screen
   defer_return_to_status = true;
@@ -1554,7 +1542,7 @@ static void lcd_filament_change_unload_load (bool extruder, uint16_t changetemp,
   bool update = true;
 
   //This helps to speed up the temperature stabilization process without changing the PID
-  changetemp -= 5;
+  //changetemp -= 10;
 
     while (update)
     {
@@ -1564,7 +1552,7 @@ static void lcd_filament_change_unload_load (bool extruder, uint16_t changetemp,
     	   idle(true);
     	   HOTEND_LOOP()
          {
-           if (abs(thermalManager.degHotend(extruder) - changetemp) > 10)
+           if (abs(thermalManager.degHotend(active_extruder) - changetemp) > 10)
            {
              update = true;
              break;
@@ -1582,7 +1570,7 @@ static void lcd_filament_change_unload_load (bool extruder, uint16_t changetemp,
 	lcd_goto_screen(lcd_filament_change_press);
   KEEPALIVE_STATE(PAUSED_FOR_USER);
   wait_for_user = true;    // LCD click or M108 will clear this
-	next_update = millis() + 100;
+	next_update = millis();
 	while (wait_for_user )
   {
 		if(next_update < millis())
@@ -1607,10 +1595,9 @@ static void lcd_filament_change_unload_load (bool extruder, uint16_t changetemp,
         //         break;
         //     }
         // #endif //FILAMENT_RUNOUT_DUAL
-
-  			idle(true);
   			next_update = millis() + 1000;
   	}
+    idle(true);
 	}
 
   KEEPALIVE_STATE(IN_HANDLER);
@@ -1635,41 +1622,54 @@ static void lcd_filament_change_unload_load (bool extruder, uint16_t changetemp,
   		enqueue_and_echo_commands_P(PSTR("M620 S1 U1"));
 
     enqueue_and_echo_commands_P(PSTR("T0"));
-
-    // update LCD and return
-    lcdDrawUpdate = 2;
-
-    //Enables the status screen
-  	defer_return_to_status = false;
-
-    // Goes back to the action selection
-    menu_action_back(lcd_filament_change_choose_action);
   }
   else{
     lcd_goto_screen(lcd_filament_change_move_e);
+    KEEPALIVE_STATE(PAUSED_FOR_USER);
+    wait_for_user = true;    // LCD click or M108 will clear this
+  	while (wait_for_user ){
+      idle(true);
+  	}
   }
 
+  // update LCD and return
+  lcdDrawUpdate = 2;
 
+  //Enables the status screen
+  defer_return_to_status = false;
+
+  // Goes back to the action selection
+  menu_action_back(lcd_filament_change_choose_action);
+}
+
+static void lcd_filament_chang_finish_movement () {
+  lcd_filament_change_moving();
+
+  // Checks if necessary movements have been made
+  if ((current_position[Z_AXIS] == 50) && axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS]) {
+    lcd_filament_change_unload_load (filament_change_temp,filament_change_manual, filament_change_load);
+  }
 }
 
 
-static void lcd_filament_change_action_unload ()
-{
-  lcd_filament_change_unload_load (filament_change_extruder,filament_change_temp,0, 0);
+static void lcd_filament_change_action_unload () {
+  filament_change_load = false ;
+  filament_change_manual = false ;
+  lcd_goto_screen(lcd_filament_chang_finish_movement);
 }
 
-static void lcd_filament_change_action_load ()
-{
-  lcd_filament_change_unload_load (filament_change_extruder,filament_change_temp,0, 1);
+static void lcd_filament_change_action_load () {
+  filament_change_load = true ;
+  filament_change_manual = false ;
+  lcd_goto_screen(lcd_filament_chang_finish_movement);
 }
 
-static void lcd_filament_change_action_move ()
-{
-  lcd_filament_change_unload_load (filament_change_extruder,filament_change_temp,1, 0);
+static void lcd_filament_change_action_move () {
+  filament_change_manual = true ;
+  lcd_goto_screen(lcd_filament_chang_finish_movement);
 }
 
-static void lcd_filament_change_choose_action ()
-{
+static void lcd_filament_change_choose_action () {
   START_MENU();
   MENU_BACK(MSG_BACK);
   MENU_ITEM(function, _UxGT("Auto Load"), lcd_filament_change_action_load);
@@ -1681,24 +1681,28 @@ static void lcd_filament_change_choose_action ()
 static void lcd_filament_change_pla ()
 {
   filament_change_temp = 210;
+  thermalManager.setTargetHotend(filament_change_temp, active_extruder);
   lcd_goto_screen(lcd_filament_change_choose_action);
 }
 
 static void lcd_filament_change_petg ()
 {
   filament_change_temp = 230;
+  thermalManager.setTargetHotend(filament_change_temp, active_extruder);
   lcd_goto_screen(lcd_filament_change_choose_action);
 }
 
 static void lcd_filament_change_abs ()
 {
   filament_change_temp = 240;
+  thermalManager.setTargetHotend(filament_change_temp, active_extruder);
   lcd_goto_screen(lcd_filament_change_choose_action);
 }
 
 static void lcd_filament_change_pc ()
 {
   filament_change_temp = 260;
+  thermalManager.setTargetHotend(filament_change_temp, active_extruder);
   lcd_goto_screen(lcd_filament_change_choose_action);
 }
 
@@ -1718,13 +1722,15 @@ static void lcd_filament_change_choose_temp() {
 
 static void lcd_filament_change_extruder_0()
 {
-  filament_change_extruder = 0;
+  enqueue_and_echo_commands_P(PSTR("T0"));
+  active_extruder=0;
   lcd_goto_screen(lcd_filament_change_choose_temp);
 }
 
 static void lcd_filament_change_extruder_1()
 {
-  filament_change_extruder = 1;
+  enqueue_and_echo_commands_P(PSTR("T1"));
+  active_extruder=1;
   lcd_goto_screen(lcd_filament_change_choose_temp);
 }
 
@@ -1748,9 +1754,11 @@ static void lcd_filament_change_start()
   lcd_goto_screen(lcd_filament_change_moving);
 
   // homing and moving to Z = 50
-  axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
-  enqueue_and_echo_commands_P(PSTR("G28"));
-  enqueue_and_echo_commands_P(PSTR("G1 Z50 F3000"));
+  if (!((current_position[Z_AXIS] == 50) && axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS])) {
+    axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
+    enqueue_and_echo_commands_P(PSTR("G28"));
+    enqueue_and_echo_commands_P(PSTR("G1 Z50 F3000"));
+  }
 
   lcd_goto_screen(lcd_filament_change);
 }
