@@ -4660,7 +4660,7 @@ void beevc_machine_setup_screen_blower_test_ok() {
   MACHINE_SETUP_TITLE;
 
   STATIC_ITEM(_UxGT("Blower fan:      100%"));
-  STATIC_ITEM(_UxGT("Status: OK!"));
+  STATIC_ITEM(_UxGT("Status: OK!"),false,false);
   STATIC_ITEM(_UxGT(" "));
   STATIC_ITEM(_UxGT("Click to continue."));
 
