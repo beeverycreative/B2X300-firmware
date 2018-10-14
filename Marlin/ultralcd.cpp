@@ -254,6 +254,7 @@ uint16_t max_display_update_time = 0;
 	#ifdef BEEVC_B2X300
 		void beevc_machine_setup();
     bool beevc_machine_setup_blower_ok = 0;
+    uint8_t trinamic_ok = 0;
 	#endif // BEEVC_Restore
 	///////////////////////////////////////////////////////
 
@@ -4688,6 +4689,65 @@ void beevc_machine_setup_screen_blower_test() {
   MACHINE_SETUP_END_CHOICE;
 }
 
+void beevc_machine_setup_screen_trinamic_start() {
+  MACHINE_SETUP_TITLE;
+  STATIC_ITEM(_UxGT("The machine will now"), false, false);
+  STATIC_ITEM(_UxGT("test the trinamic"), false, false);
+  STATIC_ITEM(_UxGT("stepper drivers. "), false, false);
+  STATIC_ITEM(_UxGT("Click to continue."), false, false);
+  MACHINE_SETUP_END;
+}
+
+void beevc_machine_setup_screen_trinamic_ok() {
+  MACHINE_SETUP_TITLE;
+
+  STATIC_ITEM(_UxGT("Trinamic drivers: OK!"));
+  STATIC_ITEM(_UxGT("Status: OK!"));
+  STATIC_ITEM(_UxGT(" "));
+  STATIC_ITEM(_UxGT("Click to continue."));
+
+  MACHINE_SETUP_END;
+}
+
+void beevc_machine_setup_screen_trinamic_error() {
+  MACHINE_SETUP_TITLE;
+
+  // X axis
+  if(!(trinamic_ok & 0x01)){
+    STATIC_ITEM(_UxGT("X Stepper driver: NOK"));
+  }
+
+  // Y axis
+  if(!(trinamic_ok & 0x02)){
+    STATIC_ITEM(_UxGT("Y Stepper driver: NOK"));
+  }
+
+  // Z axis
+  if(!(trinamic_ok & 0x04)){
+    STATIC_ITEM(_UxGT("Z Stepper driver: NOK"));
+  }
+
+  // E1 axis
+  if(!(trinamic_ok & 0x08)){
+    STATIC_ITEM(_UxGT("E1 Stepper driver:NOK"));
+  }
+
+  // E2 axis
+  if(!(trinamic_ok & 0x10)){
+    STATIC_ITEM(_UxGT("E2 Stepper driver:NOK"));
+  }
+
+
+  STATIC_ITEM(_UxGT("Status: ST51 - ERROR!"));
+
+  MACHINE_SETUP_CHECK_MANUAL;
+
+  STATIC_ITEM(_UxGT("Error code: ST51"));
+
+  MACHINE_SETUP_SHUTDOWN;
+  MACHINE_SETUP_END;
+}
+
 void beevc_machine_setup_screen_sensorless_homing(){
   MACHINE_SETUP_TITLE;
 
@@ -4793,12 +4853,12 @@ void beevc_machine_setup_screen_complete(){
 
 void beevc_machine_setup_screen_set_offset_calibrate(){
   if (lcd_clicked)
-{
-  zprobe_zoffset = (current_position[Z_AXIS] + zprobe_zoffset);
-  lcd_completion_feedback(settings.save());
-  z_offset_finished = true;
-  lcd_goto_screen(beevc_machine_setup_screen_set_offset_complete);
-}
+    {
+      zprobe_zoffset = (current_position[Z_AXIS] + zprobe_zoffset);
+      lcd_completion_feedback(settings.save());
+      z_offset_finished = true;
+      lcd_goto_screen(beevc_machine_setup_screen_set_offset_complete);
+    }
 
   ENCODER_DIRECTION_NORMAL();
 
@@ -4857,7 +4917,6 @@ void beevc_machine_setup_sensorless_homing (){
 }
 
 void beevc_machine_setup_measure_xy(){
-
 }
 
 void beevc_machine_setup_set_offset(){
@@ -5053,6 +5112,68 @@ void beevc_machine_setup_test_blower (){
     fanSpeeds[0] = 0;
 }
 
+void beevc_machine_setup_test_trinamic (){
+    // Displays Trinamic test start screen
+    lcd_goto_screen(beevc_machine_setup_screen_trinamic_start);
+
+    // Waits for 5s or click
+    beevc_machine_setup_wait(5000);
+
+    // Re-initializes variable
+    trinamic_ok = 0;
+
+    // Tests each axis one at a time storing the result if positive
+    if (stepperX.test_connection() == 0)
+      trinamic_ok |= 0x01;
+
+    if (stepperY.test_connection() == 0)
+      trinamic_ok |= 0x02;
+
+    if (stepperZ.test_connection() == 0)
+      trinamic_ok |= 0x04;
+
+    if (stepperE0.test_connection() == 0)
+      trinamic_ok |= 0x08;
+
+    if (stepperE1.test_connection() == 0)
+      trinamic_ok |= 0x10;
+
+    #ifdef SERIAL_DEBUG
+      SERIAL_PROTOCOLLNPAIR("X = ", stepperX.test_connection());
+      SERIAL_PROTOCOLLNPAIR("Y = ", stepperY.test_connection());
+      SERIAL_PROTOCOLLNPAIR("Z = ", stepperZ.test_connection());
+      SERIAL_PROTOCOLLNPAIR("E1 = ", stepperE0.test_connection());
+      SERIAL_PROTOCOLLNPAIR("E2 = ", stepperE1.test_connection());
+
+      SERIAL_PROTOCOLLNPAIR("X = ", (trinamic_ok & 0x01));
+      SERIAL_PROTOCOLLNPAIR("Y = ", (trinamic_ok & 0x02));
+      SERIAL_PROTOCOLLNPAIR("Z = ", (trinamic_ok & 0x04));
+      SERIAL_PROTOCOLLNPAIR("E1 = ", (trinamic_ok & 0x08));
+      SERIAL_PROTOCOLLNPAIR("E2 = ", (trinamic_ok & 0x10));
+
+      SERIAL_PROTOCOLLNPAIR("Value = ", trinamic_ok);
+    #endif
+
+
+
+    // If any axis failed display error screen
+    if (trinamic_ok != 0x1F){
+      lcd_goto_screen(beevc_machine_setup_screen_trinamic_error);
+      while(1){
+        idle(true);
+      }
+    }
+
+    //Beep
+    beevc_machine_setup_buzz();
+
+    // Display ok screen
+    lcd_goto_screen(beevc_machine_setup_screen_trinamic_ok);
+
+    //Wait for 5sec or click
+    beevc_machine_setup_wait(5000);
+}
+
   /**
    *  BEEVC
    * "Machine settings" > "Self-test Wizard"
@@ -5091,6 +5212,9 @@ void beevc_machine_setup_test_blower (){
 
     // Verify blower connection
     beevc_machine_setup_test_blower();
+
+    // Test Trinamic stepper drivers
+    beevc_machine_setup_test_trinamic();
 
     // Calibrate sensorless homing
     beevc_machine_setup_sensorless_homing();
