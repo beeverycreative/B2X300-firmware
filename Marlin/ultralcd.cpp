@@ -4702,7 +4702,7 @@ void beevc_machine_setup_screen_trinamic_ok() {
   MACHINE_SETUP_TITLE;
 
   STATIC_ITEM(_UxGT("Trinamic drivers: OK!"));
-  STATIC_ITEM(_UxGT("Status: OK!"));
+  STATIC_ITEM(_UxGT("Status: OK!"),false,false);
   STATIC_ITEM(_UxGT(" "));
   STATIC_ITEM(_UxGT("Click to continue."));
 
@@ -4743,6 +4743,41 @@ void beevc_machine_setup_screen_trinamic_error() {
   MACHINE_SETUP_CHECK_MANUAL;
 
   STATIC_ITEM(_UxGT("Error code: ST51"));
+
+  MACHINE_SETUP_SHUTDOWN;
+  MACHINE_SETUP_END;
+}
+
+void beevc_machine_setup_screen_powerloss_start() {
+  MACHINE_SETUP_TITLE;
+  STATIC_ITEM(_UxGT("The machine will now"), false, false);
+  STATIC_ITEM(_UxGT("test the powerloss"), false, false);
+  STATIC_ITEM(_UxGT("detection board. "), false, false);
+  STATIC_ITEM(_UxGT("Click to continue."), false, false);
+  MACHINE_SETUP_END;
+}
+
+void beevc_machine_setup_screen_powerloss_ok() {
+  MACHINE_SETUP_TITLE;
+
+  STATIC_ITEM(_UxGT("Powerloss:         OK"));
+  STATIC_ITEM(_UxGT("Status: OK!"),false,false);
+  STATIC_ITEM(_UxGT(" "));
+  STATIC_ITEM(_UxGT("Click to continue."));
+
+  MACHINE_SETUP_END;
+}
+
+void beevc_machine_setup_screen_powerloss_error() {
+  MACHINE_SETUP_TITLE;
+
+  STATIC_ITEM(_UxGT("Powerloss:        NOK"));
+
+  STATIC_ITEM(_UxGT("Status: ST61 - ERROR!"));
+
+  MACHINE_SETUP_CHECK_MANUAL;
+
+  STATIC_ITEM(_UxGT("Error code: ST61"));
 
   MACHINE_SETUP_SHUTDOWN;
   MACHINE_SETUP_END;
@@ -5154,8 +5189,6 @@ void beevc_machine_setup_test_trinamic (){
       SERIAL_PROTOCOLLNPAIR("Value = ", trinamic_ok);
     #endif
 
-
-
     // If any axis failed display error screen
     if (trinamic_ok != 0x1F){
       lcd_goto_screen(beevc_machine_setup_screen_trinamic_error);
@@ -5169,6 +5202,31 @@ void beevc_machine_setup_test_trinamic (){
 
     // Display ok screen
     lcd_goto_screen(beevc_machine_setup_screen_trinamic_ok);
+
+    //Wait for 5sec or click
+    beevc_machine_setup_wait(5000);
+}
+
+void beevc_machine_setup_test_powerloss (){
+    // Displays Trinamic test start screen
+    lcd_goto_screen(beevc_machine_setup_screen_powerloss_start);
+
+    // Waits for 5s or click
+    beevc_machine_setup_wait(5000);
+
+    // Tests if the powerloss pin is ofline as it should be
+    if (digitalRead(11) != 0){
+      lcd_goto_screen(beevc_machine_setup_screen_powerloss_error);
+      while(1){
+        idle(true);
+      }
+    }
+
+    //Beep
+    beevc_machine_setup_buzz();
+
+    // Display ok screen
+    lcd_goto_screen(beevc_machine_setup_screen_powerloss_ok);
 
     //Wait for 5sec or click
     beevc_machine_setup_wait(5000);
@@ -5215,6 +5273,9 @@ void beevc_machine_setup_test_trinamic (){
 
     // Test Trinamic stepper drivers
     beevc_machine_setup_test_trinamic();
+
+    // Test powerloss detection pin
+    beevc_machine_setup_test_powerloss();
 
     // Calibrate sensorless homing
     beevc_machine_setup_sensorless_homing();
