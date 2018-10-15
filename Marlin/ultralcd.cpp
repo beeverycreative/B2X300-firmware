@@ -1047,6 +1047,8 @@ void kill_screen(const char* lcd_msg) {
         MENU_ITEM(submenu, MSG_FILAMENTCHANGE, lcd_filament_change_start);
       // Move axis
         MENU_ITEM(submenu, MSG_MOVE_AXIS, lcd_move_menu);
+      // Auto Home
+        MENU_ITEM(gcode, MSG_AUTO_HOME, PSTR("G28"));
       // Set nozzle height / Z offset
     	  #if HAS_ABL
     		  MENU_ITEM(submenu, _UxGT("Set nozzle height"), _lcd_z_offset_start_bed_homing);
@@ -1054,9 +1056,6 @@ void kill_screen(const char* lcd_msg) {
 
       // Cold pull
         //MENU_ITEM(submenu, _UxGT("Cold pull"), _lcd_menu_z_offset);
-
-      // Auto Home
-        MENU_ITEM(gcode, MSG_AUTO_HOME, PSTR("G28"));
 
       // Auto Home/ Level Bed
         // Leveling only appears when automatic bed leveling method exists
@@ -1082,9 +1081,9 @@ void kill_screen(const char* lcd_msg) {
 
       START_SCREEN();
       STATIC_ITEM("Marlin-fork", true, true);
-      STATIC_ITEM("open source firmware", false, true);
-      STATIC_ITEM("engineered by", false, true);
-      STATIC_ITEM("BEEVERYCREATIVE", false, true);
+      STATIC_ITEM("open source firmware", true, false);
+      STATIC_ITEM("engineered by", true, false);
+      STATIC_ITEM("BEEVERYCREATIVE", true, false);
 
       char about_string[22];
       about_string[0] = '\0';
@@ -1094,18 +1093,30 @@ void kill_screen(const char* lcd_msg) {
       strncat(about_string, BUILDBRANCH,6);
       strcat(about_string, "-");
       strncat(about_string, BUILDCOMMIT,7);
-      STATIC_ITEM("", false, false, about_string);
+      STATIC_ITEM("", true, false, about_string);
       STATIC_ITEM("---------------------", false, false);
       STATIC_ITEM("Diagnostic Info.", false, false);
       STATIC_ITEM("---------------------", false, false);
 
-      strncat(about_string, BUILDDATE,6);
-      strcat(about_string, "-");
-      strncat(about_string, BUILDBRANCH,6);
-      strcat(about_string, "-");
-      strncat(about_string, BUILDCOMMIT,7);
-      STATIC_ITEM("", false, false, about_string);
+      about_string[0] = '\0';
+      strncat(about_string, i8tostr3(thermalManager.sg2_homing_x_calibration),3);
+      strcat(about_string, "/");
+      strncat(about_string, i8tostr3(thermalManager.sg2_homing_y_calibration),4);
+      STATIC_ITEM("Homing X/Y: ", false, false, about_string);
 
+      STATIC_ITEM(_UxGT("Nozzle height: "), false, false, ftostr42sign(zprobe_zoffset));
+
+      about_string[0] = '\0';
+      strncat(about_string, itostr4sign(stepperX.getCurrent()),4);
+      strcat(about_string, "/");
+      strncat(about_string, itostr4sign(stepperY.getCurrent()),5);
+      STATIC_ITEM("Curr. X/Y: ", false, false, about_string);
+
+      about_string[0] = '\0';
+      strncat(about_string, itostr4sign(stepperZ.getCurrent()),4);
+      strcat(about_string, "/");
+      strncat(about_string, itostr4sign(stepperE0.getCurrent()),5);
+      STATIC_ITEM("Curr. Z/E: ", false, false, about_string);
 
       END_SCREEN();
     }
@@ -4304,18 +4315,18 @@ void lcd_enqueue_filament_change() {
 
   #define MACHINE_SETUP_TITLE \
     START_SCREEN();\
-    STATIC_ITEM(_UxGT("Self-test Wizard"), true, true)
+    STATIC_ITEM(_UxGT("Self-test wizard"), true, true)
 
   #define MACHINE_SETUP_TITLE_WAIT \
     START_SCREEN();\
-    STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);\
+    STATIC_ITEM(_UxGT("Self-test wizard"), true, true);\
     STATIC_ITEM(_UxGT("Please wait, while"), false, false)
 
   #define MACHINE_SETUP_END END_SCREEN()
 
   #define MACHINE_SETUP_TITLE_CHOICE \
     START_MENU();\
-    STATIC_ITEM(_UxGT("Self-test Wizard"), true, true)
+    STATIC_ITEM(_UxGT("Self-test wizard"), true, true)
 
   #define MACHINE_SETUP_END_CHOICE END_MENU()
 
@@ -4786,7 +4797,7 @@ void beevc_machine_setup_screen_powerloss_error() {
 void beevc_machine_setup_screen_sensorless_homing(){
   MACHINE_SETUP_TITLE;
 
-  STATIC_ITEM(_UxGT("Sensorless homing: XY"));
+  STATIC_ITEM(_UxGT("Sensorless-homing: XY"));
   STATIC_ITEM(_UxGT("Status: Homing XY"), false, false);
   STATIC_ITEM(_UxGT(" "));
   STATIC_ITEM(_UxGT("Please wait."), false, false);
@@ -4797,7 +4808,6 @@ void beevc_machine_setup_screen_sensorless_homing(){
 void beevc_machine_setup_screen_sensorless_homing_complete(){
   MACHINE_SETUP_TITLE;
 
-  STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
   STATIC_ITEM(_UxGT("Sensorless-homing: XY"), false, false);
   STATIC_ITEM(_UxGT("Status: OK!"), false, false);
   STATIC_ITEM(_UxGT(" "), false, false);
@@ -4841,25 +4851,26 @@ void beevc_machine_setup_screen_set_offset_explain(){
 
 void beevc_machine_setup_screen_set_offset_homing(){
   MACHINE_SETUP_TITLE;
-  STATIC_ITEM(_UxGT("Nozzle height: ---"), false, false);
+  STATIC_ITEM(_UxGT("Nozzle height: -----"), false, false);
   STATIC_ITEM(_UxGT("Status: finding mesh"), false, false);
   STATIC_ITEM(_UxGT(" "), false, false);
-  STATIC_ITEM(_UxGT("Please wait"), false, false);
+  STATIC_ITEM(_UxGT("Please wait."), false, false);
   MACHINE_SETUP_END;
 }
 
 void beevc_machine_setup_screen_set_offset_moving(){
   MACHINE_SETUP_TITLE;
-  lcd_implementation_drawedit(PSTR(_UxGT("Nozzle height: ")), ftostr42sign((current_position[Z_AXIS] + zprobe_zoffset)));
+  STATIC_ITEM(_UxGT("Nozzle height: -----"), false, false);
   STATIC_ITEM(_UxGT("Status: moving"), false, false);
   STATIC_ITEM(_UxGT(" "), false, false);
-  STATIC_ITEM(_UxGT("Please wait"), false, false);
+  STATIC_ITEM(_UxGT("Please wait."), false, false);
   MACHINE_SETUP_END;
 }
 
 void beevc_machine_setup_screen_set_offset_complete(){
   MACHINE_SETUP_TITLE;
-  STATIC_ITEM(_UxGT("Nozzle height: ---"), false, false);
+  STATIC_ITEM(_UxGT(" "), false, false);
+  lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr42sign(zprobe_zoffset));
   STATIC_ITEM(_UxGT("Status: OK!"), false, false);
   STATIC_ITEM(_UxGT(" "), false, false);
   STATIC_ITEM(_UxGT("Click to continue."), false, false);
@@ -4868,6 +4879,7 @@ void beevc_machine_setup_screen_set_offset_complete(){
 
 void beevc_machine_setup_screen_complete(){
   MACHINE_SETUP_TITLE;
+
   STATIC_ITEM(_UxGT("Self-test completed"), false, false);
   STATIC_ITEM(_UxGT("successfully"), false, false);
   STATIC_ITEM(_UxGT(" "), false, false);
@@ -4875,12 +4887,12 @@ void beevc_machine_setup_screen_complete(){
   STATIC_ITEM(_UxGT("---------------------"), false, false);
   STATIC_ITEM(_UxGT("Extruder 1: OK"), false, false);
   STATIC_ITEM(_UxGT("Extruder 2: OK"), false, false);
-  STATIC_ITEM(_UxGT("Heated bed: OK)"), false, false);
+  STATIC_ITEM(_UxGT("Heated bed: OK"), false, false);
   STATIC_ITEM(_UxGT("Blower Fan: OK"), false, false);
-  lcd_implementation_drawedit(PSTR(_UxGT("Homing X:")), i8tostr3(thermalManager.sg2_homing_x_calibration));
-  lcd_implementation_drawedit(PSTR(_UxGT("Homing Y:")), i8tostr3(thermalManager.sg2_homing_y_calibration));
-  STATIC_ITEM(_UxGT("Heated bed: OK)"), false, false);
-  lcd_implementation_drawedit(PSTR(_UxGT("Nozzle height:")), ftostr42sign((current_position[Z_AXIS] + zprobe_zoffset)));
+  STATIC_ITEM(_UxGT("Homing X:"), false, false, i8tostr3(thermalManager.sg2_homing_x_calibration));
+  STATIC_ITEM(_UxGT("Homing Y:"), false, false, i8tostr3(thermalManager.sg2_homing_y_calibration));
+  STATIC_ITEM(_UxGT("Homing Z: OK"), false, false);
+  STATIC_ITEM(_UxGT("Nozzle height: "), false, false, ftostr42sign(zprobe_zoffset));
   STATIC_ITEM(_UxGT(" "), false, false);
   STATIC_ITEM(_UxGT("Click to exit."), false, false);
   MACHINE_SETUP_END;
@@ -4919,9 +4931,9 @@ void beevc_machine_setup_screen_set_offset_calibrate(){
   if (lcdDrawUpdate) {
     MACHINE_SETUP_TITLE;
 
-    lcd_implementation_drawedit(PSTR(_UxGT("Nozzle height:")), ftostr42sign((current_position[Z_AXIS] + zprobe_zoffset)));
+    lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr42sign((current_position[Z_AXIS] + zprobe_zoffset)));
     lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
-    lcd_implementation_drawmenu_static(3,PSTR("Click to save."));
+    lcd_implementation_drawmenu_static(4,PSTR("Click to save."));
 
     MACHINE_SETUP_END;
   }
@@ -4947,6 +4959,9 @@ void beevc_machine_setup_sensorless_homing (){
   //Display sensorless homing ok screen
   lcd_goto_screen(beevc_machine_setup_screen_sensorless_homing_complete);
 
+  //Beep
+  beevc_machine_setup_buzz();
+
   //Wait for 5sec or click
   beevc_machine_setup_wait(5000);
 }
@@ -4968,26 +4983,27 @@ void beevc_machine_setup_set_offset(){
   gcode_G28(1);
   gcode_G29();
   axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
-  gcode_G28(1);
 
   // Show moving screen
   lcd_goto_screen(beevc_machine_setup_screen_set_offset_moving);
+
+  // Moves the carriage and bed to the offset adjust position
+  gcode_G28(1);
 
   // Lowers Z axis
   current_position[Z_AXIS] -= 8;
   manual_move_to_current(Z_AXIS);
 
   // Waits a few seconds to allow movement to finish
-  uint32_t temp_time = millis() + 3000;
+  uint32_t temp_time = millis() + 3200;
   while(millis() < temp_time){
-    // lcd_goto_screen(beevc_machine_setup_screen_set_offset_home_complete);
     lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
     idle(true);
   }
 
   // Shows the help screen
   lcd_goto_screen(beevc_machine_setup_screen_set_offset_explain);
-  beevc_machine_setup_wait(15000);
+  beevc_machine_setup_wait(20000);
 
   // Shows the leveling screen
   lcd_goto_screen(beevc_machine_setup_screen_set_offset_calibrate);
@@ -4997,10 +5013,11 @@ void beevc_machine_setup_set_offset(){
     idle(true);
   }
 
+  //Beep
   beevc_machine_setup_buzz();
 
-  // Waits for click or timeout
-  beevc_machine_setup_wait(1000);
+  //Wait for 5sec or click
+  beevc_machine_setup_wait(5000);
 }
 
 void beevc_machine_setup_test_hotend (uint8_t extruder){
@@ -5137,14 +5154,13 @@ void beevc_machine_setup_test_blower (){
       idle(true);
     }
 
-    //Wait for 5sec or click
-    beevc_machine_setup_wait(5000);
+    fanSpeeds[0] = 0;
 
     //Beep
     beevc_machine_setup_buzz();
 
-    beevc_machine_setup_wait_click();
-    fanSpeeds[0] = 0;
+    //Wait for 5sec or click
+    beevc_machine_setup_wait(5000);
 }
 
 void beevc_machine_setup_test_trinamic (){
@@ -5280,7 +5296,7 @@ void beevc_machine_setup_test_powerloss (){
     // Calibrate sensorless homing
     beevc_machine_setup_sensorless_homing();
 
-    // Measure XY axes size
+    //Measure XY axes size
     //beevc_machine_setup_measure_xy();
 
     // Set Z offset
@@ -5302,8 +5318,8 @@ void beevc_machine_setup_test_powerloss (){
     // Shows complete screen
     lcd_goto_screen(beevc_machine_setup_screen_complete);
 
-    // Waits for a max of 5s
-    beevc_machine_setup_wait(5000);
+    // Waits for click
+    beevc_machine_setup_wait_click();
 
     // Return to status screen
     lcd_return_to_status();
@@ -5323,6 +5339,7 @@ void beevc_machine_setup_test_powerloss (){
 
   void beevc_machine_save_confirm() {
     START_MENU();
+    STATIC_ITEM("Save settings", true, true);
     MENU_BACK(MSG_MAIN);
 
     MENU_ITEM(function, _UxGT("Confirm"), beevc_machine_save_confirm_go_to_status);
@@ -5341,6 +5358,7 @@ void beevc_machine_setup_test_powerloss (){
 
   void beevc_machine_reset_confirm() {
     START_MENU();
+    STATIC_ITEM("Reset settings", true, true);
     MENU_BACK(MSG_MAIN);
 
     MENU_ITEM(function, _UxGT("Confirm"), beevc_machine_reset_confirm_go_to_status);
@@ -5383,7 +5401,7 @@ void beevc_machine_setup_test_powerloss (){
 
     MENU_ITEM(submenu, MSG_MOTION, beevc_machine_motion_menu);
 
-    MENU_ITEM(function, _UxGT("Self-test Wizard"), beevc_machine_setup);
+    MENU_ITEM(function, _UxGT("Self-test wizard"), beevc_machine_setup);
 
     MENU_ITEM(submenu, MSG_STORE_EEPROM, beevc_machine_save_confirm);
 
@@ -5404,7 +5422,7 @@ void beevc_machine_setup_test_powerloss (){
       else
         MENU_ITEM(function, _UxGT("Enable Silent mode"), enable_silent_mode);
 
-        MENU_ITEM(submenu,  _UxGT("Trinamic Settings"), beevc_trinamic_settings_menu);
+        MENU_ITEM(submenu,  _UxGT("Trinamic settings"), beevc_trinamic_settings_menu);
     #endif
 
 
@@ -5445,7 +5463,7 @@ void beevc_machine_setup_test_powerloss (){
   #if ENABLED(PID_AUTOTUNE_MENU)
 
     #if ENABLED(PIDTEMP)
-      int16_t autotune_temp[HOTENDS] = ARRAY_BY_HOTENDS1(150);
+      int16_t autotune_temp[HOTENDS] = ARRAY_BY_HOTENDS1(175);
     #endif
 
     #if ENABLED(PIDTEMPBED)
@@ -5530,8 +5548,11 @@ void beevc_machine_setup_test_powerloss (){
     MENU_ITEM(submenu, MSG_PREHEAT_2, lcd_preheat_m2_menu);
     MENU_ITEM(function, MSG_COOLDOWN, lcd_cooldown);
 
-    PID_MENU_ITEMS(" " MSG_E1, 0);
-    PID_MENU_ITEMS(" " MSG_E2, 1);
+    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_PID_AUTOTUNE " " MSG_E1, &autotune_temp[0], 175, heater_maxtemp[0] - 15, lcd_autotune_callback_E0);
+    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_PID_AUTOTUNE " " MSG_E2, &autotune_temp[1], 175, heater_maxtemp[1] - 15, lcd_autotune_callback_E1);
+
+    _PID_BASE_MENU_ITEMS(" " MSG_E1, 0);
+    _PID_BASE_MENU_ITEMS(" " MSG_E2, 1);
 
   END_MENU();
   }
@@ -5557,7 +5578,7 @@ void beevc_machine_setup_test_powerloss (){
     MENU_MULTIPLIER_ITEM_EDIT(int3, MSG_FAN_SPEED FAN_SPEED_1_SUFFIX, &fanSpeeds[0], 0, 255);
 
     // Advanced options
-    MENU_ITEM(submenu,  _UxGT("Advanced Settings"), beevc_machine_temperature_advanced_menu);
+    MENU_ITEM(submenu,  _UxGT("Advanced settings"), beevc_machine_temperature_advanced_menu);
 
 
     END_MENU();
@@ -5953,7 +5974,7 @@ void beevc_machine_setup_test_powerloss (){
     MENU_BACK(MSG_CONTROL);
 
     #ifdef HAVE_TMC2130
-        MENU_ITEM(submenu,  _UxGT("Trinamic Settings"), beevc_trinamic_settings_menu);
+        MENU_ITEM(submenu,  _UxGT("Trinamic settings"), beevc_trinamic_settings_menu);
     #endif
 
     // M203 / M205 - Feedrate items

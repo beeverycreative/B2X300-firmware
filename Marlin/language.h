@@ -216,7 +216,7 @@
 #define MSG_KILL_BUTTON                     "KILL caused by KILL button/pin"
 
 // temperature.cpp strings
-#define MSG_PID_AUTOTUNE                    "PID Autotune"
+#define MSG_PID_AUTOTUNE                    "PID autotune"
 #define MSG_PID_AUTOTUNE_START              MSG_PID_AUTOTUNE " start"
 #define MSG_PID_AUTOTUNE_FAILED             MSG_PID_AUTOTUNE " failed!"
 #define MSG_PID_BAD_EXTRUDER_NUM            MSG_PID_AUTOTUNE_FAILED " Bad extruder number"
