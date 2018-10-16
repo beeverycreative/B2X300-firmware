@@ -4381,7 +4381,7 @@ void lcd_enqueue_filament_change() {
 
     u8g.setPrintPos(0, 26);
     u8g.print("Extruder ");
-    u8g.print(active_extruder);
+    u8g.print(active_extruder+1);
     u8g.print(": ");
     if(round(thermalManager.degHotend(active_extruder)) <100)
       u8g.print(" ");
@@ -4405,7 +4405,7 @@ void beevc_machine_setup_screen_hotend_ok() {
 
     u8g.setPrintPos(0, 26);
     u8g.print("Extruder ");
-    u8g.print(active_extruder);
+    u8g.print(active_extruder+1);
     u8g.print(": ");
     u8g.print(100);
     u8g.print("/");
@@ -4427,7 +4427,7 @@ void beevc_machine_setup_screen_hotend_cooling() {
 
   u8g.setPrintPos(0, 26);
   u8g.print("Extruder ");
-  u8g.print(active_extruder);
+  u8g.print(active_extruder+1);
   u8g.print(": ");
   if(round(thermalManager.degHotend(active_extruder)) <100)
     u8g.print(" ");
