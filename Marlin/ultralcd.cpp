@@ -724,6 +724,215 @@ uint16_t max_display_update_time = 0;
 
 /**
  *
+ * "Auxiliary function"
+ *
+ *
+ */
+
+ #ifdef BEEVC_B2X300
+
+   void beevc_buzz(){
+     lcd_buzz(100, 659);
+     lcd_buzz(100, 698);
+   }
+
+   void beevc_wait_click() {
+     wait_for_user = true;    // LCD click or M108 will clear this
+     while(wait_for_user){
+       // Avoid returning to status screen
+       defer_return_to_status = true;
+
+       // Manage idle time
+       idle(true);
+     }
+   }
+
+   void beevc_wait(uint16_t milliseconds) {
+     wait_for_user = true;    // LCD click or M108 will clear this
+     uint32_t temptime= millis() + milliseconds;
+     while((temptime > millis()) && wait_for_user){
+       // Avoid returning to status screen
+       defer_return_to_status = true;
+
+       // Manage idle time
+       idle(true);
+     }
+   }
+ #endif
+/**
+ *
+ * "Set nozzle height"
+ *
+ *
+ */
+ #ifdef BEEVC_B2X300
+
+ void beevc_set_offset_home_complete(){
+   START_SCREEN();
+   STATIC_ITEM(_UxGT("Set nozzle height"), true, true);
+   STATIC_ITEM(_UxGT("Leveling done!"), false, false);
+   STATIC_ITEM(_UxGT("Moving to calibration"), false, false);
+   STATIC_ITEM(_UxGT("position"), false, false);
+   END_SCREEN();
+ }
+
+ void beevc_set_offset_explain(){
+   START_SCREEN();
+   STATIC_ITEM(_UxGT("Set nozzle height"), true, true);
+   STATIC_ITEM(_UxGT("Please, adjust the Z"), false, false);
+   STATIC_ITEM(_UxGT("height by turning the"), false, false);
+   STATIC_ITEM(_UxGT("LCD knob."), false, false);
+   STATIC_ITEM(_UxGT("(scroll to read more)"), false, false);
+   STATIC_ITEM(_UxGT("---------------------"), false, false);
+   STATIC_ITEM(_UxGT("Place a paper sheet "), false, false);
+   STATIC_ITEM(_UxGT("between the nozzle "), false, false);
+   STATIC_ITEM(_UxGT("and the print surface"), false, false);
+   STATIC_ITEM(_UxGT(". Adjust until the "), false, false);
+   STATIC_ITEM(_UxGT("paper is neither free"), false, false);
+   STATIC_ITEM(_UxGT("nor completely stuck"), false, false);
+   STATIC_ITEM(_UxGT(" "), false, false);
+   STATIC_ITEM(_UxGT("Please, check the"), false, false);
+   STATIC_ITEM(_UxGT("'Other Codes' chapter"), false, false);
+   STATIC_ITEM(_UxGT("on the User Manual for"), false, false);
+   STATIC_ITEM(_UxGT("more information."), false, false);
+   STATIC_ITEM(_UxGT(" "), false, false);
+   STATIC_ITEM(_UxGT("Proc. code: ST71"), false, false);
+   STATIC_ITEM(_UxGT(" "), false, false);
+   STATIC_ITEM(_UxGT("Click to continue."), false, false);
+   END_SCREEN();
+ }
+
+ void beevc_set_offset_homing(){
+   START_SCREEN();
+   STATIC_ITEM(_UxGT("Set nozzle height"), true, true);
+   STATIC_ITEM(_UxGT("Nozzle height: -----"), false, false);
+   STATIC_ITEM(_UxGT("Status: finding mesh"), false, false);
+   STATIC_ITEM(_UxGT(" "), false, false);
+   STATIC_ITEM(_UxGT("Please wait."), false, false);
+   END_SCREEN();
+ }
+
+ void beevc_set_offset_moving(){
+   START_SCREEN();
+   STATIC_ITEM(_UxGT("Set nozzle height"), true, true);
+   STATIC_ITEM(_UxGT("Nozzle height: -----"), false, false);
+   STATIC_ITEM(_UxGT("Status: moving"), false, false);
+   STATIC_ITEM(_UxGT(" "), false, false);
+   STATIC_ITEM(_UxGT("Please wait."), false, false);
+   END_SCREEN();
+ }
+
+ void beevc_set_offset_complete(){
+   START_SCREEN();
+   STATIC_ITEM(_UxGT("Set nozzle height"), true, true);
+   STATIC_ITEM(_UxGT(" "), false, false);
+   lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr42sign(zprobe_zoffset));
+   STATIC_ITEM(_UxGT("Status: OK!"), false, false);
+   STATIC_ITEM(_UxGT(" "), false, false);
+   STATIC_ITEM(_UxGT("Click to continue."), false, false);
+   END_SCREEN();
+ }
+
+ void beevc_set_offset_calibrate(){
+   if (lcd_clicked)
+     {
+       zprobe_zoffset = (current_position[Z_AXIS] + zprobe_zoffset);
+       lcd_completion_feedback(settings.save());
+       z_offset_finished = true;
+       lcd_goto_screen(beevc_set_offset_complete);
+     }
+
+   ENCODER_DIRECTION_NORMAL();
+
+   if (encoderPosition) {
+     refresh_cmd_timeout();
+
+     float min = current_position[Z_AXIS] - 1000,
+           max = current_position[Z_AXIS] + 1000;
+
+     // Get the new position
+     current_position[Z_AXIS] -= float((int32_t)encoderPosition) * 0.05;
+
+
+     // Limit only when trying to move towards the limit
+     if ((int32_t)encoderPosition < 0) NOLESS(current_position[Z_AXIS], min);
+     if ((int32_t)encoderPosition > 0) NOMORE(current_position[Z_AXIS], max);
+
+     manual_move_to_current(Z_AXIS,0);
+
+     encoderPosition = 0;
+     lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+   }
+   if (lcdDrawUpdate) {
+     START_SCREEN();
+     STATIC_ITEM(_UxGT("Set nozzle height"), true, true);
+
+     lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr42sign((current_position[Z_AXIS] + zprobe_zoffset)));
+     lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
+     lcd_implementation_drawmenu_static(4,PSTR("Click to save."));
+
+     END_SCREEN();
+   }
+ }
+
+ void beevc_set_offset(){
+   // Initializes required variable
+   z_offset_finished = false;
+
+   // Show finding mesh screen
+   lcd_goto_screen(beevc_set_offset_homing);
+
+   // Waits for click or timeout
+   beevc_wait(1000);
+
+   // Homes and autoleves axes
+   gcode_G28(1);
+   gcode_G29();
+
+   // Show moving screen
+   lcd_goto_screen(beevc_set_offset_moving);
+
+   // Moves the carriage and bed to the offset adjust position
+   axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
+   gcode_G28(1);
+
+   // Lowers Z axis
+   current_position[Z_AXIS] -= 8;
+   manual_move_to_current(Z_AXIS,0);
+
+   // Waits a few seconds to allow movement to finish
+   uint32_t temp_time = millis() + 3200;
+   while(millis() < temp_time){
+     lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+     idle(true);
+   }
+
+   // Shows the help screen
+   lcd_goto_screen(beevc_set_offset_explain);
+   beevc_wait(20000);
+
+   // Shows the leveling screen
+   lcd_goto_screen(beevc_set_offset_calibrate);
+
+   // Waits for conclusion of Adjustment
+   while(!z_offset_finished){
+     idle(true);
+   }
+
+   //Beep
+   beevc_buzz();
+
+   //Wait for 5sec or click
+   beevc_wait(5000);
+
+   //Return to status screen
+   lcd_return_to_status();
+ }
+
+ #endif
+
+/**
+ *
  * "Info Screen"
  *
  * This is very display-dependent, so the lcd implementation draws this.
@@ -1051,7 +1260,11 @@ void kill_screen(const char* lcd_msg) {
         MENU_ITEM(gcode, MSG_AUTO_HOME, PSTR("G28"));
       // Set nozzle height / Z offset
     	  #if HAS_ABL
-    		  MENU_ITEM(submenu, _UxGT("Set nozzle height"), _lcd_z_offset_start_bed_homing);
+          #ifdef BEEVC_B2X300
+            MENU_ITEM(submenu, _UxGT("Set nozzle height"), beevc_set_offset);
+          #else
+            MENU_ITEM(submenu, _UxGT("Set nozzle height"), _lcd_z_offset_start_bed_homing);
+          #endif
     	  #endif
 
       // Cold pull
@@ -4982,12 +5195,12 @@ void beevc_machine_setup_set_offset(){
   // Homes and autoleves axes
   gcode_G28(1);
   gcode_G29();
-  axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
 
   // Show moving screen
   lcd_goto_screen(beevc_machine_setup_screen_set_offset_moving);
 
   // Moves the carriage and bed to the offset adjust position
+  axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
   gcode_G28(1);
 
   // Lowers Z axis
