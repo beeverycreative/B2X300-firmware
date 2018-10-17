@@ -308,6 +308,30 @@
 #define E0_STEP_WRITE(STATE) WRITE(E0_STEP_PIN,STATE)
 #define E0_STEP_READ READ(E0_STEP_PIN)
 
+// DUAL_NOZZLE_DUPLICATION_MODE TODO: Extrusor E2 has the same direction it should be reversed
+
+#ifdef DUAL_NOZZLE_DUPLICATION_MODE
+  #undef E0_ENABLE_INIT
+  #undef E0_ENABLE_WRITE
+  #undef E0_ENABLE_READ
+  #undef E0_DIR_INIT
+  #undef E0_DIR_WRITE
+  #undef E0_DIR_READ
+  #undef E0_STEP_INIT
+  #undef E0_STEP_WRITE
+  #undef E0_STEP_READ
+
+  #define E0_ENABLE_INIT { if (extruder_duplication_enabled) {SET_OUTPUT(E0_ENABLE_PIN); SET_OUTPUT(E1_ENABLE_PIN); } else {SET_OUTPUT(E0_ENABLE_PIN); } }
+  #define E0_ENABLE_WRITE(STATE) { if (extruder_duplication_enabled) {WRITE(E0_ENABLE_PIN,STATE); WRITE(E1_ENABLE_PIN,STATE); } else {WRITE(E0_ENABLE_PIN,STATE); } }
+  #define E0_ENABLE_READ READ(E0_ENABLE_PIN)
+  #define E0_DIR_INIT { if (extruder_duplication_enabled) {SET_OUTPUT(E0_DIR_PIN); SET_OUTPUT(E1_DIR_PIN); } else {SET_OUTPUT(E0_DIR_PIN); } }
+  #define E0_DIR_WRITE(STATE) { if (extruder_duplication_enabled) {WRITE(E0_DIR_PIN,STATE); WRITE(E1_DIR_PIN,(!STATE)); } else {WRITE(E0_DIR_PIN,STATE); } }
+  #define E0_DIR_READ READ(E0_DIR_PIN)
+  #define E0_STEP_INIT { if (extruder_duplication_enabled) {SET_OUTPUT(E0_STEP_PIN); SET_OUTPUT(E1_STEP_PIN); } else {SET_OUTPUT(E0_STEP_PIN); }  }
+  #define E0_STEP_WRITE(STATE) { if (extruder_duplication_enabled) {WRITE(E0_STEP_PIN,STATE); WRITE(E1_STEP_PIN,STATE); } else {WRITE(E0_STEP_PIN,STATE); } }
+  #define E0_STEP_READ READ(E0_STEP_PIN)
+#endif
+
 // E1 Stepper
 #if ENABLED(HAVE_L6470DRIVER) && ENABLED(E1_IS_L6470)
   extern L6470 stepperE1;
