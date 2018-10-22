@@ -880,7 +880,7 @@ uint16_t max_display_update_time = 0;
   void lcd_dual_z_offset_bed_status() {
 		START_SCREEN();
       STATIC_ITEM(_UxGT("Dual Z offset test"), true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_1 "  ", true, false);
+      STATIC_ITEM(_UxGT("Heating bed"), true, false);
       STATIC_ITEM("  ", true, false);
       STATIC_ITEM("  ", true, false);
       #ifdef MSG_FILAMENT_CHANGE_HEATING_2
@@ -930,7 +930,7 @@ uint16_t max_display_update_time = 0;
     STATIC_ITEM(_UxGT("Status: finding mesh"), false, false);
     STATIC_ITEM(_UxGT(" "));
     STATIC_ITEM(_UxGT(" "));
-    STATIC_ITEM(_UxGT("Please wait."), false, false);
+    STATIC_ITEM(_UxGT("Please wait."), true, false);
 
     END_SCREEN();
   }
@@ -941,7 +941,7 @@ uint16_t max_display_update_time = 0;
     STATIC_ITEM(_UxGT("Status: printing"), false, false);
     STATIC_ITEM(_UxGT(" "));
     STATIC_ITEM(_UxGT(" "));
-    STATIC_ITEM(_UxGT("Please wait."), false, false);
+    STATIC_ITEM(_UxGT("Please wait."), true, false);
 
     END_SCREEN();
   }
@@ -1054,7 +1054,7 @@ uint16_t max_display_update_time = 0;
       	   update = false;
       	   idle(true);
       	   HOTEND_LOOP() {
-             if ((abs(thermalManager.degHotend(0) - thermalManager.degTargetHotend(0)) > 10) && (abs(thermalManager.degHotend(1) - thermalManager.degTargetHotend(1)) > 10)) {
+             if ((abs(thermalManager.degHotend(0) - thermalManager.degTargetHotend(0)) > 10) || (abs(thermalManager.degHotend(1) - thermalManager.degTargetHotend(1)) > 10)) {
                update = true;
                break;
              }
@@ -1081,7 +1081,7 @@ uint16_t max_display_update_time = 0;
         	   update = false;
         	   idle(true);
         	   HOTEND_LOOP() {
-               if ((abs(thermalManager.degBed() - thermalManager.degTargetBed()) > 10)) {
+               if ((abs(thermalManager.degBed() - thermalManager.degTargetBed()) > 2)) {
                  update = true;
                  break;
                }

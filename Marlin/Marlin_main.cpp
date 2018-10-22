@@ -13277,6 +13277,24 @@ inline void gcode_M999() {
      stepper.synchronize();
    }
 
+   void do_relative_move_to (float posX, float posY, float posZ, float posE, float feed) {
+     // Reset extruded value to 0
+     stepper.synchronize();
+     current_position[E_AXIS] = 0;
+     destination[E_AXIS] = 0;
+     sync_plan_position_e();
+     report_current_position();
+
+     destination[X_AXIS] = posX;
+     destination[Y_AXIS] = posY;
+     destination[Z_AXIS] = posZ;
+     destination[E_AXIS] = posE;
+     feedrate_mm_s = feed;
+
+     prepare_move_to_destination();
+     stepper.synchronize();
+   }
+
    inline void gcode_M730() {
      // Reset extruded value to 0
      stepper.synchronize();
