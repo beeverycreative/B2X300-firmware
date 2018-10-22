@@ -247,6 +247,8 @@
  * M712 - Reset recovery flag
  * M720 - Sets startup wizard flag
  * M721 - Disables startup wizard flag
+ * M730 - Prints dual nozzle Z offset test
+ * M731 - Prints dual nozzle XY offset test
  * M916 - Set chopping mode (Only works for TMC2130 or TMC2208)
  * M917 - Read stallGuard2 values
  * M918 - Set Sensorless_homing calibration value
@@ -12289,8 +12291,13 @@ inline void gcode_M999() {
  * M712 - Resets restore print flag
  * M720 - Sets startup wizard flag
  * M721 - Disables startup wizard flag
+ * M730 - Prints dual nozzle Z offset test
+ * M731 - Prints dual nozzle XY offset test
  *
  */
+
+
+ #ifdef BEEVC_Restore
 
  /**
   * M701: Store current position to EEPROM
@@ -12307,7 +12314,6 @@ inline void gcode_M999() {
   *
   *
  */
- #ifdef BEEVC_Restore
 
 	 inline void gcode_M701()
 	{
@@ -12509,41 +12515,6 @@ inline void gcode_M999() {
 		kill(PSTR(MSG_KILLED));
 
 	}
-
-  /**
-    * M720 - Resets startup wizard flag
-    *
-    * Signals to start setup wizard on next boot
-    *
-    *
-   */
-   inline void gcode_M720()
- 	{
-      //Sets the startup wizard flag
-      uint8_t temp = 0;
-      int eeprom_index = 100-sizeof(temp);
-      EEPROM_write(eeprom_index, (uint8_t*)&temp, sizeof(temp));
-
-      SERIAL_ECHOLNPGM("Startup wizard set up!");
-  }
-
-  /**
-    * M721 - Disables startup wizard flag
-    *
-    * Signals to disable startup wizard
-    *
-    *
-   */
-
-   inline void gcode_M721()
- 	{
-    // Disables the startup wizard flag
-    toCalibrate = 255;
-    int eeprom_index = 100-sizeof(toCalibrate);
-    EEPROM_write(eeprom_index, (uint8_t*)&toCalibrate, sizeof(toCalibrate));
-
-    SERIAL_ECHOLNPGM("Startup wizard disabled!");
-    }
 
   /**
     * M712 - Clears the Z height register
@@ -13246,7 +13217,141 @@ inline void gcode_M999() {
 
 		toRecover = false;
 	}
+
+  /**
+    * M720 - Resets startup wizard flag
+    *
+    * Signals to start setup wizard on next boot
+    *
+    *
+   */
+
 #endif
+
+#ifdef BEEVC_B2X300
+  inline void gcode_M720()
+  {
+     //Sets the startup wizard flag
+     uint8_t temp = 0;
+     int eeprom_index = 100-sizeof(temp);
+     EEPROM_write(eeprom_index, (uint8_t*)&temp, sizeof(temp));
+
+     SERIAL_ECHOLNPGM("Startup wizard set up!");
+  }
+
+  /**
+   * M721 - Disables startup wizard flag
+   *
+   * Signals to disable startup wizard
+   *
+   *
+  */
+
+  inline void gcode_M721()
+  {
+   // Disables the startup wizard flag
+   toCalibrate = 255;
+   int eeprom_index = 100-sizeof(toCalibrate);
+   EEPROM_write(eeprom_index, (uint8_t*)&toCalibrate, sizeof(toCalibrate));
+
+   SERIAL_ECHOLNPGM("Startup wizard disabled!");
+   }
+
+  /**
+   * M730 - Prints dual nozzle Z offset test
+   *
+   * Prints the test lines
+   *
+   *
+  */
+
+   void do_move_to (float posX, float posY, float posZ, float posE, float feed) {
+     destination[X_AXIS] = posX;
+     destination[Y_AXIS] = posY;
+     destination[Z_AXIS] = posZ;
+     destination[E_AXIS] = posE;
+     feedrate_mm_s = feed;
+
+     prepare_move_to_destination();
+
+     stepper.synchronize();
+   }
+
+   inline void gcode_M730() {
+     // Reset extruded value to 0
+     stepper.synchronize();
+     current_position[E_AXIS] = 0;
+     destination[E_AXIS] = 0;
+     sync_plan_position_e();
+     report_current_position();
+
+     // Change to E1
+     tool_change(0);
+
+     // Go to starting height
+     do_blocking_move_to_z(0.3, 8);
+
+     // Go to starting position
+     do_blocking_move_to_xy(152,190,100);
+
+     // Print code
+     do_move_to(152,190,0.3,10,10);
+
+     do_move_to(152,10,0.3,19,7);
+     do_move_to(152,10,0.3,14,10);
+
+     tool_change(1);
+     do_move_to(150,5,0.3,14,50);
+     do_move_to(148,190,0.3,14,50);
+
+     do_move_to(148,190,0.3,24,10);
+     do_move_to(148,10,0.3,33,10);
+
+     do_move_to(300,200,10,33,50);
+
+     tool_change(0);
+   }
+
+   /**
+    * M731 - Prints dual nozzle XY offset test
+    *
+    * Prints the test lines
+    *
+    *
+   */
+
+
+    inline void gcode_M731() {
+      // Change to E1
+      tool_change(0);
+
+      // Go to starting height
+      do_blocking_move_to_z(0.3, 8);
+
+      // Go to starting position
+      do_blocking_move_to_xy(152,190,150);
+
+      // Print code
+      do_move_to(152,190,0.3,10,10);
+
+      do_move_to(152,10,0.3,19,7);
+      do_move_to(152,10,0.3,14,10);
+
+      tool_change(1);
+      do_move_to(150,5,0.3,14,150);
+      do_move_to(148,190,0.3,14,150);
+
+      do_move_to(148,190,0.3,24,10);
+      do_move_to(148,10,0.3,33,10);
+
+      do_move_to(300,200,10,33,150);
+
+      tool_change(0);
+    }
+
+#endif
+
+
 
 #if ENABLED(SWITCHING_EXTRUDER)
   #if EXTRUDERS > 3
@@ -14703,6 +14808,14 @@ void process_parsed_command() {
 
       case 721:  //Disables startup wizard flag
   				gcode_M721();
+  				break;
+
+      case 730:  //Prints dual nozzle Z offset test lines
+  				gcode_M730();
+  				break;
+
+      case 731:  //Prints dual nozzle XY offset test lines
+  				gcode_M731();
   				break;
 
 		#endif
