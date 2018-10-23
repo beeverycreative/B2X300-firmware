@@ -249,6 +249,7 @@
  * M721 - Disables startup wizard flag
  * M730 - Prints dual nozzle Z offset test
  * M731 - Prints dual nozzle XY offset test
+ * M740 - Prints a prime line with the active extruder
  * M916 - Set chopping mode (Only works for TMC2130 or TMC2208)
  * M917 - Read stallGuard2 values
  * M918 - Set Sensorless_homing calibration value
@@ -896,6 +897,38 @@ extern "C" {
   extern void digipot_i2c_set_current(uint8_t channel, float current);
   extern void digipot_i2c_init();
 #endif
+
+//////////////// BEEVC Auxiliary function /////////////
+void do_move_to (float posX, float posY, float posZ, float posE, float feed) {
+  destination[X_AXIS] = posX;
+  destination[Y_AXIS] = posY;
+  destination[Z_AXIS] = posZ;
+  destination[E_AXIS] = posE;
+  feedrate_mm_s = feed;
+
+  prepare_move_to_destination();
+
+  stepper.synchronize();
+}
+
+void do_relative_move_to (float posX, float posY, float posZ, float posE, float feed) {
+  // Reset extruded value to 0
+  stepper.synchronize();
+  current_position[E_AXIS] = 0;
+  destination[E_AXIS] = 0;
+  sync_plan_position_e();
+  report_current_position();
+
+  destination[X_AXIS] = posX;
+  destination[Y_AXIS] = posY;
+  destination[Z_AXIS] = posZ;
+  destination[E_AXIS] = posE;
+  feedrate_mm_s = feed;
+
+  prepare_move_to_destination();
+  stepper.synchronize();
+}
+///////////////////////////////////////////////////////
 
 /**
  * Inject the next "immediate" command, when possible, onto the front of the queue.
@@ -12293,6 +12326,7 @@ inline void gcode_M999() {
  * M721 - Disables startup wizard flag
  * M730 - Prints dual nozzle Z offset test
  * M731 - Prints dual nozzle XY offset test
+ * M740 - Prints a prime line with the active extruder
  *
  */
 
@@ -13264,37 +13298,6 @@ inline void gcode_M999() {
    *
    *
   */
-
-   void do_move_to (float posX, float posY, float posZ, float posE, float feed) {
-     destination[X_AXIS] = posX;
-     destination[Y_AXIS] = posY;
-     destination[Z_AXIS] = posZ;
-     destination[E_AXIS] = posE;
-     feedrate_mm_s = feed;
-
-     prepare_move_to_destination();
-
-     stepper.synchronize();
-   }
-
-   void do_relative_move_to (float posX, float posY, float posZ, float posE, float feed) {
-     // Reset extruded value to 0
-     stepper.synchronize();
-     current_position[E_AXIS] = 0;
-     destination[E_AXIS] = 0;
-     sync_plan_position_e();
-     report_current_position();
-
-     destination[X_AXIS] = posX;
-     destination[Y_AXIS] = posY;
-     destination[Z_AXIS] = posZ;
-     destination[E_AXIS] = posE;
-     feedrate_mm_s = feed;
-
-     prepare_move_to_destination();
-     stepper.synchronize();
-   }
-
    inline void gcode_M730() {
      // Reset extruded value to 0
      stepper.synchronize();
@@ -13306,26 +13309,34 @@ inline void gcode_M999() {
      // Change to E1
      tool_change(0);
 
-     // Go to starting height
-     do_blocking_move_to_z(0.3, 8);
+     // Prime nozzle E1
+     gcode_M740();
 
-     // Go to starting position
-     do_blocking_move_to_xy(152,190,100);
+     // Move to start position
+     do_relative_move_to(152,190,current_position[Z_AXIS],0,100);
+     do_relative_move_to(152,190,0.3,0,6);
 
      // Print code
-     do_move_to(152,190,0.3,10,10);
+     do_relative_move_to(152,190,0.3,5,50);
 
-     do_move_to(152,10,0.3,19,7);
-     do_move_to(152,10,0.3,14,10);
+     do_relative_move_to(152,10,0.3,14,8);
+     do_relative_move_to(152,10,0.3,-5,50);
 
+     // Change to E2
      tool_change(1);
-     do_move_to(150,5,0.3,14,50);
-     do_move_to(148,190,0.3,14,50);
 
-     do_move_to(148,190,0.3,24,10);
-     do_move_to(148,10,0.3,33,10);
+     // Prime nozzle E2
+     gcode_M740();
 
-     do_move_to(300,200,10,33,50);
+     // Print code
+     do_relative_move_to(148,190,0.3,0,100);
+     do_relative_move_to(148,190,0.3,5,50);
+
+     do_relative_move_to(148,10,0.3,14,8);
+     do_relative_move_to(148,10,0.3,-5,50);
+
+     // Move to origin
+     do_relative_move_to(300,180,0.3,0,100);
 
      tool_change(0);
    }
@@ -13367,7 +13378,72 @@ inline void gcode_M999() {
       tool_change(0);
     }
 
-#endif
+    /**
+     * M740 - Prints a prime line with the active extruder
+     *
+     * Prints the prime lines
+     *
+     *
+    */
+
+
+     inline void gcode_M740() {
+       // Temporary variable to store the required extruder
+       uint8_t extruder = active_extruder;
+
+       // Checks if there is a E letter on the code if so chooses the correct extruder
+       if (parser.seenval('E')) {
+         uint8_t temp = parser.value_byte();
+         switch (temp) {
+           default: break;
+           case 1:  extruder = 0;
+                    break;
+           case 2:  extruder = 1;
+                    break;
+         }
+       }
+
+       // Chooses the correct X position to make the movemente depending on the active extruder
+       int16_t x_prime_pos = X_MAX_POS - 16;
+       if (active_extruder != 0)
+        x_prime_pos = X_MIN_POS+5;
+
+       // Go to starting position
+       do_relative_move_to(x_prime_pos,150,0.3,0,100);
+
+       // Stores old active extruder
+       uint8_t old_extruder = active_extruder;
+
+       // Changes to the required extruder, this ensures offsets are compensated
+       if (extruder != active_extruder) {
+         if (extruder == 0 )
+           tool_change(0);
+         else
+           tool_change(1);
+       }
+
+       // De-retract
+       do_relative_move_to(x_prime_pos,150,0.3,5,8);
+
+       // Print prime line fast
+       do_relative_move_to(x_prime_pos,60,0.3,10,8);
+
+       // Print prime line slow (release pressure)
+       do_relative_move_to(x_prime_pos,50,0.3,1,2);
+
+       // Retraction
+       do_relative_move_to(x_prime_pos,50,0.3,-5,50);
+
+       // Restores the old active extruder
+       if (old_extruder != active_extruder) {
+         if (old_extruder == 0 )
+           tool_change(0);
+         else
+           tool_change(1);
+       }
+     }
+
+#endif // BEEVC_B2X300
 
 
 
@@ -14835,6 +14911,10 @@ void process_parsed_command() {
       case 731:  //Prints dual nozzle XY offset test lines
   				gcode_M731();
   				break;
+
+      case 740: //Prints a prime line with the active extruder
+          gcode_M740();
+          break;
 
 		#endif
     }
