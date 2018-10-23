@@ -229,6 +229,7 @@ void gcode_G28(const bool always_home_all);
 void gcode_G29();
 void gcode_M721();
 void gcode_M730();
+void tool_change(const uint8_t tmp_extruder, const float fr_mm_s=0.0, bool no_move=false);
 void clear_command_queue();
 
 extern millis_t previous_cmd_ms;
