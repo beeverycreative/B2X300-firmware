@@ -277,6 +277,40 @@ class Temperature {
     #endif
 
   public:
+
+    #ifdef BEEVC_TMC2130READSG
+      //// stallGuard2 polling /////
+      static uint16_t sg2_samples_remaining;
+      static uint16_t sg2_samples_middle_index;
+
+      // Only available when debugging
+      #ifdef BEEVC_SG2_DEBUG_SAMPLES
+        static uint16_t sg2_result[BEEVC_SG2_DEBUG_SAMPLES];
+        static bool sg2_value[BEEVC_SG2_DEBUG_SAMPLES];
+        static bool sg2_standstill[BEEVC_SG2_DEBUG_SAMPLES];
+      #endif
+      static uint16_t   sg2_counter;
+      static bool       sg2_stop;
+      static bool       sg2_to_read;
+      static bool       sg2_homing;
+      static bool       sg2_runout;
+      static uint16_t   sg2_e_average;
+      static uint8_t    sg2_detect_count;
+
+      static uint32_t   sg2_timeout;
+
+      static uint8_t    sg2_homing_x_calibration;
+      static uint8_t    sg2_homing_y_calibration;
+      static bool       sg2_x_limit_hit;
+      static bool       sg2_y_limit_hit;
+      static bool       sg2_z_limit_hit;
+
+      //This number indicate how many cycles should it wait between polling
+      static uint8_t sg2_polling_wait;
+      static uint8_t sg2_polling_wait_cycles;
+      //////////////////////////////
+    #endif // BEEVC_TMC2130READSG
+
     #if ENABLED(ADC_KEYPAD)
       static uint32_t current_ADCKey_raw;
       static uint8_t ADCKey_count;

@@ -176,18 +176,29 @@
     st.begin();
     st.setCurrent(st.getCurrent(), R_SENSE, HOLD_MULTIPLIER);
     st.microsteps(microsteps);
-    st.blank_time(24);
-    st.off_time(5); // Only enables the driver if used with stealthChop
+    //st.blank_time(24);
+    //st.off_time(5); // Only enables the driver if used with stealthChop
     st.interpolate(INTERPOLATE);
     st.power_down_delay(128); // ~2s until driver lowers to hold current
-    st.hysterisis_start(3);
-    st.hysterisis_end(2);
-    st.diag1_active_high(1); // For sensorless homing
+    //st.hysterisis_start(3);
+    //st.hysterisis_end(2);
+
+
+    st.sync(5);                 // Phase frequency matching at maximm rate
+    st.dedge(0);                // Double edge step
+    st.chm(0);                  // Enable spreadCycle
+    st.hysterisis_start(8);     // Histeresis start = 11
+    st.hysterisis_end(-1);      // Histeresis end = 7
+    st.blank_time(36);          // 36 Clocks blank time
+    st.off_time(3);             // Off time during chopping
+
+
+    st.stealth_freq(0);         // f_pwm = 2/1024 f_clk
+    st.stealth_autoscale(1);    // Allows current regulation for stealthChop
+    st.stealth_gradient(5);     // Current regulation factor for stealthChop
+    st.stealth_amplitude(255);  // Maximum PWM value for stealthChop
+
     #if ENABLED(STEALTHCHOP)
-      st.stealth_freq(1); // f_pwm = 2/683 f_clk
-      st.stealth_autoscale(1);
-      st.stealth_gradient(5);
-      st.stealth_amplitude(255);
       st.stealthChop(1);
       #if ENABLED(HYBRID_THRESHOLD)
         st.stealth_max_speed(12650000UL*microsteps/(256*thrs*spmm));
@@ -196,6 +207,7 @@
         UNUSED(spmm);
       #endif
     #elif ENABLED(SENSORLESS_HOMING)
+      st.diag1_active_high(1); // For sensorless homing
       st.coolstep_min_speed(1024UL * 1024UL - 1UL);
     #endif
     st.GSTAT(); // Clear GSTAT
@@ -535,4 +547,3 @@
   }
 
 #endif // HAVE_L6470DRIVER
-

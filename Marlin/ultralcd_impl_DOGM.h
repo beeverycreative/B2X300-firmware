@@ -301,32 +301,55 @@ void lcd_printPGM_utf(const char *str, uint8_t n=LCD_WIDTH) {
   #endif // SHOW_CUSTOM_BOOTSCREEN
 
   void lcd_bootscreen() {
+
+  u8g.firstPage();
+  do {
+    u8g.drawBitmapP((u8g.getWidth() - (START_BMPWIDTH)) / 2, (LCD_PIXEL_HEIGHT - (START_BMPHEIGHT)) / 2, (START_BMPWIDTH + 7) / 8, START_BMPHEIGHT, start_bmp);
+  } while (u8g.nextPage());
+  safe_delay(BOOTSCREEN_TIMEOUT);
+
+
     #if ENABLED(SHOW_CUSTOM_BOOTSCREEN)
       lcd_custom_bootscreen();
     #endif
 
-    #if ENABLED(START_BMPHIGH)
-      constexpr uint8_t offy = 0;
-    #else
-      constexpr uint8_t offy = DOG_CHAR_HEIGHT;
-    #endif
+    // #if ENABLED(START_BMPHIGH)
+    //   constexpr uint8_t offy = 0;
+    // #else
+    //   constexpr uint8_t offy = DOG_CHAR_HEIGHT;
+    // #endif
 
-    const uint8_t offx = (u8g.getWidth() - (START_BMPWIDTH)) / 2,
-                  txt1X = (u8g.getWidth() - (sizeof(STRING_SPLASH_LINE1) - 1) * (DOG_CHAR_WIDTH)) / 2;
+    // char string1[21];
+    // char string2[21];
+    // strcpy(string1,"Branch: ");
+    // strcat(string1, BUILDBRANCH);
+    // strcpy(string2,"Hash: ");
+    // strcat(string2, BUILDCOMMIT);
+    //
+    // const uint8_t txt1X = (u8g.getWidth() - (sizeof("Branch: ") + sizeof(BUILDBRANCH) - 1) * (DOG_CHAR_WIDTH)) / 2;
+    // const uint8_t txt2X = (u8g.getWidth() - (sizeof("Hash: ") + sizeof(BUILDCOMMIT) - 1) * (DOG_CHAR_WIDTH)) / 2;
 
-    u8g.firstPage();
-    do {
-      u8g.drawBitmapP(offx, offy, (START_BMPWIDTH + 7) / 8, START_BMPHEIGHT, start_bmp);
-      lcd_setFont(FONT_MENU);
-      #ifndef STRING_SPLASH_LINE2
-        u8g.drawStr(txt1X, u8g.getHeight() - (DOG_CHAR_HEIGHT), STRING_SPLASH_LINE1);
-      #else
-        const uint8_t txt2X = (u8g.getWidth() - (sizeof(STRING_SPLASH_LINE2) - 1) * (DOG_CHAR_WIDTH)) / 2;
-        u8g.drawStr(txt1X, u8g.getHeight() - (DOG_CHAR_HEIGHT) * 3 / 2, STRING_SPLASH_LINE1);
-        u8g.drawStr(txt2X, u8g.getHeight() - (DOG_CHAR_HEIGHT) * 1 / 2, STRING_SPLASH_LINE2);
-      #endif
-    } while (u8g.nextPage());
-    safe_delay(BOOTSCREEN_TIMEOUT);
+    // char about_string[21];
+    // strcpy(about_string, BUILDDATE);
+    // strcat(about_string, "-");
+    // strcat(about_string, BUILDBRANCH);
+    // strcat(about_string, "-");
+    // strcat(about_string, BUILDCOMMIT);
+    //
+    // u8g.firstPage();
+    // do {
+    //   //u8g.drawBitmapP(offx, offy, (START_BMPWIDTH + 7) / 8, START_BMPHEIGHT, start_bmp);
+    //   lcd_setFont(FONT_MENU);
+    //   uint8_t heightboot = 0;
+    //   u8g.drawStr(0, 0+(DOG_CHAR_HEIGHT * ++heightboot) , "Marlin-Fork");
+    //   u8g.drawStr(0, 0+(DOG_CHAR_HEIGHT * ++heightboot) , "open source firmware");
+    //   u8g.drawStr(0, 0+(DOG_CHAR_HEIGHT * ++heightboot) , "engineered by");
+    //   u8g.drawStr(0, 0+(DOG_CHAR_HEIGHT * ++heightboot) , "BEEVERYCREATIVE");
+    //   u8g.drawStr(0, 0+(DOG_CHAR_HEIGHT * ++heightboot) , about_string);
+    //   // u8g.drawStr(txt1X, (u8g.getHeight() - (DOG_CHAR_HEIGHT)) / 3 , string1);
+    //   // u8g.drawStr(txt2X, (u8g.getHeight() - (DOG_CHAR_HEIGHT))*3/ 3 , string2);
+    // } while (u8g.nextPage());
+    // safe_delay(BOOTSCREEN_TIMEOUT);
   }
 
 #endif // SHOW_BOOTSCREEN
@@ -384,10 +407,23 @@ void lcd_implementation_clear() { } // Automatically cleared by Picture Loop
 //
 
 FORCE_INLINE void _draw_centered_temp(const int16_t temp, const uint8_t x, const uint8_t y) {
-  const uint8_t degsize = 6 * (temp >= 100 ? 3 : temp >= 10 ? 2 : 1); // number's pixel width
-  u8g.setPrintPos(x - (18 - degsize) / 2, y); // move left if shorter
-  lcd_print(itostr3(temp));
-  lcd_printPGM(PSTR(LCD_STR_DEGREE " "));
+  // Shows -- for temperatures below 40º and ERR if no thermistor
+  if(temp == -14){
+    u8g.setPrintPos(x, y); // move left if shorter
+    lcd_print("ERR");
+  }
+  else if (temp < 25){
+    u8g.setPrintPos(x+2 , y); // move left if shorter
+    lcd_print("--");
+    lcd_printPGM(PSTR(LCD_STR_DEGREE " "));
+  }
+  else{
+    const uint8_t degsize = 6 * (temp >= 100 ? 3 : temp >= 10 ? 2 : 1); // number's pixel width
+    u8g.setPrintPos(x - (18 - degsize) / 2, y); // move left if shorter
+    lcd_print(itostr3(temp));
+    lcd_printPGM(PSTR(LCD_STR_DEGREE " "));
+  }
+
 }
 
 FORCE_INLINE void _draw_heater_status(const uint8_t x, const int8_t heater, const bool blink) {

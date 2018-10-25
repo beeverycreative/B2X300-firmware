@@ -52,6 +52,9 @@ void safe_delay(millis_t ms);
   // Convert float to fixed-length string with +123.4 / -123.4 format
   char* ftostr41sign(const float &x);
 
+  // Convert float to fixed-length string with +12.34 / -12.34 format
+  char* ftostr42sign(const float &x);
+
   // Convert signed float to string (6 digit) with -1.234 / _0.000 / +1.234 format
   char* ftostr43sign(const float &x, char plus=' ');
 

@@ -75,14 +75,21 @@
 // Limit Switches
 //
 #define X_MIN_PIN           3
+#define X_MAX_PIN           3
 
-#ifndef FILAMENT_RUNOUT_SENSOR
-	#define X_MAX_PIN         2
-	
-	#ifndef FILAMENT_RUNOUT_DUAL
-		#define Y_MIN_PIN          		14
-	#endif
-#endif
+#ifdef BEEVC_B2X300_YMINSTOP
+  #define Y_MIN_PIN         15
+#else
+  #ifndef FILAMENT_RUNOUT_SENSOR
+    #undef X_MAX_PIN
+    #define X_MAX_PIN         2
+
+    #ifndef FILAMENT_RUNOUT_DUAL
+      #define Y_MIN_PIN          		14
+    #endif  //FILAMENT_RUNOUT_DUAL
+  #endif  //FILAMENT_RUNOUT_SENSOR
+#endif  //BEEVC_B2X300_YMINSTOP
+
 
 #define Y_MAX_PIN          15
 #define Z_MIN_PIN          18
@@ -122,6 +129,21 @@
 #define E1_DIR_PIN         34
 #define E1_ENABLE_PIN      30
 #define E1_CS_PIN          44
+
+// TMC2130 defines, makes sure the correct ports are selected for SPI
+#if (ENABLED(BEEVC_TMC2130) || ENABLED(BEEVC_TMC2130XY))
+  #undef X_CS_PIN
+  #undef Y_CS_PIN
+  #undef Z_CS_PIN
+  #undef E0_CS_PIN
+  #undef E1_CS_PIN
+
+  #define X_CS_PIN        59
+  #define Y_CS_PIN        64
+  #define Z_CS_PIN        40
+  #define E0_CS_PIN       42
+  #define E1_CS_PIN       65
+#endif
 
 
 #if ENABLED(HAVE_TMC2208)
@@ -267,7 +289,7 @@
 // Filament runout pin is the X+ plug port D2
 #ifdef FILAMENT_RUNOUT_SENSOR
 	#define FIL_RUNOUT_PIN      2
-	
+
 	// Second filament runout sensor, the port Y-
 	#ifdef FILAMENT_RUNOUT_DUAL
 		#define FIL_RUNOUT_PIN2     14
@@ -480,8 +502,7 @@
       #define DOGLCD_CS         25
 
       // GLCD features
-      //#define LCD_CONTRAST   
-	  #define LCD_CONTRAST   255
+      //#define LCD_CONTRAST
       // Uncomment screen orientation
       //#define LCD_SCREEN_ROT_90
       //#define LCD_SCREEN_ROT_180
@@ -521,8 +542,8 @@
       #define SDSS              53
       #define SD_DETECT_PIN     49
       #define KILL_PIN          64
-	  
-	// Included MKS mini screen  
+
+	// Included MKS mini screen
 	#elif ENABLED(MKS_MINI_12864)
 		   #define MISO_PIN      50  // system defined - only needed if using onboard SD card
 		   #define MOSI_PIN      51  // system defined

@@ -2,6 +2,10 @@
 
 # :warning: **THIS IS THE `pre-release` branch** :warning:
 
+Branch `dev`: [![pipeline status](http://beegitlab.westeurope.cloudapp.azure.com/REDSOFT/MarlinBEE/badges/dev/pipeline.svg)](http://beegitlab.westeurope.cloudapp.azure.com/REDSOFT/MarlinBEE/commits/dev)
+
+Branch `feature/ft-trinamic`: [![pipeline status](http://beegitlab.westeurope.cloudapp.azure.com/REDSOFT/MarlinBEE/badges/feature/ft-trinamic/pipeline.svg)](http://beegitlab.westeurope.cloudapp.azure.com/REDSOFT/MarlinBEE/commits/feature/ft-trinamic)
+
 <img align="right" src="buildroot/share/pixmaps/logo/marlin-250.png" />
 
 ## Marlin 1.1

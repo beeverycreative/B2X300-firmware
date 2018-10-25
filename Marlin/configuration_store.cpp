@@ -322,6 +322,36 @@ void MarlinSettings::postprocess() {
     } while (--size);
   }
 
+  // NON CRC Version
+
+  // Necessary to write to eeprom
+inline void EEPROM_write(int &pos, const uint8_t *value, uint16_t size) {
+   while (size--) {
+     uint8_t * const p = (uint8_t * const)pos;
+     uint8_t v = *value;
+     // EEPROM has only ~100,000 write cycles,
+     // so only write bytes that have changed!
+     if (v != eeprom_read_byte(p)) {
+       eeprom_write_byte(p, v);
+       if (eeprom_read_byte(p) != v) {
+         SERIAL_ECHO_START();
+         SERIAL_ECHOLNPGM(MSG_ERR_EEPROM_WRITE);
+         return;
+       }
+     }
+     pos++;
+     value++;
+   };
+ }
+ inline void EEPROM_read(int &pos, uint8_t* value, uint16_t size) {
+   do {
+     uint8_t c = eeprom_read_byte((unsigned char*)pos);
+     *value = c;
+     pos++;
+     value++;
+   } while (--size);
+ }
+
   /**
    * M500 - Store Configuration
    */
@@ -663,23 +693,24 @@ void MarlinSettings::postprocess() {
     // TMC2130 Sensorless homing threshold
     //
     int16_t thrs;
-    #if ENABLED(SENSORLESS_HOMING)
-      #if ENABLED(X_IS_TMC2130)
-        thrs = stepperX.sgt();
-      #else
-        thrs = 0;
-      #endif
-      EEPROM_WRITE(thrs);
-      #if ENABLED(Y_IS_TMC2130)
-        thrs = stepperY.sgt();
-      #else
-        thrs = 0;
-      #endif
-      EEPROM_WRITE(thrs);
+    #if ENABLED(X_IS_TMC2130)
+      thrs = stepperX.sgt();
     #else
       thrs = 0;
-      for (uint8_t q = 2; q--;) EEPROM_WRITE(thrs);
     #endif
+    EEPROM_WRITE(thrs);
+    #if ENABLED(Y_IS_TMC2130)
+      thrs = stepperY.sgt();
+    #else
+      thrs = 0;
+    #endif
+    EEPROM_WRITE(thrs);
+
+    // SPI Sensorless homing extra calibration
+    int temp_index = 50;
+    EEPROM_write(temp_index, (uint8_t*)&thermalManager.sg2_homing_x_calibration, sizeof(thermalManager.sg2_homing_x_calibration));
+    EEPROM_write(temp_index, (uint8_t*)&thermalManager.sg2_homing_y_calibration, sizeof(thermalManager.sg2_homing_y_calibration));
+
 
     //
     // Linear Advance
@@ -726,7 +757,10 @@ void MarlinSettings::postprocess() {
     #endif
 
     if (!eeprom_error) {
-      const int eeprom_size = eeprom_index;
+      #if ENABLED(EEPROM_CHITCHAT)
+        const int eeprom_size = eeprom_index;
+      #endif
+
 
       const uint16_t final_crc = working_crc;
 
@@ -1137,7 +1171,7 @@ void MarlinSettings::postprocess() {
        * Y and Y2 use the same value
        */
       int16_t thrs;
-      #if ENABLED(SENSORLESS_HOMING)
+      #if (ENABLED(SENSORLESS_HOMING) || ENABLED(BEEVC_TMC2130READSG))
         EEPROM_READ(thrs);
         #if ENABLED(X_IS_TMC2130)
           stepperX.sgt(thrs);
@@ -1155,6 +1189,11 @@ void MarlinSettings::postprocess() {
       #else
         for (uint8_t q = 0; q < 2; q++) EEPROM_READ(thrs);
       #endif
+
+      // Extra sensorless homing calibration
+      int sensorless_index = 50;
+      EEPROM_read(sensorless_index, (uint8_t*)&thermalManager.sg2_homing_x_calibration, sizeof(thermalManager.sg2_homing_x_calibration));
+      EEPROM_read(sensorless_index, (uint8_t*)&thermalManager.sg2_homing_y_calibration, sizeof(thermalManager.sg2_homing_y_calibration));
 
       //
       // Linear Advance
@@ -1427,9 +1466,10 @@ void MarlinSettings::reset() {
     reset_bed_level();
   #endif
 
-  #if HAS_BED_PROBE
-    zprobe_zoffset = Z_PROBE_OFFSET_FROM_EXTRUDER;
-  #endif
+  // Disabled to allow upgrading firmware without loosing probe offset
+  // #if HAS_BED_PROBE
+  //   zprobe_zoffset = Z_PROBE_OFFSET_FROM_EXTRUDER;
+  // #endif
 
   #if ENABLED(DELTA)
     const float adj[ABC] = DELTA_ENDSTOP_ADJ,
@@ -1578,15 +1618,17 @@ void MarlinSettings::reset() {
     stepperE4.setCurrent(E4_CURRENT, R_SENSE, HOLD_MULTIPLIER);
   #endif
 
-  #if ENABLED(SENSORLESS_HOMING)
-    #if ENABLED(X_IS_TMC2130)
-      stepperX.sgt(X_HOMING_SENSITIVITY);
-    #endif
+  #if ENABLED(X_IS_TMC2130)
+    stepperX.sgt(X_HOMING_SENSITIVITY);
+  #endif
+
+  #if ENABLED(Y_IS_TMC2130)
+    stepperY.sgt(Y_HOMING_SENSITIVITY);
+  #endif
+
+  #if (ENABLED(SENSORLESS_HOMING) || ENABLED(BEEVC_TMC2130READSG))
     #if ENABLED(X2_IS_TMC2130)
       stepperX2.sgt(X_HOMING_SENSITIVITY);
-    #endif
-    #if ENABLED(Y_IS_TMC2130)
-      stepperY.sgt(Y_HOMING_SENSITIVITY);
     #endif
     #if ENABLED(Y2_IS_TMC2130)
       stepperY2.sgt(Y_HOMING_SENSITIVITY);

@@ -65,6 +65,26 @@ void manage_inactivity(bool ignore_stepper_queue = false);
 #endif
 ///////////////////////////////////////////////////////
 
+////////////    Trinamic stealth mode    //////////////
+#ifdef HAVE_TMC2130
+	extern uint8_t silent_mode;
+#endif
+///////////////////////////////////////////////////////
+
+////////////     Sensorless homing     //////////////
+#ifdef HAVE_TMC2130
+	extern bool calibrating_sensorless_homing_x, calibrating_sensorless_homing_y;
+  extern uint8_t sensorless_homing_progress;
+#endif
+///////////////////////////////////////////////////////
+
+////////////     Sensorless homing     //////////////
+#ifdef BEEVC_B2X300
+	extern uint8_t toCalibrate;
+#endif
+///////////////////////////////////////////////////////
+
+
 #if ENABLED(DUAL_X_CARRIAGE) || ENABLED(DUAL_NOZZLE_DUPLICATION_MODE)
   extern bool extruder_duplication_enabled;
 #endif
@@ -204,6 +224,10 @@ inline bool IsStopped() { return !Running; }
 
 bool enqueue_and_echo_command(const char* cmd, bool say_ok=false); // Add a single command to the end of the buffer. Return false on failure.
 void enqueue_and_echo_commands_P(const char * const cmd);          // Set one or more commands to be prioritized over the next Serial/SD command.
+void gcode_M918();
+void gcode_G28(const bool always_home_all);
+void gcode_G29();
+void gcode_M721();
 void clear_command_queue();
 
 extern millis_t previous_cmd_ms;

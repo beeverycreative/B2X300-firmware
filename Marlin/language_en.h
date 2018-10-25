@@ -455,7 +455,7 @@
   #define MSG_MOVE_10MM                       _UxGT("Move 10mm")
 #endif
 #ifndef MSG_SPEED
-  #define MSG_SPEED                           _UxGT("Speed")
+  #define MSG_SPEED                           _UxGT("Feedrate")
 #endif
 #ifndef MSG_BED_Z
   #define MSG_BED_Z                           _UxGT("Bed Z")
@@ -465,6 +465,9 @@
 #endif
 #ifndef MSG_BED
   #define MSG_BED                             _UxGT("Bed")
+#endif
+#ifndef MSG_SBED
+  #define MSG_SBED                             _UxGT(" Bed")
 #endif
 #ifndef MSG_FAN_SPEED
   #define MSG_FAN_SPEED                       _UxGT("Fan speed")
@@ -569,10 +572,10 @@
   #define MSG_ESTEPS                          _UxGT("Esteps/mm")
 #endif
 #ifndef MSG_E1STEPS
-  #define MSG_E1STEPS                         _UxGT("E1steps/mm")
+  #define MSG_E1STEPS                         _UxGT("E0steps/mm")
 #endif
 #ifndef MSG_E2STEPS
-  #define MSG_E2STEPS                         _UxGT("E2steps/mm")
+  #define MSG_E2STEPS                         _UxGT("E1steps/mm")
 #endif
 #ifndef MSG_E3STEPS
   #define MSG_E3STEPS                         _UxGT("E3steps/mm")
@@ -635,7 +638,7 @@
   #define MSG_RESUME_PRINT                    _UxGT("Resume print")
 #endif
 #ifndef MSG_STOP_PRINT
-  #define MSG_STOP_PRINT                      _UxGT("Stop print")
+  #define MSG_STOP_PRINT                      _UxGT("Cancel print")
 #endif
 #ifndef MSG_CARD_MENU
   #define MSG_CARD_MENU                       _UxGT("Print from SD")
@@ -656,7 +659,7 @@
   #define MSG_RESUMING                        _UxGT("Resuming print")
 #endif
 #ifndef MSG_PRINT_ABORTED
-  #define MSG_PRINT_ABORTED                   _UxGT("Print aborted")
+  #define MSG_PRINT_ABORTED                   _UxGT("Print canceled")
 #endif
 #ifndef MSG_NO_MOVE
   #define MSG_NO_MOVE                         _UxGT("No move.")
@@ -731,7 +734,7 @@
   #define MSG_FIRST                           _UxGT("first")
 #endif
 #ifndef MSG_ZPROBE_ZOFFSET
-  #define MSG_ZPROBE_ZOFFSET                  _UxGT("Z Offset")
+  #define MSG_ZPROBE_ZOFFSET                  _UxGT("Nozzle height")
 #endif
 #ifndef MSG_BABYSTEP_X
   #define MSG_BABYSTEP_X                      _UxGT("Babystep X")

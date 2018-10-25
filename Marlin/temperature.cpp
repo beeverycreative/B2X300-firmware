@@ -31,6 +31,15 @@
 #include "planner.h"
 #include "language.h"
 
+// Stallguard 2 endstop triggering
+#include "endstops.h"
+#include "stepper.h"
+#include "cardreader.h"
+
+#if HAS_TRINAMIC
+  #include "stepper_indirection.h"
+#endif
+
 #if ENABLED(HEATER_0_USES_MAX6675)
   #include "MarlinSPI.h"
 #endif
@@ -58,6 +67,314 @@
 Temperature thermalManager;
 
 // public:
+
+#ifdef BEEVC_TMC2130READSG
+  //// stallGuard2 polling /////
+  #define SPI_DRV_STATUS 0x6F
+
+  // Only available when debugging
+  #ifdef BEEVC_SG2_DEBUG_SAMPLES
+    uint16_t Temperature::sg2_result[BEEVC_SG2_DEBUG_SAMPLES] = {999};
+    bool Temperature::sg2_value[BEEVC_SG2_DEBUG_SAMPLES] = {0};
+    bool Temperature::sg2_standstill[BEEVC_SG2_DEBUG_SAMPLES] = {0};
+  #endif // BEEVC_SG2_DEBUG_SAMPLES
+
+  uint16_t  Temperature::sg2_counter              = 0;
+  bool      Temperature::sg2_stop                 = false;
+  bool      Temperature::sg2_to_read              = false;
+  bool      Temperature::sg2_homing               = false;
+  bool      Temperature::sg2_runout               = false;
+  uint16_t  Temperature::sg2_e_average            = 0;
+  uint8_t   Temperature::sg2_detect_count         = 0;
+  uint16_t  Temperature::sg2_samples_remaining    = 0;
+  uint16_t  Temperature::sg2_samples_middle_index = 0;
+
+  uint32_t      Temperature::sg2_timeout     = 0;
+
+  //end_stops
+  // Pre-set to 1 so no false detections are made when not homing
+  uint8_t   Temperature::sg2_homing_x_calibration = 0;
+  uint8_t   Temperature::sg2_homing_y_calibration = 40;
+  bool      Temperature::sg2_x_limit_hit          = 1;
+  bool      Temperature::sg2_y_limit_hit          = 1;
+  bool      Temperature::sg2_z_limit_hit          = 1;
+
+  //This number indicate how many cycles should it wait between polling
+    /*stallGuard2 Polling frequency depends on the wait cycles value/////
+    * sg2_polling_wait_cycles | frequency (Hz)
+    *             0           |   976.5625
+    *             1           |   488.2813
+    *             2           |   325,5208
+    *             3           |   244,1406
+    *             4           |   195,3125
+    *             5           |   162,7604
+    *             6           |   139,5089
+    *             7           |   122,0703
+    *             8           |   108,5069
+    *             9           |    97.6563
+    */
+  uint8_t Temperature::sg2_polling_wait = 0;
+  uint8_t Temperature::sg2_polling_wait_cycles = 0; //163HZ reading for stepp loss
+  //////////////////////////////
+
+  // Axuiliary binary print functions
+void print_binary8(uint8_t data) {
+  for (int j = 0; j <8; j++)
+  {
+    SERIAL_ECHO((data & (0b10000000 >> j)) >> (7-j) );
+  }
+}
+
+void println_binary8(uint8_t data) {
+  print_binary8(data);
+  SERIAL_ECHO("\n");
+}
+
+
+  void tmc_start_spi (void)
+  {
+    // Set MOSI, SCK as Output
+    DDRB=(1 << 2)|(1 << 1);
+
+    // Sets SPI speed to 4Mhz and SPI mode to 3 as Master
+    SPCR = (1 << SPE) | (1 << MSTR) | (1 << CPOL) | (1 << CPHA);
+    SPSR &= ~(1 << SPI2X);
+
+    // Sets the stepper driver ports as output
+    // X
+    DDRD |= (1 << 7);
+    DDRF |= (1 << 5);
+    // Y
+    DDRF |= (1 << 2);
+    DDRK |= (1 << 2);
+    // E0
+    DDRA |= (1 << 2);
+    DDRL |= (1 << 7);
+
+    // Pull the CS lines high
+    // X
+    PORTF |= (1 << 5);
+    // Y
+    PORTK |= (1 << 2);
+    // E0
+    PORTL |= (1 << 7);
+  }
+
+
+
+  void tmc_read_atomic_all (uint8_t *output) {
+  // Toggles the timing port on
+  #ifdef DEBUG_SPI_TOGGLE_PIN_COMMAND
+    PORTG |= (1 << 5);
+  #endif
+
+  //DEBUG ONLY - Used to measure the execution time
+  PORTL |= (1 << 5);	// Sets the output high
+
+  // //Backs up old SPI configuration and sets new one
+  // uint8_t backup1= SPCR;
+  // uint8_t backup2= SPSR;
+  // tmc_start_spi();
+  //
+  // delayMicroseconds(4);
+
+  // X
+  if(!READ(X_ENABLE_PIN)) {
+    // Pulls X CS line low
+    PORTF &= ~(1 << 5);
+
+    // Send address and receives the SPI_STATUS
+    // Load data into the buffer
+    SPDR = SPI_DRV_STATUS;
+    //Wait until transmission complete
+    while(!(SPSR & (1<<SPIF) ));
+
+    // Receive the first package;
+    SPDR = 0;
+    //Wait until transmission complete
+    while(!(SPSR & (1<<SPIF) ));
+    output[0] = SPDR;
+
+    // Receive the second package;
+    SPDR = 0;
+    //Wait until transmission complete
+    while(!(SPSR & (1<<SPIF) ));
+    output[1] = SPDR;
+
+    // Receive the third package;
+    SPDR = 0;
+    //Wait until transmission complete
+    while(!(SPSR & (1<<SPIF) ));
+    output[2] = SPDR;
+
+    // Receive the fourth package;
+    SPDR = 0;
+    //Wait until transmission complete
+    while(!(SPSR & (1<<SPIF) ));
+    output[3] = SPDR;
+
+    // SERIAL_ECHO("X:");
+    // println_binary8(output[3]);
+
+    // Pulls X CS line high
+    PORTF |= (1 << 5);
+    }
+  else{
+    output[0] = 0xFF;
+    output[1] = 0x00;
+    output[2] = 0x00;
+    output[3] = 0x00;
+  }
+
+  // Y
+  if(!READ(Y_ENABLE_PIN)) {
+    // Pulls Y CS line low
+    PORTK &= ~(1 << 2);
+    // Send address and receives the SPI_STATUS
+    // Load data into the buffer
+    SPDR = SPI_DRV_STATUS;
+    //Wait until transmission complete
+    while(!(SPSR & (1<<SPIF) ));
+
+    // Receive the first package;
+    SPDR = 0;
+    //Wait until transmission complete
+    while(!(SPSR & (1<<SPIF) ));
+    output[4] = SPDR;
+
+    // Receive the second package;
+    SPDR = 0;
+    //Wait until transmission complete
+    while(!(SPSR & (1<<SPIF) ));
+    output[5] = SPDR;
+
+    // Receive the third package;
+    SPDR = 0;
+    //Wait until transmission complete
+    while(!(SPSR & (1<<SPIF) ));
+    output[6] = SPDR;
+
+    // Receive the fourth package;
+    SPDR = 0;
+    //Wait until transmission complete
+    while(!(SPSR & (1<<SPIF) ));
+    output[7] = SPDR;
+
+    // SERIAL_ECHO("Y:");
+    // println_binary8(output[7]);
+
+    // Pulls Y CS line high
+    PORTK |= (1 << 2);
+    }
+  else{
+    output[4] = 0xFF;
+    output[5] = 0x00;
+    output[6] = 0x00;
+    output[7] = 0x00;
+  }
+
+  if(active_extruder == 0) {
+    if(!READ(E0_ENABLE_PIN)) {
+      // E0
+        // Pulls E0 CS line low
+        PORTL &= ~(1 << 7);
+        // Send address and receives the SPI_STATUS
+        // Load data into the buffer
+        SPDR = SPI_DRV_STATUS;
+        //Wait until transmission complete
+        while(!(SPSR & (1<<SPIF) ));
+
+        // Receive the first package;
+        SPDR = 0;
+        //Wait until transmission complete
+        while(!(SPSR & (1<<SPIF) ));
+        output[8] = SPDR;
+
+        // Receive the second package;
+        SPDR = 0;
+        //Wait until transmission complete
+        while(!(SPSR & (1<<SPIF) ));
+        output[9] = SPDR;
+
+        // Receive the third package;
+        SPDR = 0;
+        //Wait until transmission complete
+        while(!(SPSR & (1<<SPIF) ));
+        output[10] = SPDR;
+
+        // Receive the fourth package;
+        SPDR = 0;
+        //Wait until transmission complete
+        while(!(SPSR & (1<<SPIF) ));
+        output[11] = SPDR;
+
+        // Pulls E0 CS line high
+        PORTL |= (1 << 7);
+    }
+    else{
+      output[8] = 0xFF;
+      output[9] = 0x00;
+      output[10] = 0x00;
+      output[11] = 0x00;
+    }
+  }
+
+  else if(!READ(E1_ENABLE_PIN)) {
+    // E1
+      // Pulls E1 CS line low
+      PORTK &= ~(1 << 3);
+      // Send address and receives the SPI_STATUS
+      // Load data into the buffer
+      SPDR = SPI_DRV_STATUS;
+      //Wait until transmission complete
+      while(!(SPSR & (1<<SPIF) ));
+
+      // Receive the first package;
+      SPDR = 0;
+      //Wait until transmission complete
+      while(!(SPSR & (1<<SPIF) ));
+      output[8] = SPDR;
+
+      // Receive the second package;
+      SPDR = 0;
+      //Wait until transmission complete
+      while(!(SPSR & (1<<SPIF) ));
+      output[9] = SPDR;
+
+      // Receive the third package;
+      SPDR = 0;
+      //Wait until transmission complete
+      while(!(SPSR & (1<<SPIF) ));
+      output[10] = SPDR;
+
+      // Receive the fourth package;
+      SPDR = 0;
+      //Wait until transmission complete
+      while(!(SPSR & (1<<SPIF) ));
+      output[11] = SPDR;
+
+      // Pulls E1 CS line high
+      PORTK |= (1 << 3);
+  }
+  else{
+    output[8] = 0xFF;
+    output[9] = 0x00;
+    output[10] = 0x00;
+    output[11] = 0x00;
+  }
+
+  // //Restores backed up old SPI configuration
+  // SPCR = backup1;
+  // SPSR = backup2;
+
+  // Toggles the timing port off
+  #ifdef DEBUG_SPI_TOGGLE_PIN_COMMAND
+    PORTG &= ~(1 << 5);
+  #endif
+  }
+
+#endif //BEEVC_TMC2130READSG
+
 
 float Temperature::current_temperature[HOTENDS] = { 0.0 },
       Temperature::current_temperature_bed = 0.0;
@@ -2178,6 +2495,138 @@ void Temperature::isr() {
       e_hit--;
     }
   #endif
+
+
+  #ifdef BEEVC_TMC2130READSG
+
+    ///////////////////////////////
+    //////stallGuard2 Polling//////
+    ///////////////////////////////
+    // Checks if the correct number of wait cycles has been executed
+
+    // Allows some time after homing and restoring from stepp loss to avoid eroneous detection
+
+    if(sg2_to_read && (sg2_timeout < millis()))
+    {
+      if ((sg2_polling_wait++ >= sg2_polling_wait_cycles) )
+      {
+        // Restarts wait variable
+        sg2_polling_wait = 0;
+
+        // Temporary variables
+        uint8_t status[12]  = {};
+
+          //Checks if a read is possible
+          if( READ(SDSS) && READ(DOGLCD_CS))
+          {
+
+            // Reads the data for all 3 stepper drivers X Y E
+            tmc_read_atomic_all(status);
+
+            // DEBUG
+            //SERIAL_ECHO("X:");
+            // print_binary8(((status[0] & 0b10000000)>> 7));
+            //
+            // SERIAL_ECHO("Y:");
+            // print_binary8(((status[4] & 0b10000000)>> 7));
+            // if (!((status[0] & 0b10000000)>> 7))
+            // {
+            //   if (((status[2] & 0b00000011) == 0 ) && (status[3] < 100))
+            //   {
+            //     if (status[3] == 0)
+            //       SERIAL_ECHO("O");
+            //     else
+            //       SERIAL_ECHO("X");
+            //   }
+            // }
+            //
+            // if (!((status[4] & 0b10000000)>> 7))
+            // {
+            //   if (((status[6] & 0b00000011) == 0 ) && (status[7] < 150))
+            //   {
+            //     if (status[7] == 0)
+            //       SERIAL_ECHO("U");
+            //     else
+            //       SERIAL_ECHO("Y");
+            //   }
+            // }
+
+            //SERIAL_ECHO("Y:");
+            //print_binary8(status[7]);
+
+            //SERIAL_ECHOLN(status[3]);
+            //SERIAL_ECHOLN(status[7]);
+
+            // Sensorless homing
+            if(sg2_homing)
+            {
+              // X
+              if ( ((status[2] & 0b00000011) == 0 ) && (status[3] <= sg2_homing_x_calibration) && !((status[0] & 0b10000000)>> 7) && (sg2_x_limit_hit == 0))
+              {
+                stepper.endstop_triggered(X_AXIS);
+                // Stops further endstop detection
+                // sg2_x_limit_hit = 1;
+              }
+
+              // Y
+              if ( ((status[6] & 0b00000011) == 0 ) && (status[7] <= sg2_homing_y_calibration) && !((status[4] & 0b10000000)>> 7) && (sg2_y_limit_hit == 0))
+              {
+                stepper.endstop_triggered(Y_AXIS);
+                // Stops further endstop detection
+                // sg2_y_limit_hit = 1;
+              }
+            }
+
+
+            else
+            {
+              if (IS_SD_PRINTING && !sg2_stop )
+              {
+                // Step loss detection
+                if ((((status[2] & 0b00000011) == 0 ) && (status[3] < 50) && !((status[0] & 0b10000000)>> 7)) || (((status[6] & 0b00000011) == 0 ) && (status[7] < 60) && !(status[4] & 0b010000000)))
+                {
+                  // // Must get 3 consecutive signals to be a step loss
+                  // if (++sg2_detect_count == 2)
+                    sg2_stop = true;
+                }
+                // else
+                //   sg2_detect_count = 0;
+
+                // Filament runout/Traccion loss
+
+                // Implementar mediana, media da mediana para filtrar, imprimir 10x Segundo
+
+                if(!((status[8] & 0b10000000)>> 7))
+                {
+                  // Checks if it is extruding
+                  if(((active_extruder == 0) && READ(E0_DIR_PIN)) || ((active_extruder == 1) && READ(E1_DIR_PIN)))
+                  sg2_e_average = (4* sg2_e_average + (((status[10] & 0b00000011)<< 2) | status[11])) /5;
+
+                  if (sg2_e_average > 700)
+                    {
+                      sg2_runout = true;
+                      // Reset average
+                      sg2_e_average = 0;
+                    }
+
+                }
+
+              }
+
+            }
+            #ifdef BEEVC_TMC2130SGDEBUG
+              if((((status[2] & 0b00000011) == 0 ) && (status[3] <= sg2_homing_x_calibration) && !((status[0] & 0b10000000)>> 7)))
+                SERIAL_ECHO("\nX\n");
+
+              if((((status[6] & 0b00000011) == 0 ) && (status[7] <= sg2_homing_y_calibration) && !((status[4] & 0b10000000)>> 7)))
+                SERIAL_ECHO("\nY\n");
+            #endif // BEEVC_TMC2130SGDEBUG
+          }
+        }
+      }
+
+    ///////////////////////////////
+  #endif //BEEVC_TMC2130READSG
 
   cli();
   in_temp_isr = false;

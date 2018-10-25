@@ -32,6 +32,15 @@
 
 #else
 
+  // Firmware branch
+  #define BUILDBRANCH "CST"
+
+  // Commit hash
+  #define BUILDCOMMIT "Custom"
+
+  // Build date
+  #define BUILDDATE "01/08/18"
+
   /**
    * Marlin release version identifier
    */
@@ -70,7 +79,7 @@
   /**
    * Defines a generic printer name to be output to the LCD after booting Marlin.
    */
-  #define MACHINE_NAME "helloBEEprusa"
+  #define MACHINE_NAME "Printer"
 
   /**
    * The SOURCE_CODE_URL is the location where users will find the Marlin Source

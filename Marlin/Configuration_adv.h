@@ -64,7 +64,7 @@
  * THERMAL_PROTECTION_HYSTERESIS and/or THERMAL_PROTECTION_PERIOD
  */
 #if ENABLED(THERMAL_PROTECTION_HOTENDS)
-  #define THERMAL_PROTECTION_PERIOD 60        // Seconds
+  #define THERMAL_PROTECTION_PERIOD 80        // Seconds
   #define THERMAL_PROTECTION_HYSTERESIS 20     // Degrees Celsius
 
   /**
@@ -88,12 +88,12 @@
  */
 #if ENABLED(THERMAL_PROTECTION_BED)
   #define THERMAL_PROTECTION_BED_PERIOD 180    // Seconds
-  #define THERMAL_PROTECTION_BED_HYSTERESIS 2 // Degrees Celsius
+  #define THERMAL_PROTECTION_BED_HYSTERESIS 4 // Degrees Celsius
 
   /**
    * As described above, except for the bed (M140/M190/M303).
    */
-  #define WATCH_BED_TEMP_PERIOD 120                // Seconds
+  #define WATCH_BED_TEMP_PERIOD 160                // Seconds
   #define WATCH_BED_TEMP_INCREASE 2               // Degrees Celsius
 #endif
 
@@ -117,7 +117,7 @@
  * Also, if the temperature is set to a value below mintemp, it will not be changed by autotemp.
  * On an Ultimaker, some initial testing worked with M109 S215 B260 F1 in the start.gcode
  */
-#define AUTOTEMP
+//#define AUTOTEMP
 #if ENABLED(AUTOTEMP)
   #define AUTOTEMP_OLDWEIGHT 0.98
 #endif
@@ -349,11 +349,11 @@
 // @section homing
 
 // Homing hits each endstop, retracts by these distances, then does a slower bump.
-#define X_HOME_BUMP_MM 5
-#define Y_HOME_BUMP_MM 5
+#define X_HOME_BUMP_MM 0
+#define Y_HOME_BUMP_MM 0
 #define Z_HOME_BUMP_MM 1
 #define HOMING_BUMP_DIVISOR { 4, 4, 4 }  // Re-Bump Speed Divisor (Divides the Homing Feedrate)
-#define QUICK_HOME                     // If homing includes X and Y, do a diagonal move initially
+//#define QUICK_HOME                     // If homing includes X and Y, do a diagonal move initially
 
 // When G28 is called, this option will make Y home before X
 //#define HOME_Y_BEFORE_X
@@ -659,12 +659,12 @@
  *
  * Warning: Does not respect endstops!
  */
-//#define BABYSTEPPING
+#define BABYSTEPPING
 #if ENABLED(BABYSTEPPING)
   //#define BABYSTEP_XY              // Also enable X/Y Babystepping. Not supported on DELTA!
   #define BABYSTEP_INVERT_Z false    // Change if Z babysteps should go the other way
-  #define BABYSTEP_MULTIPLICATOR 1   // Babysteps are very small. Increase for faster motion.
-  //#define BABYSTEP_ZPROBE_OFFSET   // Enable to combine M851 and Babystepping
+  #define BABYSTEP_MULTIPLICATOR 20   // Babysteps are very small. Increase for faster motion.
+  #define BABYSTEP_ZPROBE_OFFSET   // Enable to combine M851 and Babystepping
   //#define DOUBLECLICK_FOR_Z_BABYSTEPPING // Double-click on the Status Screen for Z Babystepping.
   #define DOUBLECLICK_MAX_INTERVAL 1250 // Maximum interval between clicks, in milliseconds.
                                         // Note: Extra time may be added to mitigate controller latency.
@@ -682,15 +682,15 @@
  */
 #define LIN_ADVANCE
 
-#if ENABLED(LIN_ADVANCE) 
+#if ENABLED(LIN_ADVANCE)
 	#if ( DISABLED(BEEVC_TMC2208ext) && DISABLED(BEEVC_TMC2208all) )
 
 		#ifdef BEEVC_Bowden
-			#define LIN_ADVANCE_K 300
+			#define LIN_ADVANCE_K 100
 		#else
 			#define LIN_ADVANCE_K 40
 		#endif
-		
+
 	#else
 		#define LIN_ADVANCE_K 0
 	#endif
@@ -897,24 +897,24 @@
   #define PAUSE_PARK_RETRACT_LENGTH 2         // Initial retract in mm
                                               // It is a short retract used immediately after print interrupt before move to filament exchange position
   #define FILAMENT_CHANGE_UNLOAD_FEEDRATE 60  // Unload filament feedrate in mm/s - filament unloading can be fast
-  
+
   //DR - 20/10/2017
   //hBp Selects the correct load and unload length for bowden
   #ifndef BEEVC_Bowden
-  
-	#define FILAMENT_CHANGE_UNLOAD_LENGTH 100   
-	#define FILAMENT_CHANGE_LOAD_FEEDRATE 6     
-	#define FILAMENT_CHANGE_LOAD_LENGTH 0       
-	#define ADVANCED_PAUSE_EXTRUDE_FEEDRATE 3  
-	#define ADVANCED_PAUSE_EXTRUDE_LENGTH 50   
-	
+
+	#define FILAMENT_CHANGE_UNLOAD_LENGTH 100
+	#define FILAMENT_CHANGE_LOAD_FEEDRATE 6
+	#define FILAMENT_CHANGE_LOAD_LENGTH 0
+	#define ADVANCED_PAUSE_EXTRUDE_FEEDRATE 3
+	#define ADVANCED_PAUSE_EXTRUDE_LENGTH 50
+
   #else
 	#define FILAMENT_CHANGE_UNLOAD_LENGTH 800   // Unload filament length from hotend in mm
                                               // Longer length for bowden printers to unload filament from whole bowden tube,
                                               // shorter length for printers without bowden to unload filament from extruder only,
                                               // 0 to disable unloading for manual unloading
 	#define FILAMENT_CHANGE_LOAD_FEEDRATE 60     // Load filament feedrate in mm/s - filament loading into the bowden tube can be fast
-	
+
 	//DR - 20/10/2017
 	//DEBUG - Allows for a smaller bowden tube
   #ifndef BEEVC_Bowden_500
@@ -925,20 +925,20 @@
 		#define FILAMENT_CHANGE_LOAD_LENGTH 460
 
   #endif
-  
+
 	#define ADVANCED_PAUSE_EXTRUDE_FEEDRATE 4  // Extrude filament feedrate in mm/s - must be slower than load feedrate
 	#define ADVANCED_PAUSE_EXTRUDE_LENGTH 100   // Extrude filament length in mm after filament is loaded over the hotend,
                                               // 0 to disable for manual extrusion
                                               // Filament can be extruded repeatedly from the filament exchange menu to fill the hotend,
                                               // or until outcoming filament color is not clear for filament color change
   #endif
-  
-  
+
+
   #define PAUSE_PARK_NOZZLE_TIMEOUT 45        // Turn off nozzle if user doesn't change filament within this time limit in seconds
   #define FILAMENT_CHANGE_NUMBER_OF_ALERT_BEEPS 5 // Number of alert beeps before printer goes quiet
   #define PAUSE_PARK_NO_STEPPER_TIMEOUT       // Enable to have stepper motors hold position during filament change
                                               // even if it takes longer than DEFAULT_STEPPER_DEACTIVE_TIME.
-  //#define PARK_HEAD_ON_PAUSE                // Go to filament change position on pause, return to print position on resume
+  #define PARK_HEAD_ON_PAUSE                // Go to filament change position on pause, return to print position on resume
   //#define HOME_BEFORE_FILAMENT_CHANGE       // Ensure homing has been completed prior to parking for filament change
 #endif
 
@@ -1023,7 +1023,9 @@
  * the hardware SPI interface on your board and define the required CS pins
  * in your `pins_MYBOARD.h` file. (e.g., RAMPS 1.4 uses AUX3 pins `X_CS_PIN 53`, `Y_CS_PIN 49`, etc.).
  */
-//#define HAVE_TMC2130
+#if (ENABLED(BEEVC_TMC2130) || ENABLED(BEEVC_TMC2130XY))
+  #define HAVE_TMC2130
+#endif
 
 /**
  * Enable this for SilentStepStick Trinamic TMC2208 UART-configurable stepper drivers.
@@ -1038,6 +1040,19 @@
 //#define HAVE_TMC2208
 
 #if ENABLED(HAVE_TMC2130) || ENABLED(HAVE_TMC2208)
+
+  #ifdef BEEVC_TMC2130
+    #define X_IS_TMC2130
+    #define Y_IS_TMC2130
+    #define Z_IS_TMC2130
+    #define E0_IS_TMC2130
+    #define E1_IS_TMC2130
+  #endif
+
+  #ifdef BEEVC_TMC2130XY
+    #define X_IS_TMC2130
+    #define Y_IS_TMC2130
+  #endif
 
   // CHOOSE YOUR MOTORS HERE, THIS IS MANDATORY
   //#define X_IS_TMC2130
@@ -1069,13 +1084,13 @@
    */
 
   #define R_SENSE           0.11  // R_sense resistor for SilentStepStick2130
-  #define HOLD_MULTIPLIER    0.5  // Scales down the holding current from run current
+  #define HOLD_MULTIPLIER    0.7  // Scales down the holding current from run current
   #define INTERPOLATE       true  // Interpolate X/Y/Z_MICROSTEPS to 256
 
-  #define X_CURRENT          800  // rms current in mA. Multiply by 1.41 for peak current.
+  #define X_CURRENT          700  // rms current in mA. Multiply by 1.41 for peak current.
   #define X_MICROSTEPS        16  // 0..256
 
-  #define Y_CURRENT          800
+  #define Y_CURRENT          700
   #define Y_MICROSTEPS        16
 
   #define Z_CURRENT          800
@@ -1090,10 +1105,10 @@
   #define Z2_CURRENT         800
   #define Z2_MICROSTEPS       16
 
-  #define E0_CURRENT         800
+  #define E0_CURRENT         1100
   #define E0_MICROSTEPS       16
 
-  #define E1_CURRENT         800
+  #define E1_CURRENT         1100
   #define E1_MICROSTEPS       16
 
   #define E2_CURRENT         800
@@ -1109,7 +1124,7 @@
    * Use Trinamic's ultra quiet stepping mode.
    * When disabled, Marlin will use spreadCycle stepping mode.
    */
-  #define STEALTHCHOP
+  //#define STEALTHCHOP
 
   /**
    * Monitor Trinamic TMC2130 and TMC2208 drivers for error conditions,
@@ -1164,16 +1179,14 @@
    */
   //#define SENSORLESS_HOMING // TMC2130 only
 
-  #if ENABLED(SENSORLESS_HOMING)
-    #define X_HOMING_SENSITIVITY  8
-    #define Y_HOMING_SENSITIVITY  8
-  #endif
+    #define X_HOMING_SENSITIVITY  5
+    #define Y_HOMING_SENSITIVITY  5
 
   /**
    * Enable M122 debugging command for TMC stepper drivers.
    * M122 S0/1 will enable continous reporting.
    */
-  //#define TMC_DEBUG
+  #define TMC_DEBUG
 
   /**
    * You can set your own advanced settings by filling in predefined functions.
@@ -1187,7 +1200,10 @@
    *   stepperY.interpolate(0); \
    * }
    */
-  #define  TMC_ADV() {  }
+  #define  TMC_ADV() {                  \
+    stepperE0.stealthChop(1);           \
+    stepperE1.stealthChop(1);           \
+    }
 
 #endif // TMC2130 || TMC2208
 
