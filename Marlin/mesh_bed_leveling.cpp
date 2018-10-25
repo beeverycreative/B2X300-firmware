@@ -26,7 +26,7 @@
 
   mesh_bed_leveling mbl;
 
-  uint8_t mesh_bed_leveling::status;
+  bool mesh_bed_leveling::has_mesh;
 
   float mesh_bed_leveling::z_offset,
         mesh_bed_leveling::z_values[GRID_MAX_POINTS_X][GRID_MAX_POINTS_Y],
@@ -42,9 +42,9 @@
   }
 
   void mesh_bed_leveling::reset() {
-    status = MBL_STATUS_NONE;
+    has_mesh = false;
     z_offset = 0;
     ZERO(z_values);
   }
 
-#endif  // MESH_BED_LEVELING
+#endif // MESH_BED_LEVELING

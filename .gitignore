@@ -52,6 +52,7 @@ tags
 *.lo
 *.o
 *.obj
+*.ino.cpp
 
 # Precompiled Headers
 *.gch
@@ -117,16 +118,23 @@ tags
 
 # PlatformIO files/dirs
 .pio*
+.pioenvs
+.piolibdeps
 lib/readme.txt
 
 #Visual Studio
 *.sln
 *.vcxproj
 *.vcxproj.filters
-Marlin/Release/
-Marlin/Debug/
-Marlin/__vm/
-Marlin/.vs/
+Release/
+Debug/
+__vm/
+.vs/
+vc-fileutils.settings
+
+#VScode
+.vscode
+.vscode/c_cpp_properties.json
 
 #cmake
 CMakeLists.txt
@@ -135,3 +143,11 @@ CMakeListsPrivate.txt
 
 #CLion
 cmake-build-*
+.github/issue_template.md
+.github/issue_template.md
+Marlin/Conditionals_LCD.h
+Marlin/enum.h
+Marlin/Conditionals_LCD.h
+Marlin/Configuration.h
+.clang_complete
+.gcc-flags.json

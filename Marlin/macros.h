@@ -28,7 +28,20 @@
 #define ABC  3
 #define XYZ  3
 
+#define _XMIN_ 100
+#define _YMIN_ 200
+#define _ZMIN_ 300
+#define _XMAX_ 101
+#define _YMAX_ 201
+#define _ZMAX_ 301
+
 #define FORCE_INLINE __attribute__((always_inline)) inline
+#define _UNUSED      __attribute__((unused))
+#define _O0          __attribute__((optimize("O0")))
+#define _Os          __attribute__((optimize("Os")))
+#define _O1          __attribute__((optimize("O1")))
+#define _O2          __attribute__((optimize("O2")))
+#define _O3          __attribute__((optimize("O3")))
 
 // Bracket code that shouldn't be interrupted
 #ifndef CRITICAL_SECTION_START
@@ -93,6 +106,9 @@
 #define CBI(n,b) (n &= ~_BV(b))
 #define SET_BIT(n,b,value) (n) ^= ((-value)^(n)) & (_BV(b))
 
+// Macro to check that a number if a power if 2
+#define IS_POWER_OF_2(x) ((x) && !((x) & ((x) - 1)))
+
 // Macros for maths shortcuts
 #ifndef M_PI
   #define M_PI 3.14159265358979323846
@@ -100,7 +116,12 @@
 #define RADIANS(d) ((d)*M_PI/180.0)
 #define DEGREES(r) ((r)*180.0/M_PI)
 #define HYPOT2(x,y) (sq(x)+sq(y))
-#define HYPOT(x,y) sqrt(HYPOT2(x,y))
+
+#define CIRCLE_AREA(R) (M_PI * sq(R))
+#define CIRCLE_CIRC(R) (2.0 * M_PI * (R))
+
+#define SIGN(a) ((a>0)-(a<0))
+#define IS_POWER_OF_2(x) ((x) && !((x) & ((x) - 1)))
 
 // Macros to contrain values
 #define NOLESS(v,n) do{ if (v < n) v = n; }while(0)
@@ -118,7 +139,9 @@
 
 #define WITHIN(V,L,H) ((V) >= (L) && (V) <= (H))
 #define NUMERIC(a) WITHIN(a, '0', '9')
-#define NUMERIC_SIGNED(a) (NUMERIC(a) || (a) == '-')
+#define DECIMAL(a) (NUMERIC(a) || a == '.')
+#define NUMERIC_SIGNED(a) (NUMERIC(a) || (a) == '-' || (a) == '+')
+#define DECIMAL_SIGNED(a) (DECIMAL(a) || (a) == '-' || (a) == '+')
 #define COUNT(a) (sizeof(a)/sizeof(*a))
 #define ZERO(a) memset(a,0,sizeof(a))
 #define COPY(a,b) memcpy(a,b,min(sizeof(a),sizeof(b)))
@@ -165,6 +188,9 @@
 #define PENDING(NOW,SOON) ((long)(NOW-(SOON))<0)
 #define ELAPSED(NOW,SOON) (!PENDING(NOW,SOON))
 
+#define MMM_TO_MMS(MM_M) ((MM_M)/60.0)
+#define MMS_TO_MMM(MM_S) ((MM_S)*60.0)
+
 #define NOOP do{} while(0)
 
 #define CEILING(x,y) (((x) + (y) - 1) / (y))
@@ -182,5 +208,18 @@
 
 #define RECIPROCAL(x) (NEAR_ZERO(x) ? 0.0 : 1.0 / (x))
 #define FIXFLOAT(f) (f + 0.00001)
+
+//
+// Maths macros that can be overridden by HAL
+//
+#define ATAN2(y, x) atan2(y, x)
+#define FABS(x)     fabs(x)
+#define POW(x, y)   pow(x, y)
+#define SQRT(x)     sqrt(x)
+#define CEIL(x)     ceil(x)
+#define FLOOR(x)    floor(x)
+#define LROUND(x)   lround(x)
+#define FMOD(x, y)  fmod(x, y)
+#define HYPOT(x,y)  SQRT(HYPOT2(x,y))
 
 #endif //__MACROS_H

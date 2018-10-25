@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+arduino --install-library "U8glib","TMC2130Stepper" 

@@ -1,0 +1,38 @@
+image: ubuntu-bvc-marlin:latest
+
+before_script:
+    - echo "--------------------------------"
+    #- ARDUINO_VERSION="arduino-1.8.5"
+    - ARDUINO_PATH="/arduino/"
+    - pwd
+    - WD=$(pwd)
+    - export PATH=$WD/buildroot/bin/:$ARDUINO_PATH:$PATH
+    - mkdir build -p -v
+    #- echo "--------------------------------"
+    - export commit_sha=$(echo $CI_COMMIT_SHA | cut -c 1-7)
+      #    - export build_date=$(date +'%Y%m%d')
+    - export build_date=$(date +'%m%Y')
+    - export commit_branch=$(echo $CI_COMMIT_REF_NAME | cut -c 1-6)
+      #- install_libs
+
+build:
+    script:
+        - echo $commit_sha
+        - echo $CI_COMMIT_REF_NAME
+        - echo $CI_COMMIT_REF_SLUG
+        - echo $CI_COMMIT_SHA
+        - echo "#define BUILDBRANCH \"$commit_branch\"" >> "Marlin/Version.h"
+        - echo "#define BUILDCOMMIT \"$commit_sha\"" >> "Marlin/Version.h"
+        - echo "#define BUILDDATE \"$build_date\"" >> "Marlin/Version.h"
+        - echo "$build_date-$commit_branch-$commit_sha"
+        - build_marlin
+        - pwd && ls
+        - cp build/*bootloader.hex .
+        
+
+    artifacts:
+        name: "marlin-bvc-$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHA"
+        paths:
+            - ./*.hex
+            #- build/*.hex
+        expire_in: 1 week

@@ -34,26 +34,46 @@ class MarlinSettings {
 
     #if ENABLED(EEPROM_SETTINGS)
       static bool load();
+
+      #if ENABLED(AUTO_BED_LEVELING_UBL) // Eventually make these available if any leveling system
+                                         // That can store is enabled
+        FORCE_INLINE static int16_t get_start_of_meshes() { return meshes_begin; }
+        FORCE_INLINE static int16_t get_end_of_meshes() { return meshes_end; }
+        static uint16_t calc_num_meshes();
+        static void store_mesh(const int8_t slot);
+        static void load_mesh(const int8_t slot, void * const into=NULL);
+
+        //static void delete_mesh();    // necessary if we have a MAT
+        //static void defrag_meshes();  // "
+      #endif
     #else
       FORCE_INLINE
       static bool load() { reset(); report(); return true; }
     #endif
 
     #if DISABLED(DISABLE_M503)
-      static void report(bool forReplay=false);
+      static void report(const bool forReplay=false);
     #else
       FORCE_INLINE
-      static void report(bool forReplay=false) { }
+      static void report(const bool forReplay=false) { UNUSED(forReplay); }
     #endif
 
   private:
     static void postprocess();
 
     #if ENABLED(EEPROM_SETTINGS)
-      static uint16_t eeprom_checksum;
-      static bool eeprom_read_error, eeprom_write_error;
-      static void write_data(int &pos, const uint8_t* value, uint16_t size);
-      static void read_data(int &pos, uint8_t* value, uint16_t size);
+      static bool eeprom_error;
+
+      #if ENABLED(AUTO_BED_LEVELING_UBL) // Eventually make these available if any leveling system
+                                         // That can store is enabled
+        static int16_t meshes_begin;
+        const static int16_t meshes_end = E2END - 128; // 128 is a placeholder for the size of the MAT; the MAT will always
+                                                       // live at the very end of the eeprom
+
+      #endif
+
+      static void write_data(int &pos, const uint8_t *value, uint16_t size, uint16_t *crc);
+      static void read_data(int &pos, uint8_t *value, uint16_t size, uint16_t *crc);
     #endif
 };
 
