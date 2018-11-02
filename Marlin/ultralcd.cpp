@@ -266,6 +266,7 @@ uint16_t max_display_update_time = 0;
 
   ////////////   Filament Change   //////////////
 	uint16_t filament_change_temp = 0;
+  uint8_t filament_change_extruder = 0;
   bool filament_change_load = false;
   bool filament_change_manual = false;
 
@@ -2267,7 +2268,9 @@ static void lcd_filament_chang_finish_movement () {
 
   // Checks if necessary movements have been made
   if ((current_position[Z_AXIS] == 50) && axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS]) {
-    lcd_filament_change_unload_load (filament_change_temp,filament_change_manual, filament_change_load);
+    //Checks if the correct extruder is active
+    if(filament_change_extruder == active_extruder)
+      lcd_filament_change_unload_load (filament_change_temp,filament_change_manual, filament_change_load);
   }
 }
 
@@ -2301,28 +2304,28 @@ static void lcd_filament_change_choose_action () {
 static void lcd_filament_change_pla ()
 {
   filament_change_temp = 210;
-  thermalManager.setTargetHotend(filament_change_temp, active_extruder);
+  thermalManager.setTargetHotend(filament_change_temp, filament_change_extruder);
   lcd_goto_screen(lcd_filament_change_choose_action);
 }
 
 static void lcd_filament_change_petg ()
 {
   filament_change_temp = 230;
-  thermalManager.setTargetHotend(filament_change_temp, active_extruder);
+  thermalManager.setTargetHotend(filament_change_temp, filament_change_extruder);
   lcd_goto_screen(lcd_filament_change_choose_action);
 }
 
 static void lcd_filament_change_abs ()
 {
   filament_change_temp = 240;
-  thermalManager.setTargetHotend(filament_change_temp, active_extruder);
+  thermalManager.setTargetHotend(filament_change_temp, filament_change_extruder);
   lcd_goto_screen(lcd_filament_change_choose_action);
 }
 
 static void lcd_filament_change_pc ()
 {
   filament_change_temp = 260;
-  thermalManager.setTargetHotend(filament_change_temp, active_extruder);
+  thermalManager.setTargetHotend(filament_change_temp, filament_change_extruder);
   lcd_goto_screen(lcd_filament_change_choose_action);
 }
 
@@ -2342,21 +2345,26 @@ static void lcd_filament_change_choose_temp() {
 
 static void lcd_filament_change_extruder_0()
 {
+  filament_change_extruder = 0;
   enqueue_and_echo_commands_P(PSTR("T0"));
-  active_extruder=0;
+
   lcd_goto_screen(lcd_filament_change_choose_temp);
 }
 
 static void lcd_filament_change_extruder_1()
 {
+  filament_change_extruder = 1;
   enqueue_and_echo_commands_P(PSTR("T1"));
-  active_extruder=1;
+
   lcd_goto_screen(lcd_filament_change_choose_temp);
 }
 
 
 static void lcd_filament_change()
 {
+  // Sets the process not complete flag
+  beevc_continue = 1;
+
   START_MENU();
 
   // Go back to previous menu
@@ -2381,6 +2389,9 @@ static void lcd_filament_change_start()
   }
 
   lcd_goto_screen(lcd_filament_change);
+
+  // Force screen update
+  beevc_force_screen_update();
 }
 
 void lcd_enqueue_filament_change() {
