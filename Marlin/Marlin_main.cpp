@@ -13404,9 +13404,9 @@ inline void gcode_M999() {
        }
 
        // Chooses the correct X position to make the movemente depending on the active extruder
-       int16_t x_prime_pos = X_MAX_POS - 16;
+       int16_t x_prime_pos = X_BED_SIZE +2;
        if (active_extruder != 0)
-        x_prime_pos = X_MIN_POS+5;
+        x_prime_pos = -2;
 
        // Go to starting position
        do_relative_move_to(x_prime_pos,150,0.3,0,100);
