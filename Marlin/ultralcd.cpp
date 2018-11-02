@@ -797,7 +797,7 @@ uint16_t max_display_update_time = 0;
     STATIC_ITEM("relative to the bed.",false,false);
     STATIC_ITEM(" ",false,false);
     STATIC_ITEM("Please check the",false,false);
-    STATIC_ITEM("'Other Codes' chapter",false,false);
+    STATIC_ITEM("\"Other Codes\" chapter",false,false);
     STATIC_ITEM("on the User Manual for",false,false);
     STATIC_ITEM("more information.",false,false);
     STATIC_ITEM(" ");
@@ -1169,7 +1169,7 @@ uint16_t max_display_update_time = 0;
    STATIC_ITEM(_UxGT("nor completely stuck"), false, false);
    STATIC_ITEM(_UxGT(" "), false, false);
    STATIC_ITEM(_UxGT("Please, check the"), false, false);
-   STATIC_ITEM(_UxGT("'Other Codes' chapter"), false, false);
+   STATIC_ITEM(_UxGT("\"Other Codes\" chapter"), false, false);
    STATIC_ITEM(_UxGT("on the User Manual for"), false, false);
    STATIC_ITEM(_UxGT("more information."), false, false);
    STATIC_ITEM(_UxGT(" "), false, false);
@@ -4951,7 +4951,7 @@ void lcd_enqueue_filament_change() {
     STATIC_ITEM(_UxGT("A error occured"), false, false);\
     STATIC_ITEM(_UxGT("during the self-test"), false, false);\
     STATIC_ITEM(_UxGT("Please, check the"), false, false);\
-    STATIC_ITEM(_UxGT("'Error Codes' chapter"), false, false);\
+    STATIC_ITEM(_UxGT("\"Error Codes\" chapter"), false, false);\
     STATIC_ITEM(_UxGT("on the User Manual."), false, false);\
     STATIC_ITEM(_UxGT(" "), false, false)
 
@@ -5448,7 +5448,7 @@ void beevc_machine_setup_screen_set_offset_explain(){
   STATIC_ITEM(_UxGT("nor completely stuck"), false, false);
   STATIC_ITEM(_UxGT(" "), false, false);
   STATIC_ITEM(_UxGT("Please, check the"), false, false);
-  STATIC_ITEM(_UxGT("'Other Codes' chapter"), false, false);
+  STATIC_ITEM(_UxGT("\"Other Codes\" chapter"), false, false);
   STATIC_ITEM(_UxGT("on the User Manual for"), false, false);
   STATIC_ITEM(_UxGT("more information."), false, false);
   STATIC_ITEM(_UxGT(" "), false, false);
