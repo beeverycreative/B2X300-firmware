@@ -1963,7 +1963,7 @@ void kill_screen(const char* lcd_msg) {
 			lcd.print("/");
 			lcd.print(round(thermalManager.degTargetHotend(active_extruder)));
 	  #else
-		  u8g.setPrintPos(16, 48);
+		  u8g.setPrintPos(18, 48);
 			u8g.print("Nozzle: ");
 
 			if(round(thermalManager.degHotend(active_extruder)) <100)
