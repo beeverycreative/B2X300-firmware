@@ -253,7 +253,6 @@ uint16_t max_display_update_time = 0;
   ////////////   Self-test Wizard    //////////////
 	#ifdef BEEVC_B2X300
 		void beevc_machine_setup();
-    bool beevc_continue = 0;
     uint8_t trinamic_ok = 0;
 	#endif // BEEVC_Restore
 	///////////////////////////////////////////////////////
@@ -261,6 +260,8 @@ uint16_t max_display_update_time = 0;
   ////////////   Auxiliary functions    //////////////
 	#ifdef BEEVC_B2X300
     uint8_t beevc_screen_header = 0;
+    bool beevc_continue = 0;
+    uint32_t next_update =  0;
 	#endif
 	///////////////////////////////////////////////////////
 
@@ -2060,11 +2061,13 @@ void kill_screen(const char* lcd_msg) {
        encoderPosition = 0;
      }
 
-     if (lcdDrawUpdate && (!processing_manual_move)) {
+     if ((lcdDrawUpdate && (!processing_manual_move)) || millis() > next_update) {
        switch (active_extruder) {
            default: lcd_implementation_drawedit(PSTR(MSG_MOVE_E MSG_MOVE_E1), ftostr41sign(current_position[E_AXIS]));; break;
            case 1: lcd_implementation_drawedit(PSTR(MSG_MOVE_E MSG_MOVE_E2), ftostr41sign(current_position[E_AXIS]));; break;
          }
+        // makes sure there is at least one update per second
+        next_update = millis() + 1000;
      }
    }
 
@@ -2349,6 +2352,9 @@ static void lcd_filament_change_extruder_0()
   enqueue_and_echo_commands_P(PSTR("T0"));
 
   lcd_goto_screen(lcd_filament_change_choose_temp);
+
+  // Force screen update
+  beevc_force_screen_update();
 }
 
 static void lcd_filament_change_extruder_1()
@@ -2357,6 +2363,9 @@ static void lcd_filament_change_extruder_1()
   enqueue_and_echo_commands_P(PSTR("T1"));
 
   lcd_goto_screen(lcd_filament_change_choose_temp);
+
+  // Force screen update
+  beevc_force_screen_update();
 }
 
 
