@@ -10539,6 +10539,12 @@ inline void gcode_M502() {
 	{
 		lcd_advanced_pause_show_message(FILAMENT_CHANGE_MESSAGE_MOVING);
 
+    // Force screen update
+    unsigned long next_update = millis() + 1000;
+    lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+    while(millis()< next_update)
+      idle(true);
+
 		// Extrude filament to get into hotend
 		destination[E_AXIS] += ADVANCED_PAUSE_EXTRUDE_LENGTH;
 		RUNPLAN(ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
