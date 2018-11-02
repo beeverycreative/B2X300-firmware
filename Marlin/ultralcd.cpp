@@ -2342,14 +2342,14 @@ static void lcd_filament_change_choose_temp() {
 
 static void lcd_filament_change_extruder_0()
 {
-  tool_change(0);
+  enqueue_and_echo_commands_P(PSTR("T0"));
   active_extruder=0;
   lcd_goto_screen(lcd_filament_change_choose_temp);
 }
 
 static void lcd_filament_change_extruder_1()
 {
-  tool_change(1);
+  enqueue_and_echo_commands_P(PSTR("T1"));
   active_extruder=1;
   lcd_goto_screen(lcd_filament_change_choose_temp);
 }

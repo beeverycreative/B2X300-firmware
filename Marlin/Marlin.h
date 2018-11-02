@@ -230,7 +230,6 @@ void gcode_G29();
 void gcode_M721();
 void gcode_M730();
 void gcode_M740();
-void tool_change(const uint8_t tmp_extruder, const float fr_mm_s=0.0, bool no_move=false);
 void do_move_to (float posX, float posY, float posZ, float posE, float feed);
 void do_relative_move_to (float posX, float posY, float posZ, float posE, float feed);
 void clear_command_queue();
