@@ -5676,6 +5676,11 @@ void beevc_machine_setup_test_hotend (uint8_t extruder){
     // Checks for swapped hotend sensor/resistors
       if (thermalManager.degHotend(extruder == 1 ? 1 : 0) > idle_temp){
         lcd_goto_screen(beevc_machine_setup_screen_error_hotend_sensor_swaped);
+
+        while(1){
+          idle(true);
+        }
+
         break;
       }
 
