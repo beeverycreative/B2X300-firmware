@@ -4716,7 +4716,7 @@ void beevc_machine_setup_screen_error_hotend_timeout() {
 
   u8g.setPrintPos(0, 26);
   u8g.print("Extruder ");
-  u8g.print(active_extruder);
+  u8g.print(active_extruder+1);
   u8g.print(":  xx");
   u8g.print("/");
   u8g.print(round(thermalManager.degTargetHotend(active_extruder)));
@@ -4750,7 +4750,7 @@ void beevc_machine_setup_screen_error_hotend_sensor() {
 
   u8g.setPrintPos(0, 26);
   u8g.print("Extruder ");
-  u8g.print(active_extruder);
+  u8g.print(active_extruder+1);
   u8g.print(":  xx");
   u8g.print("/");
   u8g.print(round(thermalManager.degTargetHotend(active_extruder)));
@@ -4784,7 +4784,7 @@ void beevc_machine_setup_screen_error_hotend_sensor_swaped() {
 
   u8g.setPrintPos(0, 26);
   u8g.print("Extruder ");
-  u8g.print(active_extruder);
+  u8g.print(active_extruder+1);
   u8g.print(":  xx");
   u8g.print("/");
   u8g.print(round(thermalManager.degTargetHotend(active_extruder)));
@@ -5280,6 +5280,15 @@ void beevc_machine_setup_test_hotend (uint8_t extruder){
     // Checks for swapped hotend sensor/resistors
       if (thermalManager.degHotend(extruder == 1 ? 1 : 0) > idle_temp){
         lcd_goto_screen(beevc_machine_setup_screen_error_hotend_sensor_swaped);
+
+        // Disable heating
+        thermalManager.setTargetHotend(0, active_extruder);
+
+        // Loops to show error message and require a reset
+        while(1){
+          idle(true);
+        }
+
         break;
       }
 
