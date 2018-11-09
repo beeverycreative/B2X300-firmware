@@ -60,6 +60,16 @@ extern const char errormagic[] PROGMEM;
 #define SERIAL_ECHOPAIR(pre,value)     SERIAL_PROTOCOLPAIR(pre, value)
 #define SERIAL_ECHOLNPAIR(pre,value)   SERIAL_PROTOCOLLNPAIR(pre, value)
 #define SERIAL_ECHO_F(x,y)             SERIAL_PROTOCOL_F(x,y)
+#define SERIAL_ECHO_BIN8(x) { \          
+	SERIAL_PROTOCOL((x & 0b10000000) == 0b10000000);\
+	SERIAL_PROTOCOL((x & 0b01000000) == 0b01000000);\
+	SERIAL_PROTOCOL((x & 0b00100000) == 0b00100000);\		
+	SERIAL_PROTOCOL((x & 0b00010000) == 0b00010000);\		
+	SERIAL_PROTOCOL((x & 0b00001000) == 0b00001000);\		
+	SERIAL_PROTOCOL((x & 0b00000100) == 0b00000100);\	
+	SERIAL_PROTOCOL((x & 0b00000010) == 0b00000010);\
+	SERIAL_PROTOCOL((x & 0b00000001) == 0b00000001);\
+}	
 
 #define SERIAL_ERROR_START()           (serialprintPGM(errormagic))
 #define SERIAL_ERROR(x)                SERIAL_PROTOCOL(x)
