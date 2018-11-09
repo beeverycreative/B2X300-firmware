@@ -511,11 +511,16 @@
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // hBp - Checks if the extended bed is being used and adjusts the power limit
 #ifndef BEEVC_Addon_bed
-#define MAX_BED_POWER 205 // limits duty cycle to bed; 255=full current
+  #ifdef B2X300_PRERELEASE
+    // B2X300 pre release bed
+    #define MAX_BED_POWER 255 // limits duty cycle to bed; 255=full current
+  #else
+    // B2X300 release bed
+    #define MAX_BED_POWER 205 // limits duty cycle to bed; 255=full current
+  #endif
 
 #else
-#define MAX_BED_POWER 140 // limits duty cycle to bed; 140= 55% of the maximum current
-
+  #define MAX_BED_POWER 140 // limits duty cycle to bed; 140= 55% of the maximum current
 #endif
 
 
@@ -728,7 +733,7 @@
 	#else
 		// A4988 on all stepper drivers with trapezoidal threaded rod
     #ifdef BEEVC_B2X300
-      #define DEFAULT_AXIS_STEPS_PER_UNIT   { 80,80,1600, 100}
+      #define DEFAULT_AXIS_STEPS_PER_UNIT   { 80,80,1600, B2X300_E_STEPS}
     #else
 		  #define DEFAULT_AXIS_STEPS_PER_UNIT   { 80,80,1600, 90}
     #endif
