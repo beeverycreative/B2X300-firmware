@@ -11,6 +11,9 @@
 //===========================================================================
 //=========================== Experimental/Beta =============================
 //===========================================================================
+// Pre-Release (BETA) extruder drive gears and hotbed
+// #define B2X300_PRERELEASE
+//
 // Back mounted Y endstop, uncomment this if your Y endstop is next to the Y motor
 // #define BEEVC_B2X300_YMINSTOP
 //
@@ -59,6 +62,16 @@
 #define FILAMENT_RUNOUT_DUAL
 //#define BEEVC_Restore_Move_X
 #define BEEVC_Restore_Move_Y
+
+// Drive gear revisions
+#define B2X300_PRE_PRODUCTION_GEAR_STEPS 100
+#define B2X300_PRODUCTION_GEAR_STEPS 101.02
+
+#ifdef B2X300_PRERELEASE
+  #define B2X300_E_STEPS B2X300_PRE_PRODUCTION_GEAR_STEPS
+#else
+  #define B2X300_E_STEPS B2X300_PRODUCTION_GEAR_STEPS
+#endif
 
 #if (ENABLED(BEEVC_TMC2130) || ENABLED(BEEVC_TMC2130XY))
   #define BEEVC_TMC2130READSG
