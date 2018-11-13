@@ -12718,7 +12718,7 @@ inline void gcode_M999() {
 		#endif
 
     // Loads extruder mode
-    axis_relative_modes[E_AXIS] = active_extruder && 0b00000100;
+    axis_relative_modes[E_AXIS] = ((active_extruder & 0b00000100) == 0b00000100);
     // Loads acceleration
     planner.acceleration = (active_extruder >> 4) * 250;
 	planner.travel_acceleration = planner.acceleration * 1.5;
