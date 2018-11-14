@@ -17101,6 +17101,7 @@ void setup() {
 		// Check if there is a print to be recovered
 		float tempZ = 0;
 		int eeprom_index = 0;
+
 		//Loads Z height
 		EEPROM_read(eeprom_index, (uint8_t*)&tempZ, sizeof(current_position[Z_AXIS]));
 
@@ -17109,6 +17110,10 @@ void setup() {
 		{
 			toRecover = true;
 			lcd_setstatus("Print Restored! ");
+
+      // Restores bed temperature to avoid printed parts from releasing
+      eeprom_index = 26;
+      EEPROM_read(eeprom_index, (uint8_t*)&thermalManager.target_temperature_bed, sizeof(thermalManager.target_temperature_bed));
 		}
 	#endif
 	///////////////////////////////////////////////////////
@@ -17175,6 +17180,21 @@ void setup() {
 			#endif
 			// Sets the eeprom index to the begining
 			int eeprom_index = 0 ;
+
+      /* EEPROM map byte adress
+      * 0-3     Z position
+      * 4-7     X position
+      * 8-11    Y position
+      * 12      Active Extruder,Extruder mode, acceleration
+      * 13-16   E position
+      * 17      Fan Speed
+      * 18-21   E0 temp
+      * 22-25   E1 temp
+      * 26-29   Bed temp
+      * 30-33   Sdcard file byte
+      * 34-98   SD File path
+      * 99      Startup wizard flag
+      */
 
 			//Stores Z height
 			EEPROM_write(eeprom_index, (uint8_t*)&current_position[Z_AXIS], sizeof(current_position[Z_AXIS]));

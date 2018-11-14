@@ -7670,10 +7670,8 @@ void beevc_machine_setup_test_powerloss (){
       #ifdef BEEVC_Restore
         //Starting a new print so recovered files can be deleted
         toRecover = false;
+        enqueue_and_echo_commands_P(PSTR("M712"));
     	#endif
-
-
-      enqueue_and_echo_commands_P(PSTR("M712"));
 
       lcd_return_to_status();
     }
