@@ -8054,11 +8054,7 @@ inline void gcode_M105() {
           return;
         }
       #endif // EXTRA_FAN_SPEED
-      uint16_t s = parser.ushortval('S', 255);
-      // Makes sure the fan isn't activated for speeds at which it can't spin
-      if (s != 0)
-        s = map(s,0,255,B2X300_MIN_FAN,255);
-
+      const uint16_t s = parser.ushortval('S', 255);
       fanSpeeds[p] = min(s, 255);
     }
   }
