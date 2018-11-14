@@ -2111,6 +2111,10 @@ void lcd_enqueue_filament_change() {
     // Fan Speed:
     MENU_MULTIPLIER_ITEM_EDIT(int3, MSG_FAN_SPEED FAN_SPEED_1_SUFFIX, &fanSpeeds[0], 0, 255);
 
+    // Makes sure the fan isn't set for a speed at which it can't spin
+    if (fanSpeeds[0] > 0 && fanSpeeds[0] < B2X300_MIN_FAN)
+      fanSpeeds[0]=B2X300_MIN_FAN;
+
     // Feedrate:
     MENU_ITEM_EDIT(int3, MSG_SPEED, &feedrate_percentage, 10, 999);
 
@@ -5809,6 +5813,10 @@ void beevc_machine_setup_test_powerloss (){
 
     // Fan Speed:
     MENU_MULTIPLIER_ITEM_EDIT(int3, MSG_FAN_SPEED FAN_SPEED_1_SUFFIX, &fanSpeeds[0], 0, 255);
+
+    // Makes sure the fan isn't set for a speed at which it can't spin
+    if (fanSpeeds[0] > 0 && fanSpeeds[0] < B2X300_MIN_FAN)
+      fanSpeeds[0]=B2X300_MIN_FAN;
 
     // Advanced options
     MENU_ITEM(submenu,  _UxGT("Advanced settings"), beevc_machine_temperature_advanced_menu);
