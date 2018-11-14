@@ -12696,11 +12696,28 @@ inline void gcode_M999() {
 				SERIAL_ECHOLNPGM(" ");
 		#endif
 
-    //Loads active extruder
+    //Loads active extruder & extruder mode & acceleration
 		EEPROM_read(eeprom_index, (uint8_t*)&active_extruder, sizeof(active_extruder));
 		eeprom_busy_wait();
+
+    #ifdef SERIAL_DEBUG
+				SERIAL_ECHO("Loaded DATA: ");
+				SERIAL_ECHO_BIN8(active_extruder);
+				SERIAL_ECHOLNPGM(" ");
+		#endif
+
+    // Loads extruder mode
+    axis_relative_modes[E_AXIS] = ((active_extruder & 0b00000100) == 0b00000100);
+    // Loads acceleration
+    planner.acceleration = (active_extruder >> 4) * 250;
+	planner.travel_acceleration = planner.acceleration * 1.5;
+	active_extruder = active_extruder & 0b00000011;
+
 		#ifdef SERIAL_DEBUG
 				SERIAL_ECHOPAIR("Loaded active extruder: ", active_extruder);
+        SERIAL_ECHOPAIR("Relative extrusion: ", axis_relative_modes[E_AXIS]);
+        SERIAL_ECHOPAIR("Print acceleration: ", planner.acceleration);
+        SERIAL_ECHOPAIR("Travel acceleration: ", planner.travel_acceleration);
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
 		#endif
@@ -16867,6 +16884,7 @@ void setup() {
 		// Check if there is a print to be recovered
 		float tempZ = 0;
 		int eeprom_index = 0;
+
 		//Loads Z height
 		EEPROM_read(eeprom_index, (uint8_t*)&tempZ, sizeof(current_position[Z_AXIS]));
 
@@ -16875,6 +16893,10 @@ void setup() {
 		{
 			toRecover = true;
 			lcd_setstatus("Print Restored! ");
+
+      // Restores bed temperature to avoid printed parts from releasing
+      eeprom_index = 26;
+      EEPROM_read(eeprom_index, (uint8_t*)&thermalManager.target_temperature_bed, sizeof(thermalManager.target_temperature_bed));
 		}
 	#endif
 	///////////////////////////////////////////////////////
@@ -16942,6 +16964,21 @@ void setup() {
 			// Sets the eeprom index to the begining
 			int eeprom_index = 0 ;
 
+      /* EEPROM map byte adress
+      * 0-3     Z position
+      * 4-7     X position
+      * 8-11    Y position
+      * 12      Active Extruder,Extruder mode, acceleration
+      * 13-16   E position
+      * 17      Fan Speed
+      * 18-21   E0 temp
+      * 22-25   E1 temp
+      * 26-29   Bed temp
+      * 30-33   Sdcard file byte
+      * 34-98   SD File path
+      * 99      Startup wizard flag
+      */
+
 			//Stores Z height
 			EEPROM_write(eeprom_index, (uint8_t*)&current_position[Z_AXIS], sizeof(current_position[Z_AXIS]));
 			#ifdef SERIAL_DEBUG
@@ -16969,10 +17006,28 @@ void setup() {
 				SERIAL_ECHOLNPGM(" ");
 			#endif
 
-      //Stores active extruder
-  		EEPROM_write(eeprom_index, (uint8_t*)&active_extruder, sizeof(active_extruder));
-  		#ifdef SERIAL_DEBUG
+      //Stores active extruder & extruder mode & acceleration
+      uint8_t tempdata = active_extruder;
+      #ifdef SERIAL_DEBUG
   	    eeprom_busy_wait();
+        SERIAL_ECHOPAIR("Active extruder: ", tempdata);
+  		SERIAL_ECHOPAIR("Relative mode: ", axis_relative_modes[E_AXIS]);
+        SERIAL_ECHOPAIR("Relative mode result: ", (tempdata | 0b00000100));
+        SERIAL_ECHOPAIR("Acceleration result: ", (  tempdata | ((uint8_t) (planner.acceleration/250)) << 4));
+  		SERIAL_ECHOLNPGM(" ");
+  		#endif
+      //Stores extruder mode
+      if (axis_relative_modes[E_AXIS])
+        tempdata |= 0b00000100;
+      //Stores an aproximation of the acceleration
+      tempdata |= ((uint8_t) (planner.acceleration/250)) << 4;
+
+  		EEPROM_write(eeprom_index, (uint8_t*)&tempdata, sizeof(tempdata));
+  		#ifdef SERIAL_DEBUG
+			eeprom_busy_wait();
+			SERIAL_ECHO("Saved data: ");
+			SERIAL_ECHO_BIN8(tempdata);
+			SERIAL_ECHOLNPGM(" ");
   			SERIAL_ECHOPAIR("Saved active extruder: ", active_extruder);
   			SERIAL_ECHOPAIR(" at position ", eeprom_index);
   			SERIAL_ECHOLNPGM(" ");

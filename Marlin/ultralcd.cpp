@@ -258,6 +258,7 @@ uint16_t max_display_update_time = 0;
 	#endif // BEEVC_Restore
 	///////////////////////////////////////////////////////
 
+    uint32_t next_update =  0;
   ////////////   Filament Change   //////////////
 	uint16_t filament_change_temp = 0;
   bool filament_change_load = false;
@@ -940,8 +941,15 @@ uint16_t max_display_update_time = 0;
 
 void lcd_status_screen() {
 
+  // If Self-test wizard flag is set launch it
   if (toCalibrate == 0){
     beevc_machine_setup();
+  }
+
+  // Ensures the LCD is alive, re-initializing it every 10s
+  if (next_update > millis()) {
+    lcd_implementation_init();
+    next_update = millis() + 10000;
   }
 
   else{
@@ -4120,13 +4128,16 @@ void lcd_enqueue_filament_change() {
 
       lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
     }
-    if (lcdDrawUpdate) {
+    if (lcdDrawUpdate || millis() > next_update) {
       const float pos = current_position[axis]
         #if IS_KINEMATIC
           + manual_move_offset
         #endif
       ;
       lcd_implementation_drawedit(name, move_menu_scale >= 0.1 ? ftostr41sign(pos) : ftostr43sign(pos));
+
+      // makes sure there is at least one update per second
+      next_update = millis() + 1000;
     }
   }
   void lcd_move_x() { _lcd_move_xyz(PSTR(MSG_MOVE_X), X_AXIS); }
@@ -4712,16 +4723,11 @@ MACHINE_SETUP_END;
 void beevc_machine_setup_screen_error_hotend_timeout() {
   MACHINE_SETUP_TITLE;
 
-  STATIC_ITEM(_UxGT(" "));
-
-  u8g.setPrintPos(0, 26);
-  u8g.print("Extruder ");
-  u8g.print(active_extruder+1);
-  u8g.print(":  xx");
-  u8g.print("/");
-  u8g.print(round(thermalManager.degTargetHotend(active_extruder)));
-  lcd_printPGM(PSTR(LCD_STR_DEGREE));
-  u8g.print("C");
+  char string_to_print[25];
+  strcpy(string_to_print, "Extruder ");
+  strcat(string_to_print, i8tostr1(active_extruder+1));
+  strcat(string_to_print, ":  xx/100\x09\u0043");
+  STATIC_ITEM("", false,false, string_to_print);
 
   if(active_extruder){
     STATIC_ITEM(_UxGT("Status: ST23 - ERROR!"));
@@ -4746,16 +4752,11 @@ void beevc_machine_setup_screen_error_hotend_timeout() {
 void beevc_machine_setup_screen_error_hotend_sensor() {
   MACHINE_SETUP_TITLE;
 
-  STATIC_ITEM(_UxGT(" "));
-
-  u8g.setPrintPos(0, 26);
-  u8g.print("Extruder ");
-  u8g.print(active_extruder+1);
-  u8g.print(":  xx");
-  u8g.print("/");
-  u8g.print(round(thermalManager.degTargetHotend(active_extruder)));
-  lcd_printPGM(PSTR(LCD_STR_DEGREE));
-  u8g.print("C");
+  char string_to_print[25];
+  strcpy(string_to_print, "Extruder ");
+  strcat(string_to_print, i8tostr1(active_extruder+1));
+  strcat(string_to_print, ":  xx/100\x09\u0043");
+  STATIC_ITEM("", false,false, string_to_print);
 
   if(active_extruder){
     STATIC_ITEM(_UxGT("Status: ST21 - ERROR!"));
@@ -4780,16 +4781,11 @@ void beevc_machine_setup_screen_error_hotend_sensor() {
 void beevc_machine_setup_screen_error_hotend_sensor_swaped() {
   MACHINE_SETUP_TITLE;
 
-  STATIC_ITEM(_UxGT(" "));
-
-  u8g.setPrintPos(0, 26);
-  u8g.print("Extruder ");
-  u8g.print(active_extruder+1);
-  u8g.print(":  xx");
-  u8g.print("/");
-  u8g.print(round(thermalManager.degTargetHotend(active_extruder)));
-  lcd_printPGM(PSTR(LCD_STR_DEGREE));
-  u8g.print("C");
+  char string_to_print[25];
+  strcpy(string_to_print, "Extruder ");
+  strcat(string_to_print, i8tostr1(active_extruder+1));
+  strcat(string_to_print, ":  xx/100\x09\u0043");
+  STATIC_ITEM("", false,false, string_to_print);
 
   if(active_extruder){
     STATIC_ITEM(_UxGT("Status: ST22 - ERROR!"));
@@ -4825,15 +4821,7 @@ MACHINE_SETUP_END;
 void beevc_machine_setup_screen_error_hotbed_timeout() {
   MACHINE_SETUP_TITLE;
 
-  STATIC_ITEM(_UxGT(" "));
-
-  u8g.setPrintPos(0, 26);
-  u8g.print("Heated bed:    ");
-  u8g.print("xx");
-  u8g.print("/");
-  u8g.print(round(thermalManager.degTargetBed()));
-  lcd_printPGM(PSTR(LCD_STR_DEGREE));
-  u8g.print("C");
+  STATIC_ITEM("Heated bed:    xx/50\x09\u0043", false,false);
 
   STATIC_ITEM(_UxGT("Status: ST33 - ERROR!"));
 
@@ -4848,15 +4836,7 @@ void beevc_machine_setup_screen_error_hotbed_timeout() {
 void beevc_machine_setup_screen_error_hotbed_sensor() {
   MACHINE_SETUP_TITLE;
 
-  STATIC_ITEM(_UxGT(" "));
-
-  u8g.setPrintPos(0, 26);
-  u8g.print("Heated bed:    ");
-  u8g.print("xx");
-  u8g.print("/");
-  u8g.print(round(thermalManager.degTargetBed()));
-  lcd_printPGM(PSTR(LCD_STR_DEGREE));
-  u8g.print("C");
+  STATIC_ITEM("Heated bed:    xx/50\x09\u0043", false,false);
 
   STATIC_ITEM(_UxGT("Status: ST31 - ERROR!"));
 
@@ -7274,10 +7254,8 @@ void beevc_machine_setup_test_powerloss (){
       #ifdef BEEVC_Restore
         //Starting a new print so recovered files can be deleted
         toRecover = false;
+        enqueue_and_echo_commands_P(PSTR("M712"));
     	#endif
-
-
-      enqueue_and_echo_commands_P(PSTR("M712"));
 
       lcd_return_to_status();
     }
