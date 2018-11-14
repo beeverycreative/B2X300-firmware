@@ -258,6 +258,7 @@ uint16_t max_display_update_time = 0;
 	#endif // BEEVC_Restore
 	///////////////////////////////////////////////////////
 
+    uint32_t next_update =  0;
   ////////////   Filament Change   //////////////
 	uint16_t filament_change_temp = 0;
   bool filament_change_load = false;
