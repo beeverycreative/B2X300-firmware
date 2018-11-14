@@ -34,6 +34,9 @@ void safe_delay(millis_t ms);
   // Convert uint8_t to string with 123 format
   char* i8tostr3(const uint8_t x);
 
+  // Convert uint8_t to string with 3 format
+  char* i8tostr1(const uint8_t x);
+
   // Convert signed int to rj string with 123 or -12 format
   char* itostr3(const int x);
 
@@ -48,6 +51,9 @@ void safe_delay(millis_t ms);
 
   // Convert signed float to fixed-length string with 023.45 / -23.45 format
   char* ftostr32(const float &x);
+
+  // Convert signed float to fixed-length string with 023 / 123 format
+  char* ftostr30(const float &x);
 
   // Convert float to fixed-length string with +123.4 / -123.4 format
   char* ftostr41sign(const float &x);

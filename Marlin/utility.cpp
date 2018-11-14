@@ -64,6 +64,12 @@ void safe_delay(millis_t ms) {
     return &conv[4];
   }
 
+  // Convert unsigned int to string 123 format
+  char* i8tostr1(const uint8_t xx) {
+    conv[6] = DIGIMOD(xx, 1);
+    return &conv[6];
+  }
+
   // Convert signed int to rj string with 123 or -12 format
   char* itostr3(const int x) {
     int xx = x;
@@ -136,6 +142,15 @@ void safe_delay(millis_t ms) {
     conv[5] = DIGIMOD(xx, 10);
     conv[6] = DIGIMOD(xx, 1);
     return &conv[1];
+  }
+
+  // Convert signed float to fixed-length string with 023, 123 format
+  char* ftostr30(const float &x) {
+    long xx = x ;
+    conv[4] = MINUSOR(xx, DIGIMOD(xx, 100));
+    conv[5] = DIGIMOD(xx, 10);
+    conv[6] = DIGIMOD(xx, 1);
+    return &conv[4];
   }
 
   #if ENABLED(LCD_DECIMAL_SMALL_XY)
