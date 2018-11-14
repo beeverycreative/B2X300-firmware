@@ -1317,8 +1317,15 @@ uint16_t max_display_update_time = 0;
 
 void lcd_status_screen() {
 
+  // If Self-test wizard flag is set launch it
   if (toCalibrate == 0){
     beevc_machine_setup();
+  }
+
+  // Ensures the LCD is alive, re-initializing it every 10s
+  if (next_update > millis()) {
+    lcd_implementation_init();
+    next_update = millis() + 10000;
   }
 
   else{
@@ -4520,13 +4527,16 @@ void lcd_enqueue_filament_change() {
 
       lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
     }
-    if (lcdDrawUpdate) {
+    if (lcdDrawUpdate || millis() > next_update) {
       const float pos = current_position[axis]
         #if IS_KINEMATIC
           + manual_move_offset
         #endif
       ;
       lcd_implementation_drawedit(name, move_menu_scale >= 0.1 ? ftostr41sign(pos) : ftostr43sign(pos));
+
+      // makes sure there is at least one update per second
+      next_update = millis() + 1000;
     }
   }
   void lcd_move_x() { _lcd_move_xyz(PSTR(MSG_MOVE_X), X_AXIS); }
