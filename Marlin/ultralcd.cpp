@@ -1664,7 +1664,7 @@ void kill_screen(const char* lcd_msg) {
       // Auto Home/ Level Bed
         // Leveling only appears when automatic bed leveling method exists
         #if HAS_ABL
-    		  MENU_ITEM(gcode, MSG_LEVEL_BED, PSTR("T0\nG28\nG29\nG28 X Y\nM500\nG4 P200\n M300 S4000 P200\nG4 P500\n M300 S4000 P200"));
+    		  MENU_ITEM(gcode, MSG_LEVEL_BED, PSTR("T0\nG28\nG29\nG28 X Y\nM500\nG91\nG1 X-20\nG90\nG4 P200\n M300 S4000 P200\nG4 P500\n M300 S4000 P200"));
     	  #endif
         // helloBEEprusa - LCD leveling
     	  #if ENABLED(LCD_BED_LEVELING)
