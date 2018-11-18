@@ -1216,6 +1216,10 @@ uint16_t max_display_update_time = 0;
        zprobe_zoffset = (current_position[Z_AXIS] + zprobe_zoffset);
        lcd_completion_feedback(settings.save());
        z_offset_finished = true;
+
+       // Lifts nozzle 5mm, homes XY and moves X carriage 20mm to the left
+       enqueue_and_echo_commands_P(PSTR("G91\nG1 Z5\nG28 X Y\nG1 X-20\nG90\nM84"));
+
        lcd_goto_screen(beevc_set_offset_complete);
      }
 
@@ -1619,8 +1623,8 @@ void kill_screen(const char* lcd_msg) {
      // Ensures the hotend isn'too cold
      if (!thermalManager.tooColdToExtrude(active_extruder))
        MENU_ITEM(function, MSG_FILAMENTCHANGE, lcd_enqueue_filament_change);
-
-     // Adjust Print settings
+   
+	 // Adjust Print settings
      MENU_ITEM(submenu, _UxGT("Print settings"), beevc_print_settings_menu);
 
      END_MENU();
@@ -1778,7 +1782,9 @@ void kill_screen(const char* lcd_msg) {
   #endif // BABYSTEP_ZPROBE_GFX_OVERLAY || MESH_EDIT_GFX_OVERLAY
 
   void lcd_babystep_zoffset() {
-    if (lcd_clicked) { return lcd_goto_previous_menu_no_defer(); }
+    if (lcd_clicked) {
+      return lcd_goto_previous_menu_no_defer();
+    }
     defer_return_to_status = true;
     ENCODER_DIRECTION_NORMAL();
     if (encoderPosition) {
@@ -2485,9 +2491,9 @@ void lcd_enqueue_filament_change() {
     MENU_ITEM_EDIT_CALLBACK(int3, MSG_FLOW MSG_SE1, &planner.flow_percentage[0], 10, 999, _lcd_refresh_e_factor_0);
     MENU_ITEM_EDIT_CALLBACK(int3, MSG_FLOW MSG_SE2, &planner.flow_percentage[1], 10, 999, _lcd_refresh_e_factor_1);
 
-    // Babystep Z offset
+	// Babystep Z offset
     MENU_ITEM(submenu, MSG_ZPROBE_ZOFFSET, lcd_babystep_zoffset);
-
+	
     END_MENU();
   }
 
