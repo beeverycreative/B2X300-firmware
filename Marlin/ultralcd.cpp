@@ -1269,7 +1269,7 @@ void kill_screen(const char* lcd_msg) {
       // Move axis
         MENU_ITEM(submenu, MSG_MOVE_AXIS, lcd_move_menu);
       // Auto Home
-        MENU_ITEM(gcode, MSG_AUTO_HOME, PSTR("G28"));
+        MENU_ITEM(gcode, MSG_AUTO_HOME, PSTR("G28\nG91\nG1 X-20\nG90"));
       // Set nozzle height / Z offset
     	  #if HAS_ABL
           #ifdef BEEVC_B2X300
