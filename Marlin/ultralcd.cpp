@@ -1623,7 +1623,7 @@ void kill_screen(const char* lcd_msg) {
      // Ensures the hotend isn'too cold
      if (!thermalManager.tooColdToExtrude(active_extruder))
        MENU_ITEM(function, MSG_FILAMENTCHANGE, lcd_enqueue_filament_change);
-   
+
 	 // Adjust Print settings
      MENU_ITEM(submenu, _UxGT("Print settings"), beevc_print_settings_menu);
 
@@ -1783,6 +1783,9 @@ void kill_screen(const char* lcd_msg) {
 
   void lcd_babystep_zoffset() {
     if (lcd_clicked) {
+      // Save the Z offset to the EEPROM
+      lcd_completion_feedback(settings.save());
+
       return lcd_goto_previous_menu_no_defer();
     }
     defer_return_to_status = true;
@@ -2473,6 +2476,9 @@ void lcd_enqueue_filament_change() {
     // Back
     MENU_BACK(MSG_MAIN);
 
+    // Babystep Z offset
+    MENU_ITEM(submenu, MSG_ZPROBE_ZOFFSET, lcd_babystep_zoffset);
+
     // Nozzle:
     MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_TEMPERATURE MSG_SE1, &thermalManager.target_temperature[0], 0, HEATER_0_MAXTEMP - 15, watch_temp_callback_E0);
     MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_TEMPERATURE MSG_SE2, &thermalManager.target_temperature[1], 0, HEATER_1_MAXTEMP - 15, watch_temp_callback_E1);
@@ -2495,9 +2501,6 @@ void lcd_enqueue_filament_change() {
     MENU_ITEM_EDIT_CALLBACK(int3, MSG_FLOW MSG_SE1, &planner.flow_percentage[0], 10, 999, _lcd_refresh_e_factor_0);
     MENU_ITEM_EDIT_CALLBACK(int3, MSG_FLOW MSG_SE2, &planner.flow_percentage[1], 10, 999, _lcd_refresh_e_factor_1);
 
-	// Babystep Z offset
-    MENU_ITEM(submenu, MSG_ZPROBE_ZOFFSET, lcd_babystep_zoffset);
-	
     END_MENU();
   }
 
