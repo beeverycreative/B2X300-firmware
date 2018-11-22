@@ -188,6 +188,7 @@ uint16_t max_display_update_time = 0;
   void beevc_maintenance_menu();
   void beevc_machine_menu();
   void beevc_machine_motion_menu();
+  void beevc_machine_motion_offset_menu();
   void beevc_machine_temperature_menu();
   void beevc_about_menu();
 
@@ -6586,6 +6587,115 @@ void beevc_machine_setup_test_powerloss (){
   /**
    *  BEEVC
    *
+   * "Machine settings > Motion > Offset" options
+   *
+   */
+  void beevc_machine_motion_offset_x() {
+    if (lcd_clicked)
+      {
+        // Save to EEPRom
+        lcd_completion_feedback(settings.save());
+
+        lcd_goto_screen(beevc_machine_motion_menu);
+      }
+
+    ENCODER_DIRECTION_NORMAL();
+
+    if (encoderPosition) {
+      refresh_cmd_timeout();
+
+      float min = 0,
+            max = 20;
+
+      // Get the new position
+      hotend_offset[X_AXIS][1] = float((int32_t)encoderPosition) * 0.05;
+
+
+      // Limit only when trying to move towards the limit
+      if ((int32_t)encoderPosition < 0) NOLESS(hotend_offset[X_AXIS][1], min);
+      if ((int32_t)encoderPosition > 0) NOMORE(hotend_offset[X_AXIS][1], max);
+
+      encoderPosition = 0;
+      lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+    }
+    if (lcdDrawUpdate) {
+      START_SCREEN();
+      STATIC_ITEM(_UxGT("Offset XY"), true, true);
+
+      float temp[2] = HOTEND_OFFSET_X;
+
+      lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Offset X"),ftostr42sign(hotend_offset[X_AXIS][1] - temp[1]));
+      lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
+      lcd_implementation_drawmenu_static(4,PSTR("Click to save."));
+
+      END_SCREEN();
+    }
+  }
+
+  void beevc_machine_motion_offset_y() {
+    if (lcd_clicked)
+      {
+        // Save to EEPRom
+        lcd_completion_feedback(settings.save());
+
+        lcd_goto_screen(beevc_machine_motion_menu);
+      }
+
+    ENCODER_DIRECTION_NORMAL();
+
+    if (encoderPosition) {
+      refresh_cmd_timeout();
+
+      float min = 0,
+            max = 20;
+
+      // Get the new position
+      hotend_offset[Y_AXIS][1] = float((int32_t)encoderPosition) * 0.05;
+
+
+      // Limit only when trying to move towards the limit
+      if ((int32_t)encoderPosition < 0) NOLESS(hotend_offset[Y_AXIS][1], min);
+      if ((int32_t)encoderPosition > 0) NOMORE(hotend_offset[Y_AXIS][1], max);
+
+      encoderPosition = 0;
+      lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+    }
+    if (lcdDrawUpdate) {
+      START_SCREEN();
+      STATIC_ITEM(_UxGT("Offset XY"), true, true);
+
+      float temp[2] = HOTEND_OFFSET_Y;
+
+      lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Offset Y"),ftostr42sign(hotend_offset[Y_AXIS][1] - temp[1]));
+      lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
+      lcd_implementation_drawmenu_static(4,PSTR("Click to save."));
+
+      END_SCREEN();
+    }
+  }
+
+  /**
+   *  BEEVC
+   *
+   * "Machine settings > Motion > Offset" submenu
+   *
+   */
+  void beevc_machine_motion_offset_menu() {
+    START_MENU();
+    MENU_BACK();
+
+    // Offset X
+    MENU_ITEM(submenu, _UxGT("Offset X"), beevc_machine_motion_offset_x);
+
+    // Offset Y
+    MENU_ITEM(submenu, _UxGT("Offset Y"), beevc_machine_motion_offset_y);
+
+    END_MENU();
+  }
+
+  /**
+   *  BEEVC
+   *
    * "Machine settings > Motion" submenu
    *
    */
@@ -6608,6 +6718,9 @@ void beevc_machine_setup_test_powerloss (){
 
     // M92 - Steps Per mm
     MENU_ITEM(submenu, MSG_STEPS_PER_MM, lcd_control_motion_steps_per_mm_menu);
+
+    // M218 T1 - Second extruder offset
+    MENU_ITEM(submenu, _UxGT("Offset"), beevc_machine_motion_offset_menu);
 
     END_MENU();
   }
