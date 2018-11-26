@@ -1812,7 +1812,15 @@ void kill_screen(const char* lcd_msg) {
       }
     }
     if (lcdDrawUpdate) {
-      lcd_implementation_drawedit(PSTR(MSG_ZPROBE_ZOFFSET), ftostr43sign(zprobe_zoffset));
+      START_SCREEN();
+      STATIC_ITEM(_UxGT("Live nozzle height"), true, true);
+
+      lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr43sign(zprobe_zoffset));
+      lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
+      lcd_implementation_drawmenu_static(4,PSTR("Click to save."));
+
+      END_SCREEN();
+      
       #if ENABLED(BABYSTEP_ZPROBE_GFX_OVERLAY)
         _lcd_zoffset_overlay_gfx(zprobe_zoffset);
       #endif
