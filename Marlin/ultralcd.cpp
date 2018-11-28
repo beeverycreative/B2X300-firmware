@@ -950,6 +950,12 @@ void lcd_status_screen() {
     beevc_machine_setup();
   }
 
+  // If there is a print to restore and the bed temperature target (previously set when loading the flag)
+  // is less than 5 degree away from current bed temperature or 0, starts the recovery on it's own
+  if (toRecover && (abs(thermalManager.target_temperature_bed - thermalManager.current_temperature_bed) < 5)){
+    recover_print();
+  }
+
   // Ensures the LCD is alive, re-initializing it every 10s
   if (next_update > millis()) {
     lcd_implementation_init();
