@@ -16895,7 +16895,7 @@ void setup() {
 			lcd_setstatus("Print Restored! ");
 
       // Restores bed temperature to avoid printed parts from releasing
-      eeprom_index = 26;
+      eeprom_index = 23;
       EEPROM_read(eeprom_index, (uint8_t*)&thermalManager.target_temperature_bed, sizeof(thermalManager.target_temperature_bed));
 		}
 	#endif
@@ -16970,12 +16970,12 @@ void setup() {
       * 8-11    Y position
       * 12      Active Extruder,Extruder mode, acceleration
       * 13-16   E position
-      * 17      Fan Speed
-      * 18-21   E0 temp
-      * 22-25   E1 temp
-      * 26-29   Bed temp
-      * 30-33   Sdcard file byte
-      * 34-98   SD File path
+      * 17-18   Fan Speed (reduce to 8 bit??)
+      * 19-20   E0 temp
+      * 21-22   E1 temp
+      * 23-24   Bed temp (reduce to 8 bit??)
+      * 25-28   Sdcard file byte
+      * 29-98   SD File path
       * 99      Startup wizard flag
       */
 

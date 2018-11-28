@@ -840,6 +840,10 @@ uint16_t max_display_update_time = 0;
        zprobe_zoffset = (current_position[Z_AXIS] + zprobe_zoffset);
        lcd_completion_feedback(settings.save());
        z_offset_finished = true;
+
+       // Lifts nozzle 5mm, homes XY and moves X carriage 20mm to the left
+       enqueue_and_echo_commands_P(PSTR("G91\nG1 Z5\nG28 X Y\nG1 X-20\nG90\nM84"));
+
        lcd_goto_screen(beevc_set_offset_complete);
      }
 
@@ -944,6 +948,12 @@ void lcd_status_screen() {
   // If Self-test wizard flag is set launch it
   if (toCalibrate == 0){
     beevc_machine_setup();
+  }
+
+  // If there is a print to restore and the bed temperature target (previously set when loading the flag)
+  // is less than 5 degree away from current bed temperature or 0, starts the recovery on it's own
+  if (toRecover && (abs(thermalManager.target_temperature_bed - thermalManager.current_temperature_bed) < 5)){
+    recover_print();
   }
 
   // Ensures the LCD is alive, re-initializing it every 10s
@@ -1244,7 +1254,7 @@ void kill_screen(const char* lcd_msg) {
      if (!thermalManager.tooColdToExtrude(active_extruder))
        MENU_ITEM(function, MSG_FILAMENTCHANGE, lcd_enqueue_filament_change);
 
-     // Adjust Print settings
+	 // Adjust Print settings
      MENU_ITEM(submenu, _UxGT("Print settings"), beevc_print_settings_menu);
 
      END_MENU();
@@ -1265,7 +1275,7 @@ void kill_screen(const char* lcd_msg) {
       // Move axis
         MENU_ITEM(submenu, MSG_MOVE_AXIS, lcd_move_menu);
       // Auto Home
-        MENU_ITEM(gcode, MSG_AUTO_HOME, PSTR("G28"));
+        MENU_ITEM(gcode, MSG_AUTO_HOME, PSTR("G28\nG91\nG1 X-20\nG90"));
       // Set nozzle height / Z offset
     	  #if HAS_ABL
           #ifdef BEEVC_B2X300
@@ -1281,7 +1291,7 @@ void kill_screen(const char* lcd_msg) {
       // Auto Home/ Level Bed
         // Leveling only appears when automatic bed leveling method exists
         #if HAS_ABL
-    		  MENU_ITEM(gcode, MSG_LEVEL_BED, PSTR("T0\nG28\nG29\nG28 X Y\nM500\nG4 P200\n M300 S4000 P200\nG4 P500\n M300 S4000 P200"));
+    		  MENU_ITEM(gcode, MSG_LEVEL_BED, PSTR("T0\nG28\nG29\nG28 X Y\nM500\nG91\nG1 X-20\nG90\nG4 P200\n M300 S4000 P200\nG4 P500\n M300 S4000 P200"));
     	  #endif
         // helloBEEprusa - LCD leveling
     	  #if ENABLED(LCD_BED_LEVELING)
@@ -1400,7 +1410,12 @@ void kill_screen(const char* lcd_msg) {
   #endif // BABYSTEP_ZPROBE_GFX_OVERLAY || MESH_EDIT_GFX_OVERLAY
 
   void lcd_babystep_zoffset() {
-    if (lcd_clicked) { return lcd_goto_previous_menu_no_defer(); }
+    if (lcd_clicked) {
+      // Save the Z offset to the EEPROM
+      lcd_completion_feedback(settings.save());
+
+      return lcd_goto_previous_menu_no_defer();
+    }
     defer_return_to_status = true;
     ENCODER_DIRECTION_NORMAL();
     if (encoderPosition) {
@@ -1418,7 +1433,15 @@ void kill_screen(const char* lcd_msg) {
       }
     }
     if (lcdDrawUpdate) {
-      lcd_implementation_drawedit(PSTR(MSG_ZPROBE_ZOFFSET), ftostr43sign(zprobe_zoffset));
+      START_SCREEN();
+      STATIC_ITEM(_UxGT("Live nozzle height"), true, true);
+
+      lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr43sign(zprobe_zoffset));
+      lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
+      lcd_implementation_drawmenu_static(4,PSTR("Click to save."));
+
+      END_SCREEN();
+      
       #if ENABLED(BABYSTEP_ZPROBE_GFX_OVERLAY)
         _lcd_zoffset_overlay_gfx(zprobe_zoffset);
       #endif
@@ -1802,7 +1825,11 @@ static void lcd_filament_change_unload_load (uint16_t changetemp, bool just_heat
     	   idle(true);
     	   HOTEND_LOOP()
          {
-           if (abs(thermalManager.degHotend(active_extruder) - changetemp) > 10)
+           #ifdef BEEVC_B2X300
+              if (thermalManager.degHotend(active_extruder) >= changetemp)
+           #else
+              if (abs(thermalManager.degHotend(active_extruder) - changetemp) > 10)
+           #endif
            {
              update = true;
              break;
@@ -2067,6 +2094,9 @@ void lcd_enqueue_filament_change() {
     // Back
     MENU_BACK(MSG_MAIN);
 
+    // Babystep Z offset
+    MENU_ITEM(submenu, MSG_ZPROBE_ZOFFSET, lcd_babystep_zoffset);
+
     // Nozzle:
     MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_TEMPERATURE MSG_SE1, &thermalManager.target_temperature[0], 0, HEATER_0_MAXTEMP - 15, watch_temp_callback_E0);
     MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_TEMPERATURE MSG_SE2, &thermalManager.target_temperature[1], 0, HEATER_1_MAXTEMP - 15, watch_temp_callback_E1);
@@ -2084,9 +2114,6 @@ void lcd_enqueue_filament_change() {
     //MENU_ITEM_EDIT_CALLBACK(int3, MSG_FLOW, &planner.flow_percentage[active_extruder], 10, 999, _lcd_refresh_e_factor);
     MENU_ITEM_EDIT_CALLBACK(int3, MSG_FLOW MSG_SE1, &planner.flow_percentage[0], 10, 999, _lcd_refresh_e_factor_0);
     MENU_ITEM_EDIT_CALLBACK(int3, MSG_FLOW MSG_SE2, &planner.flow_percentage[1], 10, 999, _lcd_refresh_e_factor_1);
-
-    // Babystep Z offset
-    MENU_ITEM(submenu, MSG_ZPROBE_ZOFFSET, lcd_babystep_zoffset);
 
     END_MENU();
   }
