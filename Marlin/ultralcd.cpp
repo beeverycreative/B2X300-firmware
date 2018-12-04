@@ -5802,21 +5802,54 @@ void beevc_machine_setup_test_trinamic (){
     // Re-initializes variable
     trinamic_ok = 0;
 
+    // Temporary variable to store default data
+    uint8_t trinamic_data = 0;
+
     // Tests each axis one at a time storing the result if positive
-    if (stepperX.test_connection() == 0)
-      trinamic_ok |= 0x01;
+    // X
+      trinamic_data = stepperX.power_down_delay(); 
+      stepperX.power_down_delay(0b10101010);
+      if(stepperX.power_down_delay() == 0b10101010){
+        stepperX.power_down_delay(trinamic_data);
+        if(stepperX.power_down_delay() == trinamic_data)
+          trinamic_ok |= 0x01;
+      }
 
-    if (stepperY.test_connection() == 0)
-      trinamic_ok |= 0x02;
+    // Y
+      trinamic_data = stepperY.power_down_delay(); 
+      stepperY.power_down_delay(0b10101010);
+      if(stepperY.power_down_delay() == 0b10101010){
+        stepperY.power_down_delay(trinamic_data);
+        if(stepperY.power_down_delay() == trinamic_data)
+          trinamic_ok |= 0x02;
+      }
 
-    if (stepperZ.test_connection() == 0)
-      trinamic_ok |= 0x04;
+    // Z
+      trinamic_data = stepperZ.power_down_delay(); 
+      stepperZ.power_down_delay(0b10101010);
+      if(stepperZ.power_down_delay() == 0b10101010){
+        stepperZ.power_down_delay(trinamic_data);
+        if(stepperZ.power_down_delay() == trinamic_data)
+          trinamic_ok |= 0x04;
+      }
 
-    if (stepperE0.test_connection() == 0)
-      trinamic_ok |= 0x08;
+    // E0
+      trinamic_data = stepperE0.power_down_delay(); 
+      stepperE0.power_down_delay(0b10101010);
+      if(stepperE0.power_down_delay() == 0b10101010){
+        stepperE0.power_down_delay(trinamic_data);
+        if(stepperE0.power_down_delay() == trinamic_data)
+          trinamic_ok |= 0x08;
+      }
 
-    if (stepperE1.test_connection() == 0)
-      trinamic_ok |= 0x10;
+    // E1
+      trinamic_data = stepperE1.power_down_delay(); 
+      stepperE1.power_down_delay(0b10101010);
+      if(stepperE1.power_down_delay() == 0b10101010){
+        stepperE1.power_down_delay(trinamic_data);
+        if(stepperE1.power_down_delay() == trinamic_data)
+          trinamic_ok |= 0x10;
+      }
 
     #ifdef SERIAL_DEBUG
       SERIAL_PROTOCOLLNPAIR("X = ", stepperX.test_connection());
