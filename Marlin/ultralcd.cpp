@@ -1826,7 +1826,7 @@ static void lcd_filament_change_unload_load (uint16_t changetemp, bool just_heat
     	   HOTEND_LOOP()
          {
            #ifdef BEEVC_B2X300
-              if (thermalManager.degHotend(active_extruder) >= changetemp)
+              if (thermalManager.degHotend(active_extruder) < changetemp)
            #else
               if (abs(thermalManager.degHotend(active_extruder) - changetemp) > 10)
            #endif
