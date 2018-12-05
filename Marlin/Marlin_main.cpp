@@ -5653,6 +5653,9 @@ void home_all_axes() { gcode_G28(true); }
 	// DR-Restores to the previous extruder
 	tool_change(extruderNumber);
 
+  // Stores new mesh on EEPROM
+  (void)settings.save();
+
   #ifdef BEEVC_TMC2130READSG
 
     #ifndef BEEVC_TMC2130STEPLOSS
