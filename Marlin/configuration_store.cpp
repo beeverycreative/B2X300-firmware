@@ -36,7 +36,22 @@
  *
  */
 
-#define EEPROM_VERSION "V47"
+#define EEPROM_VERSION "B01"
+
+/* B01 EEPROM map byte adress
+      * 0-3     Z position
+      * 4-7     X position
+      * 8-11    Y position
+      * 12      Active Extruder,Extruder mode, acceleration
+      * 13-16   E position
+      * 17-18   Fan Speed (reduce to 8 bit??)
+      * 19-20   E0 temp
+      * 21-22   E1 temp
+      * 23-24   Bed temp (reduce to 8 bit??)
+      * 25-28   Sdcard file byte
+      * 29-98   SD File path
+      * 99      Startup wizard flag
+      */
 
 // Change EEPROM version if these are changed:
 #define EEPROM_OFFSET 100
