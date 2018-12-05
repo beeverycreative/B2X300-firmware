@@ -6604,7 +6604,9 @@ void beevc_machine_setup_test_powerloss (){
         // Save to EEPRom
         lcd_completion_feedback(settings.save());
 
-        lcd_goto_screen(beevc_machine_motion_menu);
+        lcd_goto_screen(beevc_machine_motion_offset_menu);
+
+        lcd_goto_previous_menu();
       }
 
     ENCODER_DIRECTION_NORMAL();
@@ -6616,7 +6618,7 @@ void beevc_machine_setup_test_powerloss (){
             max = 20;
 
       // Get the new position
-      hotend_offset[X_AXIS][1] = float((int32_t)encoderPosition) * 0.05;
+      hotend_offset[X_AXIS][1] += float((int32_t)encoderPosition) * 0.05;
 
 
       // Limit only when trying to move towards the limit
@@ -6630,9 +6632,7 @@ void beevc_machine_setup_test_powerloss (){
       START_SCREEN();
       STATIC_ITEM(_UxGT("Offset XY"), true, true);
 
-      float temp[2] = HOTEND_OFFSET_X;
-
-      lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Offset X"),ftostr42sign(hotend_offset[X_AXIS][1] - temp[1]));
+      lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Offset X"),ftostr42sign(hotend_offset[X_AXIS][1] - 13));
       lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
       lcd_implementation_drawmenu_static(4,PSTR("Click to save."));
 
@@ -6646,7 +6646,9 @@ void beevc_machine_setup_test_powerloss (){
         // Save to EEPRom
         lcd_completion_feedback(settings.save());
 
-        lcd_goto_screen(beevc_machine_motion_menu);
+        lcd_goto_screen(beevc_machine_motion_offset_menu);
+
+        lcd_goto_previous_menu();
       }
 
     ENCODER_DIRECTION_NORMAL();
@@ -6654,11 +6656,11 @@ void beevc_machine_setup_test_powerloss (){
     if (encoderPosition) {
       refresh_cmd_timeout();
 
-      float min = 0,
-            max = 20;
+      float min = -5,
+            max = 5;
 
       // Get the new position
-      hotend_offset[Y_AXIS][1] = float((int32_t)encoderPosition) * 0.05;
+      hotend_offset[Y_AXIS][1] += float((int32_t)encoderPosition) * 0.05;
 
 
       // Limit only when trying to move towards the limit
@@ -6672,9 +6674,7 @@ void beevc_machine_setup_test_powerloss (){
       START_SCREEN();
       STATIC_ITEM(_UxGT("Offset XY"), true, true);
 
-      float temp[2] = HOTEND_OFFSET_Y;
-
-      lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Offset Y"),ftostr42sign(hotend_offset[Y_AXIS][1] - temp[1]));
+      lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Offset Y"),ftostr42sign(hotend_offset[Y_AXIS][1]));
       lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
       lcd_implementation_drawmenu_static(4,PSTR("Click to save."));
 
