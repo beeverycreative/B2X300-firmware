@@ -12671,6 +12671,9 @@ inline void gcode_M999() {
 		// Sets the eeprom index to the begining
 		int eeprom_index = 0 ;
 
+    // Activated bed leveling mesh before loading Z height
+    set_bed_leveling_enabled(true);
+
 		//Loads Z height
 		EEPROM_read(eeprom_index, (uint8_t*)&current_position[Z_AXIS], sizeof(current_position[Z_AXIS]));
 		#ifdef SERIAL_DEBUG
