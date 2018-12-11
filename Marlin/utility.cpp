@@ -184,7 +184,7 @@ void safe_delay(millis_t ms) {
 
   // Convert float to fixed-length string with +12.34 / -12.34 format
   char* ftostr42sign(const float &x) {
-    int xx = x * 100;
+    int xx = round(x*100);
     conv[1] = MINUSOR(xx, '+');
     conv[2] = DIGIMOD(xx, 1000);
     conv[3] = DIGIMOD(xx, 100);
