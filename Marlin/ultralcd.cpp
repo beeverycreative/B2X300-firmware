@@ -263,6 +263,8 @@ uint16_t max_display_update_time = 0;
     uint8_t beevc_screen_header = 0;
     bool beevc_continue = 0;
     uint32_t next_update =  0;
+    float old_hotend_offset = 0;
+    bool isX = 0 ;
 	#endif
 	///////////////////////////////////////////////////////
 
@@ -6598,14 +6600,17 @@ void beevc_machine_setup_test_powerloss (){
    * "Machine settings > Motion > Offset" options
    *
    */
-  void beevc_machine_motion_offset_x() {
+
+  void beevc_machine_motion_offset_adjust() {
     if (lcd_clicked)
       {
         // Save to EEPRom
         lcd_completion_feedback(settings.save());
 
+        // Changes the displayed screen to the previous menu
         lcd_goto_screen(beevc_machine_motion_offset_menu);
 
+        // Necessary as this function is called as a submenu
         lcd_goto_previous_menu();
       }
 
@@ -6614,72 +6619,42 @@ void beevc_machine_setup_test_powerloss (){
     if (encoderPosition) {
       refresh_cmd_timeout();
 
-      float min = 0,
-            max = 20;
-
       // Get the new position
-      hotend_offset[X_AXIS][1] += float((int32_t)encoderPosition) * 0.05;
-
+      hotend_offset[isX?X_AXIS:Y_AXIS][1] += float((int32_t)encoderPosition) * 0.05;
 
       // Limit only when trying to move towards the limit
-      if ((int32_t)encoderPosition < 0) NOLESS(hotend_offset[X_AXIS][1], min);
-      if ((int32_t)encoderPosition > 0) NOMORE(hotend_offset[X_AXIS][1], max);
-
+      if ((int32_t)encoderPosition < 0) NOLESS(hotend_offset[isX?X_AXIS:Y_AXIS][1], (isX?12:-1));
+      if ((int32_t)encoderPosition > 0) NOMORE(hotend_offset[isX?X_AXIS:Y_AXIS][1], (isX?14:1));
+      
       encoderPosition = 0;
       lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
     }
+
     if (lcdDrawUpdate) {
       START_SCREEN();
       STATIC_ITEM(_UxGT("Offset XY"), true, true);
 
-      lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Offset X"),ftostr42sign(hotend_offset[X_AXIS][1] - 13));
-      lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
+      lcd_implementation_drawmenu_setting_edit_generic(false, 1,(isX?PSTR("Offset X"):PSTR("Offset Y")),itostr3((int)((hotend_offset[ isX?X_AXIS:Y_AXIS ][1]-old_hotend_offset) /0.05) ));
+      lcd_implementation_drawmenu_setting_edit_generic(false, 2,PSTR("Absolute value"),ftostr42sign(isX?(hotend_offset[X_AXIS][1] - 13):hotend_offset[Y_AXIS][1]));
+      lcd_implementation_drawmenu_static(3,PSTR("Status: please adjust"));
       lcd_implementation_drawmenu_static(4,PSTR("Click to save."));
 
       END_SCREEN();
     }
   }
 
+  void beevc_machine_motion_offset_x() {
+    isX = true;
+    old_hotend_offset = hotend_offset[X_AXIS][1];
+
+    lcd_goto_screen (beevc_machine_motion_offset_adjust);
+  }
+
   void beevc_machine_motion_offset_y() {
-    if (lcd_clicked)
-      {
-        // Save to EEPRom
-        lcd_completion_feedback(settings.save());
+    isX = false;
+    old_hotend_offset = hotend_offset[Y_AXIS][1];
 
-        lcd_goto_screen(beevc_machine_motion_offset_menu);
-
-        lcd_goto_previous_menu();
-      }
-
-    ENCODER_DIRECTION_NORMAL();
-
-    if (encoderPosition) {
-      refresh_cmd_timeout();
-
-      float min = -5,
-            max = 5;
-
-      // Get the new position
-      hotend_offset[Y_AXIS][1] += float((int32_t)encoderPosition) * 0.05;
-
-
-      // Limit only when trying to move towards the limit
-      if ((int32_t)encoderPosition < 0) NOLESS(hotend_offset[Y_AXIS][1], min);
-      if ((int32_t)encoderPosition > 0) NOMORE(hotend_offset[Y_AXIS][1], max);
-
-      encoderPosition = 0;
-      lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
-    }
-    if (lcdDrawUpdate) {
-      START_SCREEN();
-      STATIC_ITEM(_UxGT("Offset XY"), true, true);
-
-      lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Offset Y"),ftostr42sign(hotend_offset[Y_AXIS][1]));
-      lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
-      lcd_implementation_drawmenu_static(4,PSTR("Click to save."));
-
-      END_SCREEN();
-    }
+    lcd_goto_screen (beevc_machine_motion_offset_adjust);
   }
 
   /**
