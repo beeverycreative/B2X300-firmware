@@ -5803,52 +5803,52 @@ void beevc_machine_setup_test_trinamic (){
     trinamic_ok = 0;
 
     // Temporary variable to store default data
-    uint8_t trinamic_data = 0;
+    uint32_t trinamic_data = 0;
 
     // Tests each axis one at a time storing the result if positive
     // X
-      trinamic_data = stepperX.power_down_delay(); 
-      stepperX.power_down_delay(0b10101010);
-      if(stepperX.power_down_delay() == 0b10101010){
-        stepperX.power_down_delay(trinamic_data);
-        if(stepperX.power_down_delay() == trinamic_data)
+      trinamic_data = stepperX.GCONF(); 
+      stepperX.GCONF(0b101010101010101010);
+      if(stepperX.GCONF() == 0b101010101010101010){
+        stepperX.GCONF(trinamic_data);
+        if(stepperX.GCONF() == trinamic_data)
           trinamic_ok |= 0x01;
       }
 
     // Y
-      trinamic_data = stepperY.power_down_delay(); 
-      stepperY.power_down_delay(0b10101010);
-      if(stepperY.power_down_delay() == 0b10101010){
-        stepperY.power_down_delay(trinamic_data);
-        if(stepperY.power_down_delay() == trinamic_data)
-          trinamic_ok |= 0x02;
+      trinamic_data = stepperY.GCONF(); 
+      stepperY.GCONF(0b101010101010101010);
+      if(stepperY.GCONF() == 0b101010101010101010){
+        stepperY.GCONF(trinamic_data);
+        if(stepperY.GCONF() == trinamic_data)
+          trinamic_ok |= 0x01;
       }
 
     // Z
-      trinamic_data = stepperZ.power_down_delay(); 
-      stepperZ.power_down_delay(0b10101010);
-      if(stepperZ.power_down_delay() == 0b10101010){
-        stepperZ.power_down_delay(trinamic_data);
-        if(stepperZ.power_down_delay() == trinamic_data)
-          trinamic_ok |= 0x04;
+      trinamic_data = stepperZ.GCONF(); 
+      stepperZ.GCONF(0b101010101010101010);
+      if(stepperZ.GCONF() == 0b101010101010101010){
+        stepperZ.GCONF(trinamic_data);
+        if(stepperZ.GCONF() == trinamic_data)
+          trinamic_ok |= 0x01;
       }
 
     // E0
-      trinamic_data = stepperE0.power_down_delay(); 
-      stepperE0.power_down_delay(0b10101010);
-      if(stepperE0.power_down_delay() == 0b10101010){
-        stepperE0.power_down_delay(trinamic_data);
-        if(stepperE0.power_down_delay() == trinamic_data)
-          trinamic_ok |= 0x08;
+      trinamic_data = stepperE0.GCONF(); 
+      stepperE0.GCONF(0b101010101010101010);
+      if(stepperE0.GCONF() == 0b101010101010101010){
+        stepperE0.GCONF(trinamic_data);
+        if(stepperE0.GCONF() == trinamic_data)
+          trinamic_ok |= 0x01;
       }
 
     // E1
-      trinamic_data = stepperE1.power_down_delay(); 
-      stepperE1.power_down_delay(0b10101010);
-      if(stepperE1.power_down_delay() == 0b10101010){
-        stepperE1.power_down_delay(trinamic_data);
-        if(stepperE1.power_down_delay() == trinamic_data)
-          trinamic_ok |= 0x10;
+      trinamic_data = stepperE1.GCONF(); 
+      stepperE1.GCONF(0b101010101010101010);
+      if(stepperE1.GCONF() == 0b101010101010101010){
+        stepperE1.GCONF(trinamic_data);
+        if(stepperE1.GCONF() == trinamic_data)
+          trinamic_ok |= 0x01;
       }
 
     #ifdef SERIAL_DEBUG
