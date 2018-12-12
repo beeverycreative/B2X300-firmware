@@ -6635,9 +6635,9 @@ void beevc_machine_setup_test_powerloss (){
       STATIC_ITEM(_UxGT("Offset XY"), true, true);
 
       lcd_implementation_drawmenu_setting_edit_generic(false, 1,(isX?PSTR("Offset X"):PSTR("Offset Y")),itostr3((int)((hotend_offset[ isX?X_AXIS:Y_AXIS ][1]-old_hotend_offset) /0.05) ));
-      lcd_implementation_drawmenu_setting_edit_generic(false, 2,PSTR("Absolute value"),ftostr42sign(isX?(hotend_offset[X_AXIS][1] - 13):hotend_offset[Y_AXIS][1]));
-      lcd_implementation_drawmenu_static(3,PSTR("Status: please adjust"));
-      lcd_implementation_drawmenu_static(4,PSTR("Click to save."));
+      //lcd_implementation_drawmenu_setting_edit_generic(false, 2,PSTR("Absolute value"),ftostr42sign(isX?(hotend_offset[X_AXIS][1] - 13):hotend_offset[Y_AXIS][1]));
+      lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
+      lcd_implementation_drawmenu_static(4,PSTR("Click to save.       "));
 
       END_SCREEN();
     }
