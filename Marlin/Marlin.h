@@ -61,7 +61,7 @@ void manage_inactivity(bool ignore_stepper_queue = false);
 
 ////////////   Power recovery feature    //////////////
 #ifdef BEEVC_Restore
-	extern bool toRecover;
+	extern bool toRecover,toRecoverNow;
 #endif
 ///////////////////////////////////////////////////////
 

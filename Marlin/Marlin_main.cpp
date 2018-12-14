@@ -730,7 +730,7 @@ XYZ_CONSTS_FROM_CONFIG(signed char, home_dir, HOME_DIR);
 
 ////////////   Power recovery feature    //////////////
 #ifdef BEEVC_Restore
-	bool toRecover = false;
+	bool toRecover,toRecoverNow = false;
 #endif
 ///////////////////////////////////////////////////////
 
@@ -5653,6 +5653,9 @@ void home_all_axes() { gcode_G28(true); }
 	// DR-Restores to the previous extruder
 	tool_change(extruderNumber);
 
+  // Stores new mesh on EEPROM
+  (void)settings.save();
+
   #ifdef BEEVC_TMC2130READSG
 
     #ifndef BEEVC_TMC2130STEPLOSS
@@ -8054,7 +8057,11 @@ inline void gcode_M105() {
           return;
         }
       #endif // EXTRA_FAN_SPEED
-      const uint16_t s = parser.ushortval('S', 255);
+      uint16_t s = parser.ushortval('S', 255);
+      // Makes sure the fan isn't activated for speeds at which it can't spin
+      if (s != 0)
+        s = map(s,0,255,B2X300_MIN_FAN,255);
+
       fanSpeeds[p] = min(s, 255);
     }
   }
@@ -12668,6 +12675,9 @@ inline void gcode_M999() {
 		// Sets the eeprom index to the begining
 		int eeprom_index = 0 ;
 
+    // Activated bed leveling mesh before loading Z height
+    set_bed_leveling_enabled(true);
+
 		//Loads Z height
 		EEPROM_read(eeprom_index, (uint8_t*)&current_position[Z_AXIS], sizeof(current_position[Z_AXIS]));
 		#ifdef SERIAL_DEBUG
@@ -13015,14 +13025,8 @@ inline void gcode_M999() {
       HOMEAXIS(Y);
     #endif // BEEVC_TMC2130READSG
 
-
-    // Ensures the stepper have been preactivated to avoid eroneous detection
-    enable_all_steppers();
-    safe_delay(400);
     // Wait for planner moves to finish!
     stepper.synchronize();
-
-
 
     //Sets the correct extruder temperatures for printing
     thermalManager.target_temperature[0] = tempE0;
@@ -13068,6 +13072,13 @@ inline void gcode_M999() {
 		buffer_line_to_current_position();
 		do_blocking_move_to_xy(xPosition,yPosition,40);
     do_blocking_move_to_z((current_position[2]-20), 4);
+    if(active_extruder == 1){
+      active_extruder = 0;
+      tool_change(0);
+      tool_change(1);
+    }
+
+    
 
 		//Extrudes a priming amount
 		/*
@@ -16892,11 +16903,15 @@ void setup() {
 		if (tempZ != 0)
 		{
 			toRecover = true;
-			lcd_setstatus("Print Restored! ");
+			lcd_setstatus("Powerloss-print saved");
 
       // Restores bed temperature to avoid printed parts from releasing
       eeprom_index = 23;
       EEPROM_read(eeprom_index, (uint8_t*)&thermalManager.target_temperature_bed, sizeof(thermalManager.target_temperature_bed));
+
+      if(abs(thermalManager.target_temperature_bed - thermalManager.current_temperature_bed) < 5){
+        toRecoverNow = true;
+      }
 		}
 	#endif
 	///////////////////////////////////////////////////////
@@ -16956,6 +16971,31 @@ void setup() {
 			stepper.quick_stop();
 			disable_all_steppers();
       clear_command_queue();
+
+      // Corrects the dual extruder offset to avoid incorrect recovery
+      #ifdef SERIAL_DEBUG
+				SERIAL_ECHOLNPGM("Stopping stepper drivers !");
+			#endif
+      if (active_extruder == 1){
+        #ifdef SERIAL_DEBUG
+          SERIAL_ECHOPAIR("X axis E2: ", current_position[X_AXIS]);
+          SERIAL_ECHOLNPGM("");
+          SERIAL_ECHOPAIR("Y axis E2: ", current_position[Y_AXIS]);
+          SERIAL_ECHOLNPGM("");
+        #endif
+
+        current_position[X_AXIS] -= hotend_offset[X_AXIS][1];
+        current_position[Y_AXIS] -=  hotend_offset[Y_AXIS][1];
+
+        #ifdef SERIAL_DEBUG
+          SERIAL_ECHOPAIR("X axis E1: ", current_position[X_AXIS]);
+          SERIAL_ECHOLNPGM("");
+          SERIAL_ECHOPAIR("Y axis E1: ", current_position[Y_AXIS]);
+          SERIAL_ECHOLNPGM("");
+        #endif
+      }
+      
+      
 
 			// Saves the variables to EEPROM
 			#ifdef SERIAL_DEBUG

@@ -188,6 +188,7 @@ uint16_t max_display_update_time = 0;
   void beevc_maintenance_menu();
   void beevc_machine_menu();
   void beevc_machine_motion_menu();
+  void beevc_machine_motion_offset_menu();
   void beevc_machine_temperature_menu();
   void beevc_about_menu();
 
@@ -259,6 +260,8 @@ uint16_t max_display_update_time = 0;
 	///////////////////////////////////////////////////////
 
     uint32_t next_update =  0;
+    float old_hotend_offset = 0;
+    bool isX = 0 ;
   ////////////   Filament Change   //////////////
 	uint16_t filament_change_temp = 0;
   bool filament_change_load = false;
@@ -952,7 +955,8 @@ void lcd_status_screen() {
 
   // If there is a print to restore and the bed temperature target (previously set when loading the flag)
   // is less than 5 degree away from current bed temperature or 0, starts the recovery on it's own
-  if (toRecover && (abs(thermalManager.target_temperature_bed - thermalManager.current_temperature_bed) < 5)){
+  if (toRecoverNow){
+    toRecoverNow = false;
     recover_print();
   }
 
@@ -1826,7 +1830,7 @@ static void lcd_filament_change_unload_load (uint16_t changetemp, bool just_heat
     	   HOTEND_LOOP()
          {
            #ifdef BEEVC_B2X300
-              if (thermalManager.degHotend(active_extruder) >= changetemp)
+              if (thermalManager.degHotend(active_extruder) < changetemp)
            #else
               if (abs(thermalManager.degHotend(active_extruder) - changetemp) > 10)
            #endif
@@ -2106,6 +2110,10 @@ void lcd_enqueue_filament_change() {
 
     // Fan Speed:
     MENU_MULTIPLIER_ITEM_EDIT(int3, MSG_FAN_SPEED FAN_SPEED_1_SUFFIX, &fanSpeeds[0], 0, 255);
+
+    // Makes sure the fan isn't set for a speed at which it can't spin
+    if (fanSpeeds[0] > 0 && fanSpeeds[0] < B2X300_MIN_FAN)
+      fanSpeeds[0]=B2X300_MIN_FAN;
 
     // Feedrate:
     MENU_ITEM_EDIT(int3, MSG_SPEED, &feedrate_percentage, 10, 999);
@@ -5806,6 +5814,10 @@ void beevc_machine_setup_test_powerloss (){
     // Fan Speed:
     MENU_MULTIPLIER_ITEM_EDIT(int3, MSG_FAN_SPEED FAN_SPEED_1_SUFFIX, &fanSpeeds[0], 0, 255);
 
+    // Makes sure the fan isn't set for a speed at which it can't spin
+    if (fanSpeeds[0] > 0 && fanSpeeds[0] < B2X300_MIN_FAN)
+      fanSpeeds[0]=B2X300_MIN_FAN;
+
     // Advanced options
     MENU_ITEM(submenu,  _UxGT("Advanced settings"), beevc_machine_temperature_advanced_menu);
 
@@ -6195,6 +6207,88 @@ void beevc_machine_setup_test_powerloss (){
   /**
    *  BEEVC
    *
+   * "Machine settings > Motion > Offset" options
+   *
+   */
+
+  void beevc_machine_motion_offset_adjust() {
+    if (lcd_clicked)
+      {
+        // Save to EEPRom
+        lcd_completion_feedback(settings.save());
+
+        // Changes the displayed screen to the previous menu
+        lcd_goto_screen(beevc_machine_motion_offset_menu);
+
+        // Necessary as this function is called as a submenu
+        lcd_goto_previous_menu();
+      }
+
+    ENCODER_DIRECTION_NORMAL();
+
+    if (encoderPosition) {
+      refresh_cmd_timeout();
+
+      // Get the new position
+      hotend_offset[isX?X_AXIS:Y_AXIS][1] += float((int32_t)encoderPosition) * 0.05;
+
+      // Limit only when trying to move towards the limit
+      if ((int32_t)encoderPosition < 0) NOLESS(hotend_offset[isX?X_AXIS:Y_AXIS][1], (isX?12:-1));
+      if ((int32_t)encoderPosition > 0) NOMORE(hotend_offset[isX?X_AXIS:Y_AXIS][1], (isX?14:1));
+      
+      encoderPosition = 0;
+      lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+    }
+
+    if (lcdDrawUpdate) {
+      START_SCREEN();
+      STATIC_ITEM(_UxGT("Offset XY"), true, true);
+
+      lcd_implementation_drawmenu_setting_edit_generic(false, 1,(isX?PSTR("Offset X"):PSTR("Offset Y")),itostr3((int)((hotend_offset[ isX?X_AXIS:Y_AXIS ][1]-old_hotend_offset) /0.05) ));
+      //lcd_implementation_drawmenu_setting_edit_generic(false, 2,PSTR("Absolute value"),ftostr42sign(isX?(hotend_offset[X_AXIS][1] - 13):hotend_offset[Y_AXIS][1]));
+      lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
+      lcd_implementation_drawmenu_static(4,PSTR("Click to save.       "));
+
+      END_SCREEN();
+    }
+  }
+
+  void beevc_machine_motion_offset_x() {
+    isX = true;
+    old_hotend_offset = hotend_offset[X_AXIS][1];
+
+    lcd_goto_screen (beevc_machine_motion_offset_adjust);
+  }
+
+  void beevc_machine_motion_offset_y() {
+    isX = false;
+    old_hotend_offset = hotend_offset[Y_AXIS][1];
+
+    lcd_goto_screen (beevc_machine_motion_offset_adjust);
+  }
+
+  /**
+   *  BEEVC
+   *
+   * "Machine settings > Motion > Offset" submenu
+   *
+   */
+  void beevc_machine_motion_offset_menu() {
+    START_MENU();
+    MENU_BACK();
+
+    // Offset X
+    MENU_ITEM(submenu, _UxGT("Offset X"), beevc_machine_motion_offset_x);
+
+    // Offset Y
+    MENU_ITEM(submenu, _UxGT("Offset Y"), beevc_machine_motion_offset_y);
+
+    END_MENU();
+  }
+
+  /**
+   *  BEEVC
+   *
    * "Machine settings > Motion" submenu
    *
    */
@@ -6217,6 +6311,9 @@ void beevc_machine_setup_test_powerloss (){
 
     // M92 - Steps Per mm
     MENU_ITEM(submenu, MSG_STEPS_PER_MM, lcd_control_motion_steps_per_mm_menu);
+
+    // M218 T1 - Second extruder offset
+    MENU_ITEM(submenu, _UxGT("Offset"), beevc_machine_motion_offset_menu);
 
     END_MENU();
   }
