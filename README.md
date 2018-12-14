@@ -8,6 +8,29 @@ For support, please visit https://beeverycreative.com/forum
 
 ## Changelog
 
+#### `B2X300-20181214`
+- Bugfix - corrected filament change skipping temperature stabilization
+- Corrected compiler warnings
+- Bed leveling now saves mesh to EEPROM after probing
+- Changed EEPROM version and documented address map
+- Dual Extrusion Offset Calibration feature
+- Bugfix - activated leveling mesh on print restore
+- Bugfix - removed unecessary enable steppers on power restore
+- Bugfix - corrected dual extrusion restore offset for E2
+- M119 now shows the state of the second filament sensor
+- Improved float42 to string function
+- Improved offset XY layout
+- Bugfix - corrected restore print, auto-start when it was not suposed to
+- Bugfix - changed print recovered message
+- Bugfix - blower values mapped so the fan spins on all the range 0-255
+
+**NEW FEATURES**: 
+- Dual Extrusion Offset Calibration 
+	- No longer requires diferent Gcodes between machines for dual extrusion
+    - You can now save your offset using only your LCD screen
+	- No need to save the offset on the slicer
+
+
 #### `B2X300-20181128`
 - Nozzle height now homes after finishing
 - After finishing home X will move 20mm to the left
