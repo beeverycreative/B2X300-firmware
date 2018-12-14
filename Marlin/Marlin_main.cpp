@@ -16899,7 +16899,7 @@ void setup() {
 		if (tempZ != 0)
 		{
 			toRecover = true;
-			lcd_setstatus("Print Restored! ");
+			lcd_setstatus("Powerloss-print saved");
 
       // Restores bed temperature to avoid printed parts from releasing
       eeprom_index = 23;
