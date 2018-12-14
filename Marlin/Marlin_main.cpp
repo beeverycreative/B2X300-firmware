@@ -13021,14 +13021,8 @@ inline void gcode_M999() {
       HOMEAXIS(Y);
     #endif // BEEVC_TMC2130READSG
 
-
-    // Ensures the stepper have been preactivated to avoid eroneous detection
-    enable_all_steppers();
-    safe_delay(400);
     // Wait for planner moves to finish!
     stepper.synchronize();
-
-
 
     //Sets the correct extruder temperatures for printing
     thermalManager.target_temperature[0] = tempE0;
