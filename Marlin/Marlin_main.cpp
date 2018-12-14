@@ -16957,6 +16957,16 @@ void setup() {
 			disable_all_steppers();
       clear_command_queue();
 
+      // Corrects the dual extruder offset to avoid incorrect recovery
+      if (active_extruder == 1){
+        #ifdef SERIAL_DEBUG
+        SERIAL_ECHOLNPGM("Reverting hotend offset before recovery!");
+        #endif
+        current_position[X_AXIS] -= hotend_offset[X_AXIS][1];
+        current_position[Y_AXIS] -= hotend_offset[Y_AXIS][1];
+      }
+      
+
 			// Saves the variables to EEPROM
 			#ifdef SERIAL_DEBUG
 				SERIAL_ECHOLNPGM("Saving variables !");
