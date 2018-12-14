@@ -1331,7 +1331,8 @@ void lcd_status_screen() {
 
   // If there is a print to restore and the bed temperature target (previously set when loading the flag)
   // is less than 5 degree away from current bed temperature or 0, starts the recovery on it's own
-  if (toRecover && (abs(thermalManager.target_temperature_bed - thermalManager.current_temperature_bed) < 5)){
+  if (toRecoverNow){
+    toRecoverNow = false;
     recover_print();
   }
 

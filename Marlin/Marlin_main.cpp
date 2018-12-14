@@ -733,7 +733,7 @@ XYZ_CONSTS_FROM_CONFIG(signed char, home_dir, HOME_DIR);
 
 ////////////   Power recovery feature    //////////////
 #ifdef BEEVC_Restore
-	bool toRecover = false;
+	bool toRecover,toRecoverNow = false;
 #endif
 ///////////////////////////////////////////////////////
 
@@ -17125,6 +17125,10 @@ void setup() {
       // Restores bed temperature to avoid printed parts from releasing
       eeprom_index = 23;
       EEPROM_read(eeprom_index, (uint8_t*)&thermalManager.target_temperature_bed, sizeof(thermalManager.target_temperature_bed));
+
+      if(abs(thermalManager.target_temperature_bed - thermalManager.current_temperature_bed) < 5){
+        toRecoverNow = true;
+      }
 		}
 	#endif
 	///////////////////////////////////////////////////////
