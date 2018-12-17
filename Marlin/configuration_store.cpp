@@ -818,7 +818,7 @@ inline void EEPROM_write(int &pos, const uint8_t *value, uint16_t size) {
 
     // Version has to match or defaults are used
     if (strncmp(version, stored_ver, 3) != 0) {
-      if (stored_ver[0] != 'V') {
+      if (stored_ver[0] != 'B') {
         stored_ver[0] = '?';
         stored_ver[1] = '\0';
       }
@@ -829,6 +829,14 @@ inline void EEPROM_write(int &pos, const uint8_t *value, uint16_t size) {
         SERIAL_ECHOLNPGM(" Marlin=" EEPROM_VERSION ")");
       #endif
       reset();
+
+      save();
+
+      // Sets Setup Wizard flag
+      gcode_M720();
+
+      // Restarts the firmware
+      asm volatile ("  jmp 0");
     }
     else {
       float dummy = 0;
