@@ -832,8 +832,8 @@ inline void EEPROM_write(int &pos, const uint8_t *value, uint16_t size) {
 
       save();
 
-      // Sets Setup Wizard flag
-      gcode_M720();
+      // Sets Setup Wizard flag with EEPROM upgraded flag
+      gcode_M722();
 
       // Restarts the firmware
       asm volatile ("  jmp 0");
