@@ -227,7 +227,9 @@ void enqueue_and_echo_commands_P(const char * const cmd);          // Set one or
 void gcode_M918();
 void gcode_G28(const bool always_home_all);
 void gcode_G29();
+void gcode_M720();
 void gcode_M721();
+void gcode_M722();
 void gcode_M730();
 void gcode_M740();
 void do_move_to (float posX, float posY, float posZ, float posE, float feed);

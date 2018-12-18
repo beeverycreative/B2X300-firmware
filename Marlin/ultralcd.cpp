@@ -1325,7 +1325,7 @@ uint16_t max_display_update_time = 0;
 void lcd_status_screen() {
 
   // If Self-test wizard flag is set launch it
-  if (toCalibrate == 0){
+  if (toCalibrate <= 1){
     beevc_machine_setup();
   }
 
@@ -5006,6 +5006,15 @@ void lcd_enqueue_filament_change() {
     STATIC_ITEM(_UxGT("printer, fix the"), false, false);\
     STATIC_ITEM(_UxGT("issue and try again."), false, false)
 
+  void beevc_machine_setup_EEPROM_updated() {
+    MACHINE_SETUP_TITLE;
+    STATIC_ITEM(_UxGT("EEPROM structure was"), false, false);
+    STATIC_ITEM(_UxGT("updated, settings"), false, false);
+    STATIC_ITEM(_UxGT("were reset."), false, false);
+    STATIC_ITEM(_UxGT("Press to continue."), false, false);
+    MACHINE_SETUP_END;
+  }
+
   void beevc_machine_setup_screen_start() {
     MACHINE_SETUP_TITLE;
     STATIC_ITEM(_UxGT("Welcome to the B2X300"), false, false);
@@ -5891,6 +5900,12 @@ void beevc_machine_setup_test_powerloss (){
 
     // Clear LCD
     lcd_implementation_clear();
+
+    // Shows EEPROM updated screen
+    if(toCalibrate == 1) {
+      lcd_goto_screen(beevc_machine_setup_EEPROM_updated);
+      beevc_machine_setup_wait_click();
+    }
 
     // Start screen
 

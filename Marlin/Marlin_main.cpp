@@ -247,6 +247,7 @@
  * M712 - Reset recovery flag
  * M720 - Sets startup wizard flag
  * M721 - Disables startup wizard flag
+ * M722 - Sets startup wizard flag with EEPROM changed warning
  * M730 - Prints dual nozzle Z offset test
  * M731 - Prints dual nozzle XY offset test
  * M740 - Prints a prime line with the active extruder
@@ -12337,6 +12338,7 @@ inline void gcode_M999() {
  * M712 - Resets restore print flag
  * M720 - Sets startup wizard flag
  * M721 - Disables startup wizard flag
+ * M722 - Sets startup wizard flag with EEPROM changed warning
  * M730 - Prints dual nozzle Z offset test
  * M731 - Prints dual nozzle XY offset test
  * M740 - Prints a prime line with the active extruder
@@ -13324,6 +13326,25 @@ inline void gcode_M999() {
 
    SERIAL_ECHOLNPGM("Startup wizard disabled!");
    }
+
+   /**
+   * M722 - Sets startup wizard flag with EEPROM updated warning
+   *
+   *
+   *
+   *
+  */
+
+  inline void gcode_M722()
+  {
+   // Sets the startup flag to 1, Wizard with EEPROM updated warning
+   toCalibrate = 1;
+   int eeprom_index = 100-sizeof(toCalibrate);
+   EEPROM_write(eeprom_index, (uint8_t*)&toCalibrate, sizeof(toCalibrate));
+
+   SERIAL_ECHOLNPGM("Startup wizard with EEPROM warning active!");
+   }
+
 
   /**
    * M730 - Prints dual nozzle Z offset test
@@ -14936,6 +14957,10 @@ void process_parsed_command() {
 
       case 721:  //Disables startup wizard flag
   				gcode_M721();
+  				break;
+
+      case 722:  //Enables startup wizard flag with EEPROM warning
+  				gcode_M722();
   				break;
 
       case 730:  //Prints dual nozzle Z offset test lines
