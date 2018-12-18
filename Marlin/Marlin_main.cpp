@@ -247,6 +247,7 @@
  * M712 - Reset recovery flag
  * M720 - Sets startup wizard flag
  * M721 - Disables startup wizard flag
+ * M722 - Sets startup wizard flag with EEPROM changed warning
  * M916 - Set chopping mode (Only works for TMC2130 or TMC2208)
  * M917 - Read stallGuard2 values
  * M918 - Set Sensorless_homing calibration value
@@ -12296,6 +12297,7 @@ inline void gcode_M999() {
  * M712 - Resets restore print flag
  * M720 - Sets startup wizard flag
  * M721 - Disables startup wizard flag
+ * M722 - Sets startup wizard flag with EEPROM changed warning
  *
  */
 
@@ -13276,6 +13278,26 @@ inline void gcode_M999() {
 	}
 #endif
 
+  /**
+   * M722 - Sets startup wizard flag with EEPROM updated warning
+   *
+   *
+   *
+   *
+  */
+
+  inline void gcode_M722()
+  {
+   // Sets the startup flag to 1, Wizard with EEPROM updated warning
+   toCalibrate = 1;
+   int eeprom_index = 100-sizeof(toCalibrate);
+   EEPROM_write(eeprom_index, (uint8_t*)&toCalibrate, sizeof(toCalibrate));
+
+   SERIAL_ECHOLNPGM("Startup wizard with EEPROM warning active!");
+   }
+
+
+  
 #if ENABLED(SWITCHING_EXTRUDER)
   #if EXTRUDERS > 3
     #define REQ_ANGLES 4
@@ -14731,6 +14753,10 @@ void process_parsed_command() {
 
       case 721:  //Disables startup wizard flag
   				gcode_M721();
+  				break;
+
+      case 722:  //Enables startup wizard flag with EEPROM warning
+  				gcode_M722();
   				break;
 
 		#endif
