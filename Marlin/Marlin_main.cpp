@@ -13297,7 +13297,7 @@ inline void gcode_M999() {
    }
 
 
-  /**
+  
 #if ENABLED(SWITCHING_EXTRUDER)
   #if EXTRUDERS > 3
     #define REQ_ANGLES 4
