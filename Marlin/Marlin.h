@@ -229,6 +229,7 @@ void gcode_G28(const bool always_home_all);
 void gcode_G29();
 void gcode_M720();
 void gcode_M721();
+void gcode_M722();
 void clear_command_queue();
 
 extern millis_t previous_cmd_ms;
