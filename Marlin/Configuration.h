@@ -516,7 +516,7 @@
     #define MAX_BED_POWER 255 // limits duty cycle to bed; 255=full current
   #else
     // B2X300 release bed
-    #define MAX_BED_POWER 153 // limits duty cycle to bed; 255=full current (153 = 60%)
+    #define MAX_BED_POWER 192 // limits duty cycle to bed; 255=full current (192 = 75%)
   #endif
 
 #else
