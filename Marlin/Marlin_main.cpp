@@ -4187,7 +4187,6 @@ inline void gcode_G28(const bool always_home_all) {
     stepperY.sg_filter(false);
   #endif // BEEVC_TMC2130SGFILTER
 
-
   // Sets homing and stallGuard2 reading flag
   thermalManager.sg2_homing   = true;
   thermalManager.sg2_to_read  = true;
@@ -4210,6 +4209,10 @@ inline void gcode_G28(const bool always_home_all) {
 
       //safe_delay(400);
     }
+
+  // Stores old acceleration and sets the correct acceleration for leveling/ homing
+  float old_acceleration = planner.travel_acceleration;
+  planner.travel_acceleration = 750;
 
 #endif // BEEVC_TMC2130READSG
 
@@ -4535,6 +4538,9 @@ enable_all_steppers();
       stepperY.coolstep_min_speed(0);
       stepperY.stealthChop(1);
     }
+
+    // Restores old acceleration settings
+    planner.travel_acceleration = old_acceleration;
 
 
   #endif // BEEVC_TMC2130READSG
