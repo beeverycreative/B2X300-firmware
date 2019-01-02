@@ -4888,6 +4888,10 @@ void home_all_axes() { gcode_G28(true); }
     thermalManager.sg2_to_read  = false; // Temporarily disables reading to avoid problems with probing Z
     #endif // BEEVC_TMC2130READSG
 
+    // Stores old acceleration and sets the correct acceleration for leveling/ homing
+    float old_acceleration = planner.travel_acceleration;
+    planner.travel_acceleration = 750;
+
 	  //DR-Stores the extruder and changes to E0
     uint8_t extruderNumber = active_extruder;
     if (extruderNumber != 0) tool_change(0);
@@ -5725,6 +5729,9 @@ void home_all_axes() { gcode_G28(true); }
 
 	// DR-Restores to the previous extruder
 	tool_change(extruderNumber);
+
+  // Restores old acceleration settings
+  planner.travel_acceleration = old_acceleration;
 
   // Stores new mesh on EEPROM
   (void)settings.save();
