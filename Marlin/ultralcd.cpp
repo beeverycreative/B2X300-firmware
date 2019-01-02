@@ -259,11 +259,19 @@ uint16_t max_display_update_time = 0;
 	#endif // BEEVC_Restore
 	///////////////////////////////////////////////////////
 
+  ////////////   Auxiliary functions    //////////////
+	#ifdef BEEVC_B2X300
+    uint8_t beevc_screen_header = 0;
+    bool beevc_continue = 0;
     uint32_t next_update =  0;
     float old_hotend_offset = 0;
     bool isX = 0 ;
+	#endif
+	///////////////////////////////////////////////////////
+
   ////////////   Filament Change   //////////////
 	uint16_t filament_change_temp = 0;
+  uint8_t filament_change_extruder = 0;
   bool filament_change_load = false;
   bool filament_change_manual = false;
 
@@ -1805,8 +1813,12 @@ void kill_screen(const char* lcd_msg) {
 
 static void lcd_filament_change_unload_load (uint16_t changetemp, bool just_heating, bool unload_load)
 {
+  // Ensure the correct extruder is set
+  if (active_extruder != filament_change_extruder)
+    active_extruder = filament_change_extruder;
+
   // Starts heating
-	HOTEND_LOOP() thermalManager.setTargetHotend(changetemp, active_extruder);
+	HOTEND_LOOP() thermalManager.setTargetHotend(changetemp, filament_change_extruder);
 
   //Disables the timeout to status screen
   defer_return_to_status = true;
@@ -1830,7 +1842,7 @@ static void lcd_filament_change_unload_load (uint16_t changetemp, bool just_heat
     	   HOTEND_LOOP()
          {
            #ifdef BEEVC_B2X300
-              if (thermalManager.degHotend(active_extruder) < changetemp)
+              if (thermalManager.degHotend(filament_change_extruder) < (changetemp-5))
            #else
               if (abs(thermalManager.degHotend(active_extruder) - changetemp) > 10)
            #endif
@@ -1883,6 +1895,10 @@ static void lcd_filament_change_unload_load (uint16_t changetemp, bool just_heat
 
   KEEPALIVE_STATE(IN_HANDLER);
 
+  // // Ensure the correct extruder is set
+  // if (active_extruder != filament_change_extruder)
+  //   active_extruder = filament_change_extruder;
+
   if(! just_heating){
     //show "moving"
   	lcd_goto_screen(lcd_filament_change_moving);
@@ -1901,8 +1917,6 @@ static void lcd_filament_change_unload_load (uint16_t changetemp, bool just_heat
   	//unload
   	else
   		enqueue_and_echo_commands_P(PSTR("M620 S1 U1"));
-
-    enqueue_and_echo_commands_P(PSTR("T0"));
   }
   else{
     lcd_goto_screen(lcd_filament_change_move_e);
@@ -1923,31 +1937,44 @@ static void lcd_filament_change_unload_load (uint16_t changetemp, bool just_heat
   menu_action_back(lcd_filament_change_choose_action);
 }
 
-static void lcd_filament_chang_finish_movement () {
+static void lcd_filament_change_finish_movement () {
   lcd_filament_change_moving();
 
   // Checks if necessary movements have been made
-  if ((current_position[Z_AXIS] == 50) && axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS]) {
+  if ((current_position[Z_AXIS] == 50) && axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS])
     lcd_filament_change_unload_load (filament_change_temp,filament_change_manual, filament_change_load);
+}
+
+static void lcd_filament_change_home_move () {
+  // homing and moving to Z = 50
+  if (!((current_position[Z_AXIS] == 50) && axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS])) {
+    axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
+    enqueue_and_echo_commands_P(PSTR("G28"));
+    enqueue_and_echo_commands_P(PSTR("G1 Z50 F3000"));
   }
+
+  lcd_goto_screen(lcd_filament_change_finish_movement);
+
+  beevc_force_screen_update();
 }
 
 
 static void lcd_filament_change_action_unload () {
   filament_change_load = false ;
   filament_change_manual = false ;
-  lcd_goto_screen(lcd_filament_chang_finish_movement);
+  lcd_goto_screen(lcd_filament_change_home_move);
 }
 
 static void lcd_filament_change_action_load () {
   filament_change_load = true ;
   filament_change_manual = false ;
-  lcd_goto_screen(lcd_filament_chang_finish_movement);
+  lcd_goto_screen(lcd_filament_change_home_move);
 }
 
 static void lcd_filament_change_action_move () {
   filament_change_manual = true ;
-  lcd_goto_screen(lcd_filament_chang_finish_movement);
+  
+  lcd_goto_screen(lcd_filament_change_home_move);
 }
 
 static void lcd_filament_change_choose_action () {
@@ -2003,14 +2030,14 @@ static void lcd_filament_change_choose_temp() {
 
 static void lcd_filament_change_extruder_0()
 {
-  enqueue_and_echo_commands_P(PSTR("T0"));
+  //enqueue_and_echo_commands_P(PSTR("T0"));
   active_extruder=0;
   lcd_goto_screen(lcd_filament_change_choose_temp);
 }
 
 static void lcd_filament_change_extruder_1()
 {
-  enqueue_and_echo_commands_P(PSTR("T1"));
+  //enqueue_and_echo_commands_P(PSTR("T1"));
   active_extruder=1;
   lcd_goto_screen(lcd_filament_change_choose_temp);
 }
@@ -2032,14 +2059,6 @@ static void lcd_filament_change()
 static void lcd_filament_change_start()
 {
   defer_return_to_status = true;
-  lcd_goto_screen(lcd_filament_change_moving);
-
-  // homing and moving to Z = 50
-  if (!((current_position[Z_AXIS] == 50) && axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS])) {
-    axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
-    enqueue_and_echo_commands_P(PSTR("G28"));
-    enqueue_and_echo_commands_P(PSTR("G1 Z50 F3000"));
-  }
 
   lcd_goto_screen(lcd_filament_change);
 }
