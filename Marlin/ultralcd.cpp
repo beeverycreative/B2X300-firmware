@@ -1337,9 +1337,8 @@ void kill_screen(const char* lcd_msg) {
       strcat(about_string, "-");
       strncat(about_string, BUILDCOMMIT,7);
       STATIC_ITEM("", true, false, about_string);
-      STATIC_ITEM("---------------------", false, false);
-      STATIC_ITEM("Diagnostic Info.", false, false);
-      STATIC_ITEM("---------------------", false, false);
+      STATIC_ITEM(" ", false, false);
+      STATIC_ITEM("Diagnostic Info.", false, true);
 
       about_string[0] = '\0';
       strncat(about_string, i8tostr3(thermalManager.sg2_homing_x_calibration),3);
@@ -1600,9 +1599,24 @@ void kill_screen(const char* lcd_msg) {
   //					Filament Change Feature							//
   ////////////////////////////////////////////////////////////////////////
 
+  #define LCD_PRINT_EXT_TEMP() \
+    STATIC_ITEM(_UxGT(" ")); \
+    u8g.setPrintPos(0, 26);\
+    u8g.print("Extruder ");\
+    u8g.print(active_extruder+1);\
+    u8g.print(": ");\
+    if(round(thermalManager.degHotend(active_extruder)) <100) u8g.print(" ");\
+    u8g.print(round(thermalManager.degHotend(active_extruder)));\
+    u8g.print("/");\
+    u8g.print(round(thermalManager.degTargetHotend(active_extruder)));\
+    lcd_printPGM(PSTR(LCD_STR_DEGREE));\
+    u8g.print("C")
+
 	void lcd_filament_change_hotendStatus() {
 		START_SCREEN();
       STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
+      
+	  #ifndef DOGLCD
       STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_1 "  ", true, false);
       #ifdef MSG_FILAMENT_CHANGE_HEATING_2
         STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_2 "  ", true, false);
@@ -1610,12 +1624,7 @@ void kill_screen(const char* lcd_msg) {
       #else
         #define _FC_LINES_C 2
       #endif
-      #if LCD_HEIGHT > _FC_LINES_C + 1
-        STATIC_ITEM(" ");
-      #endif
 
-
-	  #ifndef DOGLCD
 			lcd.setCursor(2, 3);
 			lcd.print("Nozzle: ");
 
@@ -1626,15 +1635,12 @@ void kill_screen(const char* lcd_msg) {
 			lcd.print("/");
 			lcd.print(round(thermalManager.degTargetHotend(active_extruder)));
 	  #else
-		  u8g.setPrintPos(16, 48);
-			u8g.print("Nozzle: ");
 
-			if(round(thermalManager.degHotend(active_extruder)) <100)
-			u8g.print(" ");
-
-			u8g.print(round(thermalManager.degHotend(active_extruder)));
-			u8g.print("/");
-			u8g.print(round(thermalManager.degTargetHotend(active_extruder)));
+		  LCD_PRINT_EXT_TEMP();
+      STATIC_ITEM(_UxGT("Status:heating nozzle"),false,false);
+      STATIC_ITEM(_UxGT(" "));
+      STATIC_ITEM(_UxGT("Please wait."),false,false);
+      
 	  #endif
 
       END_SCREEN();
@@ -1657,9 +1663,11 @@ void kill_screen(const char* lcd_msg) {
     {
       START_SCREEN();
       STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
-      STATIC_ITEM(" ");
-	    STATIC_ITEM("   Press to   ");
-	    STATIC_ITEM("  continue... ");
+
+      LCD_PRINT_EXT_TEMP();
+      STATIC_ITEM(_UxGT("Status:  heating done"), false,false );
+      STATIC_ITEM(_UxGT(" "));
+      STATIC_ITEM(_UxGT("Click to continue."),false,false);
       END_SCREEN();
     }
 
@@ -1667,19 +1675,13 @@ void kill_screen(const char* lcd_msg) {
     {
       START_SCREEN();
       STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
-      STATIC_ITEM(" ");
-	    STATIC_ITEM("Moving, please wait...");
+
+      LCD_PRINT_EXT_TEMP();
+      STATIC_ITEM(_UxGT("Status: moving"),false,false);
+      STATIC_ITEM(_UxGT(" "));
+      STATIC_ITEM(_UxGT("Please wait."),false,false);
       END_SCREEN();
     }
-
-    void lcd_filament_change_moving_wait()
-      {
-        START_SCREEN();
-        STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
-        STATIC_ITEM(" ");
-  	    STATIC_ITEM("Moving, please wait...");
-        END_SCREEN();
-      }
 
 	void lcd_filament_change_option_menu() {
       START_MENU();
@@ -2020,10 +2022,11 @@ static void lcd_filament_change_choose_temp() {
   // Go back to previous menu
   MENU_BACK(MSG_BACK);
 
-  MENU_ITEM(submenu, _UxGT("PLA   210ºC"), lcd_filament_change_pla);
-  MENU_ITEM(submenu, _UxGT("PETG  230ºC"), lcd_filament_change_petg);
-  MENU_ITEM(submenu, _UxGT("ABS   240ºC"), lcd_filament_change_abs);
-  MENU_ITEM(submenu, _UxGT("PC    260ºC"), lcd_filament_change_pc);
+  // \x09 is degree sign \x43 is 'C'
+  MENU_ITEM(submenu, _UxGT("PLA   210\x09\x43"), lcd_filament_change_pla); 
+  MENU_ITEM(submenu, _UxGT("PETG  230\x09\x43"), lcd_filament_change_petg);
+  MENU_ITEM(submenu, _UxGT("ABS   240\x09\x43"), lcd_filament_change_abs);
+  MENU_ITEM(submenu, _UxGT("PC    260\x09\x43"), lcd_filament_change_pc);
 
   END_MENU();
 }
@@ -4688,17 +4691,7 @@ void lcd_enqueue_filament_change() {
 void beevc_machine_setup_screen_hotend_ok() {
     MACHINE_SETUP_TITLE;
 
-    STATIC_ITEM(_UxGT(" "));
-
-    u8g.setPrintPos(0, 26);
-    u8g.print("Extruder ");
-    u8g.print(active_extruder+1);
-    u8g.print(": ");
-    u8g.print(100);
-    u8g.print("/");
-    u8g.print(100);
-    lcd_printPGM(PSTR(LCD_STR_DEGREE));
-    u8g.print("C");
+    LCD_PRINT_EXT_TEMP();
 
     STATIC_ITEM(_UxGT("Status: OK!"), false,false );
     STATIC_ITEM(_UxGT(" "));
