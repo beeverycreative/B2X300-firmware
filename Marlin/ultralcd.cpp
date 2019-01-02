@@ -5438,21 +5438,54 @@ void beevc_machine_setup_test_trinamic (){
     // Re-initializes variable
     trinamic_ok = 0;
 
+    // Temporary variable to store default data
+    uint32_t trinamic_data = 0;
+
     // Tests each axis one at a time storing the result if positive
-    if (stepperX.test_connection() == 0)
-      trinamic_ok |= 0x01;
+    // X
+      trinamic_data = stepperX.GCONF(); 
+      stepperX.GCONF(0b101010101010101010);
+      if(stepperX.GCONF() == 0b101010101010101010){
+        stepperX.GCONF(trinamic_data);
+        if(stepperX.GCONF() == trinamic_data)
+          trinamic_ok |= 0x01;
+      }
 
-    if (stepperY.test_connection() == 0)
-      trinamic_ok |= 0x02;
+    // Y
+      trinamic_data = stepperY.GCONF(); 
+      stepperY.GCONF(0b101010101010101010);
+      if(stepperY.GCONF() == 0b101010101010101010){
+        stepperY.GCONF(trinamic_data);
+        if(stepperY.GCONF() == trinamic_data)
+          trinamic_ok |= 0x02;
+      }
 
-    if (stepperZ.test_connection() == 0)
-      trinamic_ok |= 0x04;
+    // Z
+      trinamic_data = stepperZ.GCONF(); 
+      stepperZ.GCONF(0b101010101010101010);
+      if(stepperZ.GCONF() == 0b101010101010101010){
+        stepperZ.GCONF(trinamic_data);
+        if(stepperZ.GCONF() == trinamic_data)
+          trinamic_ok |= 0x04;
+      }
 
-    if (stepperE0.test_connection() == 0)
-      trinamic_ok |= 0x08;
+    // E0
+      trinamic_data = stepperE0.GCONF(); 
+      stepperE0.GCONF(0b101010101010101010);
+      if(stepperE0.GCONF() == 0b101010101010101010){
+        stepperE0.GCONF(trinamic_data);
+        if(stepperE0.GCONF() == trinamic_data)
+          trinamic_ok |= 0x08;
+      }
 
-    if (stepperE1.test_connection() == 0)
-      trinamic_ok |= 0x10;
+    // E1
+      trinamic_data = stepperE1.GCONF(); 
+      stepperE1.GCONF(0b101010101010101010);
+      if(stepperE1.GCONF() == 0b101010101010101010){
+        stepperE1.GCONF(trinamic_data);
+        if(stepperE1.GCONF() == trinamic_data)
+          trinamic_ok |= 0x10;
+      }
 
     #ifdef SERIAL_DEBUG
       SERIAL_PROTOCOLLNPAIR("X = ", stepperX.test_connection());
