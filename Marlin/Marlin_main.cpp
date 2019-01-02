@@ -757,6 +757,12 @@ XYZ_CONSTS_FROM_CONFIG(signed char, home_dir, HOME_DIR);
 #endif
 ///////////////////////////////////////////////////////
 
+////////////     Better autoleveling     //////////////
+#ifdef BEEVC_B2X300
+	bool G28_stow = true;
+#endif
+///////////////////////////////////////////////////////
+
 /**
  * ***************************************************************************
  * ******************************** FUNCTIONS ********************************
@@ -1765,14 +1771,21 @@ void do_blocking_move_to(const float &rx, const float &ry, const float &rz, cons
 
   #else
 
-    // If Z needs to raise, do it before moving XY
-    if (current_position[Z_AXIS] < rz) {
-      feedrate_mm_s = z_feedrate;
-      current_position[Z_AXIS] = rz;
-      buffer_line_to_current_position();
-    }
+    // // If Z needs to raise, do it before moving XY
+    // if (current_position[Z_AXIS] < rz) {
+    //   feedrate_mm_s = z_feedrate;
+    //   current_position[Z_AXIS] = rz;
+    //   buffer_line_to_current_position();
+    // }
 
-    feedrate_mm_s = fr_mm_s ? fr_mm_s : XY_PROBE_FEEDRATE_MM_S;
+    // feedrate_mm_s = fr_mm_s ? fr_mm_s : XY_PROBE_FEEDRATE_MM_S;
+    // current_position[X_AXIS] = rx;
+    // current_position[Y_AXIS] = ry;
+    // buffer_line_to_current_position();
+
+    // If Z is raising, move XY and Z at the same time
+    feedrate_mm_s = XY_PROBE_FEEDRATE_MM_S; //(current_position[Z_AXIS] < rz)? z_feedrate : XY_PROBE_FEEDRATE_MM_S;
+    current_position[Z_AXIS] = rz;
     current_position[X_AXIS] = rx;
     current_position[Y_AXIS] = ry;
     buffer_line_to_current_position();
@@ -2374,23 +2387,42 @@ static void clean_up_after_endstop_or_probe_move() {
     #endif
 
     #if MULTIPLE_PROBING > 2
-      float probes_total = 0;
-      for (uint8_t p = MULTIPLE_PROBING + 1; --p;) {
+      float probes_total[MULTIPLE_PROBING] = {0};
+      float mean = 0;
+      for (uint8_t p = 0; p < MULTIPLE_PROBING ; p++) {
     #endif
 
         // move down slowly to find bed
         if (do_probe_move(-10, Z_PROBE_SPEED_SLOW)) return NAN;
 
     #if MULTIPLE_PROBING > 2
-        probes_total += current_position[Z_AXIS];
-        if (p > 1) do_blocking_move_to_z(current_position[Z_AXIS] + Z_CLEARANCE_BETWEEN_PROBES, MMM_TO_MMS(Z_PROBE_SPEED_FAST));
+        probes_total[p] = current_position[Z_AXIS];
+        mean += current_position[Z_AXIS];
+        //SERIAL_ECHO("Measured Z = ");
+        //SERIAL_ECHOLN(current_position[Z_AXIS]);
+        do_blocking_move_to_z(current_position[Z_AXIS] + ((float)Z_CLEARANCE_BETWEEN_REPEATS/10), MMM_TO_MMS(Z_PROBE_SPEED_FAST));
       }
     #endif
 
     #if MULTIPLE_PROBING > 2
 
+      // Excludes the farthest outlier
+      mean = mean* (1.0 / (MULTIPLE_PROBING));
+      
+      // Finds the index of the number furthest away from the mean
+      uint8_t toIgnoreIndex = 0;
+      for(uint8_t k = 1;k<MULTIPLE_PROBING ;k++ ) if (!(abs(mean - probes_total[toIgnoreIndex]) > abs(mean - probes_total[k]))) toIgnoreIndex = k;
+      // Sums every number except the outlier
+      float result = 0;
+      for(uint8_t k = 0;k<MULTIPLE_PROBING ;k++ ) if(k != toIgnoreIndex) result+= probes_total[k];
+
+      // Return the average value of all probes witout the farthest outlier
+      // SERIAL_ECHO("Measured Z mean= ");
+      // SERIAL_ECHOLN(result * (1.0 / (MULTIPLE_PROBING-1)));
+      return (result * (1.0 / (MULTIPLE_PROBING-1)));
+
       // Return the average value of all probes
-      return probes_total * (1.0 / (MULTIPLE_PROBING));
+      //return probes_total * (1.0 / (MULTIPLE_PROBING));
 
     #elif MULTIPLE_PROBING == 2
 
@@ -2460,16 +2492,16 @@ static void clean_up_after_endstop_or_probe_move() {
     feedrate_mm_s = XY_PROBE_FEEDRATE_MM_S;
 
     // Move the probe to the starting XYZ
-    do_blocking_move_to(nx, ny, nz);
+    do_blocking_move_to(nx, ny, (nz+Z_CLEARANCE_BETWEEN_PROBES));
 
     float measured_z = NAN;
     if (!DEPLOY_PROBE()) {
       measured_z = run_z_probe() + zprobe_zoffset;
 
-      if (!stow)
-        do_blocking_move_to_z(current_position[Z_AXIS] + Z_CLEARANCE_BETWEEN_PROBES, MMM_TO_MMS(Z_PROBE_SPEED_FAST));
-      else
-        if (STOW_PROBE()) measured_z = NAN;
+      // if (!stow)
+      //   //do_blocking_move_to_z(current_position[Z_AXIS] + Z_CLEARANCE_BETWEEN_PROBES, MMM_TO_MMS(Z_PROBE_SPEED_FAST));
+      // else
+        if(stow) if(STOW_PROBE()) measured_z=NAN;
     }
 
     if (verbose_level > 2) {
@@ -3196,7 +3228,7 @@ static void homeaxis(const AxisEnum axis) {
 
   // Put away the Z probe
   #if HOMING_Z_WITH_PROBE
-    if (axis == Z_AXIS && STOW_PROBE()) return;
+    if(G28_stow) if(axis == Z_AXIS && STOW_PROBE()) return;
   #endif
 
   #if ENABLED(DEBUG_LEVELING_FEATURE)
@@ -4155,7 +4187,6 @@ inline void gcode_G28(const bool always_home_all) {
     stepperY.sg_filter(false);
   #endif // BEEVC_TMC2130SGFILTER
 
-
   // Sets homing and stallGuard2 reading flag
   thermalManager.sg2_homing   = true;
   thermalManager.sg2_to_read  = true;
@@ -4178,6 +4209,10 @@ inline void gcode_G28(const bool always_home_all) {
 
       //safe_delay(400);
     }
+
+  // Stores old acceleration and sets the correct acceleration for leveling/ homing
+  float old_acceleration = planner.travel_acceleration;
+  planner.travel_acceleration = 750;
 
 #endif // BEEVC_TMC2130READSG
 
@@ -4374,6 +4409,7 @@ enable_all_steppers();
           homeduration = 0;
           while (homeduration < 250) {
             // Moves Y a little away from limit to avoid eroneous detections
+            
             do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] > (Y_MIN_POS + pre_home_move_mm) ? current_position[Y_AXIS]-pre_home_move_mm : current_position[Y_AXIS]),25);
 
             // Wait for planner moves to finish!
@@ -4502,6 +4538,9 @@ enable_all_steppers();
       stepperY.coolstep_min_speed(0);
       stepperY.stealthChop(1);
     }
+
+    // Restores old acceleration settings
+    planner.travel_acceleration = old_acceleration;
 
 
   #endif // BEEVC_TMC2130READSG
@@ -4855,10 +4894,13 @@ void home_all_axes() { gcode_G28(true); }
     thermalManager.sg2_to_read  = false; // Temporarily disables reading to avoid problems with probing Z
     #endif // BEEVC_TMC2130READSG
 
+    // Stores old acceleration and sets the correct acceleration for leveling/ homing
+    float old_acceleration = planner.travel_acceleration;
+    planner.travel_acceleration = 750;
+
 	  //DR-Stores the extruder and changes to E0
-	uint8_t extruderNumber = active_extruder;
-	if (extruderNumber != 0)
-		tool_change(0);
+    uint8_t extruderNumber = active_extruder;
+    if (extruderNumber != 0) tool_change(0);
 
 
     // G29 Q is also available if debugging
@@ -4887,6 +4929,11 @@ void home_all_axes() { gcode_G28(true); }
     #else
       bool constexpr faux = false;
     #endif
+
+    // Forces a new G28 without probe stow to improve measuring accuracy
+    G28_stow = false;
+    gcode_G28(true);
+    G28_stow = true;
 
     // Don't allow auto-leveling without homing first
     if (axis_unhomed_error()) return;
@@ -5688,6 +5735,9 @@ void home_all_axes() { gcode_G28(true); }
 
 	// DR-Restores to the previous extruder
 	tool_change(extruderNumber);
+
+  // Restores old acceleration settings
+  planner.travel_acceleration = old_acceleration;
 
   // Stores new mesh on EEPROM
   (void)settings.save();
@@ -11725,7 +11775,7 @@ inline void gcode_M502() {
 
         //Reset default values
         thermalManager.sg2_homing_x_calibration = 5;
-        thermalManager.sg2_homing_y_calibration = 60;
+        thermalManager.sg2_homing_y_calibration = 0;
         axis_homed[X_AXIS] = false;
         axis_homed[Y_AXIS] = false;
 
