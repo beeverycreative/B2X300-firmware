@@ -5821,7 +5821,7 @@ void beevc_machine_setup_test_trinamic (){
       if(stepperY.GCONF() == 0b101010101010101010){
         stepperY.GCONF(trinamic_data);
         if(stepperY.GCONF() == trinamic_data)
-          trinamic_ok |= 0x01;
+          trinamic_ok |= 0x02;
       }
 
     // Z
@@ -5830,7 +5830,7 @@ void beevc_machine_setup_test_trinamic (){
       if(stepperZ.GCONF() == 0b101010101010101010){
         stepperZ.GCONF(trinamic_data);
         if(stepperZ.GCONF() == trinamic_data)
-          trinamic_ok |= 0x01;
+          trinamic_ok |= 0x04;
       }
 
     // E0
@@ -5839,7 +5839,7 @@ void beevc_machine_setup_test_trinamic (){
       if(stepperE0.GCONF() == 0b101010101010101010){
         stepperE0.GCONF(trinamic_data);
         if(stepperE0.GCONF() == trinamic_data)
-          trinamic_ok |= 0x01;
+          trinamic_ok |= 0x08;
       }
 
     // E1
@@ -5848,7 +5848,7 @@ void beevc_machine_setup_test_trinamic (){
       if(stepperE1.GCONF() == 0b101010101010101010){
         stepperE1.GCONF(trinamic_data);
         if(stepperE1.GCONF() == trinamic_data)
-          trinamic_ok |= 0x01;
+          trinamic_ok |= 0x10;
       }
 
     #ifdef SERIAL_DEBUG
