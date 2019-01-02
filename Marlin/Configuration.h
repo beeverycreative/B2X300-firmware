@@ -976,6 +976,7 @@
  */
 #define Z_CLEARANCE_DEPLOY_PROBE   6 // Z Clearance for Deploy/Stow
 #define Z_CLEARANCE_BETWEEN_PROBES  2 // Z Clearance between probe points
+#define Z_CLEARANCE_BETWEEN_REPEATS 2 // Z Clearance between repeated probings, represented as 0.1mm per unit
 
 // For M851 give a range for adjusting the Z probe offset
 #define Z_PROBE_OFFSET_RANGE_MIN -18
