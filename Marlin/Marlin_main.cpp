@@ -11761,13 +11761,17 @@ inline void gcode_M502() {
         //Variables
         bool x_home_to_calibrate = true;
         bool y_home_to_calibrate = true;
-        uint16_t xy_home_duration_expected = 255;
-        uint16_t x_home_duration_limit = 285;
-        uint16_t y_home_duration_limit = 285;
+        uint16_t xy_home_duration_expected = 300;
+        uint16_t x_home_duration_limit = 315;
+        uint16_t y_home_duration_limit = 315;
         uint32_t xy_home_duration_temp = 0;
         uint32_t xy_home_duration_sum;
         calibrating_sensorless_homing_x = true;
         calibrating_sensorless_homing_y = true;
+
+        // Stores old acceleration and sets the correct acceleration for leveling/ homing
+        float old_acceleration = planner.travel_acceleration;
+        planner.travel_acceleration = 750;
 
         // Show homing screen
         lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_HOMING);
@@ -11781,7 +11785,7 @@ inline void gcode_M502() {
 
         //Reset default values
         thermalManager.sg2_homing_x_calibration = 5;
-        thermalManager.sg2_homing_y_calibration = 0;
+        thermalManager.sg2_homing_y_calibration = 20;
         axis_homed[X_AXIS] = false;
         axis_homed[Y_AXIS] = false;
 
@@ -12132,6 +12136,8 @@ inline void gcode_M502() {
         thermalManager.sg2_homing_x_calibration -= 5;
         thermalManager.sg2_homing_y_calibration -= 10;
 
+        // Restores old acceleration settings
+        planner.travel_acceleration = old_acceleration;
       }
     #endif //(ENABLED(X_IS_TMC2130) && ENABLED(Y_IS_TMC2130))
 
@@ -12144,6 +12150,7 @@ inline void gcode_M502() {
     SERIAL_ECHOPAIR("\nX axis sensorless homing calibration  :", thermalManager.sg2_homing_x_calibration);
     SERIAL_ECHOPAIR("\nY axis sensorless homing calibration  :", thermalManager.sg2_homing_y_calibration);
 
+    
   }
   #endif  //BEEVC_TMC2130READSG
 
