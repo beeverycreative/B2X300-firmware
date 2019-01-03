@@ -248,6 +248,9 @@
  * M720 - Sets startup wizard flag
  * M721 - Disables startup wizard flag
  * M722 - Sets startup wizard flag with EEPROM changed warning
+ * M730 - Prints dual nozzle Z offset test
+ * M731 - Prints dual nozzle XY offset test
+ * M740 - Prints a prime line with the active extruder
  * M916 - Set chopping mode (Only works for TMC2130 or TMC2208)
  * M917 - Read stallGuard2 values
  * M918 - Set Sensorless_homing calibration value
@@ -901,6 +904,38 @@ extern "C" {
   extern void digipot_i2c_set_current(uint8_t channel, float current);
   extern void digipot_i2c_init();
 #endif
+
+//////////////// BEEVC Auxiliary function /////////////
+void do_move_to (float posX, float posY, float posZ, float posE, float feed) {
+  destination[X_AXIS] = posX;
+  destination[Y_AXIS] = posY;
+  destination[Z_AXIS] = posZ;
+  destination[E_AXIS] = posE;
+  feedrate_mm_s = feed;
+
+  prepare_move_to_destination();
+
+  stepper.synchronize();
+}
+
+void do_relative_move_to (float posX, float posY, float posZ, float posE, float feed) {
+  // Reset extruded value to 0
+  stepper.synchronize();
+  current_position[E_AXIS] = 0;
+  destination[E_AXIS] = 0;
+  sync_plan_position_e();
+  report_current_position();
+
+  destination[X_AXIS] = posX;
+  destination[Y_AXIS] = posY;
+  destination[Z_AXIS] = posZ;
+  destination[E_AXIS] = posE;
+  feedrate_mm_s = feed;
+
+  prepare_move_to_destination();
+  stepper.synchronize();
+}
+///////////////////////////////////////////////////////
 
 /**
  * Inject the next "immediate" command, when possible, onto the front of the queue.
@@ -10562,6 +10597,12 @@ inline void gcode_M502() {
 	{
 		lcd_advanced_pause_show_message(FILAMENT_CHANGE_MESSAGE_MOVING);
 
+    // Force screen update
+    unsigned long next_update = millis() + 1000;
+    lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+    while(millis()< next_update)
+      idle(true);
+
 		// Extrude filament to get into hotend
 		destination[E_AXIS] += ADVANCED_PAUSE_EXTRUDE_LENGTH;
 		RUNPLAN(ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
@@ -12348,8 +12389,14 @@ inline void gcode_M999() {
  * M720 - Sets startup wizard flag
  * M721 - Disables startup wizard flag
  * M722 - Sets startup wizard flag with EEPROM changed warning
+ * M730 - Prints dual nozzle Z offset test
+ * M731 - Prints dual nozzle XY offset test
+ * M740 - Prints a prime line with the active extruder
  *
  */
+
+
+ #ifdef BEEVC_Restore
 
  /**
   * M701: Store current position to EEPROM
@@ -12366,7 +12413,6 @@ inline void gcode_M999() {
   *
   *
  */
- #ifdef BEEVC_Restore
 
 	 inline void gcode_M701()
 	{
@@ -12568,41 +12614,6 @@ inline void gcode_M999() {
 		kill(PSTR(MSG_KILLED));
 
 	}
-
-  /**
-    * M720 - Resets startup wizard flag
-    *
-    * Signals to start setup wizard on next boot
-    *
-    *
-   */
-   inline void gcode_M720()
- 	{
-      //Sets the startup wizard flag
-      uint8_t temp = 0;
-      int eeprom_index = 100-sizeof(temp);
-      EEPROM_write(eeprom_index, (uint8_t*)&temp, sizeof(temp));
-
-      SERIAL_ECHOLNPGM("Startup wizard set up!");
-  }
-
-  /**
-    * M721 - Disables startup wizard flag
-    *
-    * Signals to disable startup wizard
-    *
-    *
-   */
-
-   inline void gcode_M721()
- 	{
-    // Disables the startup wizard flag
-    toCalibrate = 255;
-    int eeprom_index = 100-sizeof(toCalibrate);
-    EEPROM_write(eeprom_index, (uint8_t*)&toCalibrate, sizeof(toCalibrate));
-
-    SERIAL_ECHOLNPGM("Startup wizard disabled!");
-    }
 
   /**
     * M712 - Clears the Z height register
@@ -13326,9 +13337,47 @@ inline void gcode_M999() {
 
 		toRecover = false;
 	}
-#endif
 
   /**
+    * M720 - Resets startup wizard flag
+    *
+    * Signals to start setup wizard on next boot
+    *
+    *
+   */
+
+#endif
+
+#ifdef BEEVC_B2X300
+  inline void gcode_M720()
+  {
+     //Sets the startup wizard flag
+     uint8_t temp = 0;
+     int eeprom_index = 100-sizeof(temp);
+     EEPROM_write(eeprom_index, (uint8_t*)&temp, sizeof(temp));
+
+     SERIAL_ECHOLNPGM("Startup wizard set up!");
+  }
+
+  /**
+   * M721 - Disables startup wizard flag
+   *
+   * Signals to disable startup wizard
+   *
+   *
+  */
+
+  inline void gcode_M721()
+  {
+   // Disables the startup wizard flag
+   toCalibrate = 255;
+   int eeprom_index = 100-sizeof(toCalibrate);
+   EEPROM_write(eeprom_index, (uint8_t*)&toCalibrate, sizeof(toCalibrate));
+
+   SERIAL_ECHOLNPGM("Startup wizard disabled!");
+   }
+
+   /**
    * M722 - Sets startup wizard flag with EEPROM updated warning
    *
    *
@@ -13347,7 +13396,162 @@ inline void gcode_M999() {
    }
 
 
-  
+  /**
+   * M730 - Prints dual nozzle Z offset test
+   *
+   * Prints the test lines
+   *
+   *
+  */
+   inline void gcode_M730() {
+     // Reset extruded value to 0
+     stepper.synchronize();
+     current_position[E_AXIS] = 0;
+     destination[E_AXIS] = 0;
+     sync_plan_position_e();
+     report_current_position();
+
+     // Change to E1
+     tool_change(0);
+
+     // Prime nozzle E1
+     gcode_M740();
+
+     // Move to start position
+     do_relative_move_to(152,190,current_position[Z_AXIS],0,100);
+     do_relative_move_to(152,190,0.3,0,6);
+
+     // Print code
+     do_relative_move_to(152,190,0.3,5,50);
+
+     do_relative_move_to(152,10,0.3,14,8);
+     do_relative_move_to(152,10,0.3,-5,50);
+
+     // Change to E2
+     tool_change(1);
+
+     // Prime nozzle E2
+     gcode_M740();
+
+     // Print code
+     do_relative_move_to(148,190,0.3,0,100);
+     do_relative_move_to(148,190,0.3,5,50);
+
+     do_relative_move_to(148,10,0.3,14,8);
+     do_relative_move_to(148,10,0.3,-5,50);
+
+     // Move to origin
+     do_relative_move_to(300,180,0.3,0,100);
+
+     tool_change(0);
+   }
+
+   /**
+    * M731 - Prints dual nozzle XY offset test
+    *
+    * Prints the test lines
+    *
+    *
+   */
+
+
+    inline void gcode_M731() {
+      // Change to E1
+      tool_change(0);
+
+      // Go to starting height
+      do_blocking_move_to_z(0.3, 8);
+
+      // Go to starting position
+      do_blocking_move_to_xy(152,190,150);
+
+      // Print code
+      do_move_to(152,190,0.3,10,10);
+
+      do_move_to(152,10,0.3,19,7);
+      do_move_to(152,10,0.3,14,10);
+
+      tool_change(1);
+      do_move_to(150,5,0.3,14,150);
+      do_move_to(148,190,0.3,14,150);
+
+      do_move_to(148,190,0.3,24,10);
+      do_move_to(148,10,0.3,33,10);
+
+      do_move_to(300,200,10,33,150);
+
+      tool_change(0);
+    }
+
+    /**
+     * M740 - Prints a prime line with the active extruder
+     *
+     * Prints the prime lines
+     *
+     *
+    */
+
+
+     inline void gcode_M740() {
+       // Temporary variable to store the required extruder
+       uint8_t extruder = active_extruder;
+
+       // Checks if there is a E letter on the code if so chooses the correct extruder
+       if (parser.seenval('E')) {
+         uint8_t temp = parser.value_byte();
+         switch (temp) {
+           default: break;
+           case 1:  extruder = 0;
+                    break;
+           case 2:  extruder = 1;
+                    break;
+         }
+       }
+
+       // Chooses the correct X position to make the movemente depending on the active extruder
+       int16_t x_prime_pos = X_BED_SIZE;
+       if (active_extruder != 0)
+        x_prime_pos = 0;
+
+       // Go to starting position
+       do_relative_move_to(x_prime_pos,150,0.3,0,100);
+
+       // Stores old active extruder
+       uint8_t old_extruder = active_extruder;
+
+       // Changes to the required extruder, this ensures offsets are compensated
+       if (extruder != active_extruder) {
+         if (extruder == 0 )
+           tool_change(0);
+         else
+           tool_change(1);
+       }
+
+       // De-retract
+       do_relative_move_to(x_prime_pos,150,0.3,5,8);
+
+       // Print prime line fast
+       do_relative_move_to(x_prime_pos,60,0.3,10,8);
+
+       // Print prime line slow (release pressure)
+       do_relative_move_to(x_prime_pos,50,0.3,1,2);
+
+       // Retraction
+       do_relative_move_to(x_prime_pos,50,0.3,-5,50);
+
+       // Restores the old active extruder
+       if (old_extruder != active_extruder) {
+         if (old_extruder == 0 )
+           tool_change(0);
+         else
+           tool_change(1);
+       }
+     }
+
+#endif // BEEVC_B2X300
+
+
+
 #if ENABLED(SWITCHING_EXTRUDER)
   #if EXTRUDERS > 3
     #define REQ_ANGLES 4
@@ -14808,6 +15012,18 @@ void process_parsed_command() {
       case 722:  //Enables startup wizard flag with EEPROM warning
   				gcode_M722();
   				break;
+
+      case 730:  //Prints dual nozzle Z offset test lines
+  				gcode_M730();
+  				break;
+
+      case 731:  //Prints dual nozzle XY offset test lines
+  				gcode_M731();
+  				break;
+
+      case 740: //Prints a prime line with the active extruder
+          gcode_M740();
+          break;
 
 		#endif
     }
@@ -17139,7 +17355,7 @@ void setup() {
       tempdata |= ((uint8_t) (planner.acceleration/250)) << 4;
 
   		EEPROM_write(eeprom_index, (uint8_t*)&tempdata, sizeof(tempdata));
-  		#ifdef SERIAL_DEBUG
+      #ifdef SERIAL_DEBUG
 			eeprom_busy_wait();
 			SERIAL_ECHO("Saved data: ");
 			SERIAL_ECHO_BIN8(tempdata);

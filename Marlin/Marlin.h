@@ -236,6 +236,10 @@ void gcode_G29();
 void gcode_M720();
 void gcode_M721();
 void gcode_M722();
+void gcode_M730();
+void gcode_M740();
+void do_move_to (float posX, float posY, float posZ, float posE, float feed);
+void do_relative_move_to (float posX, float posY, float posZ, float posE, float feed);
 void clear_command_queue();
 
 extern millis_t previous_cmd_ms;
