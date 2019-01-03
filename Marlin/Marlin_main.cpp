@@ -4174,9 +4174,11 @@ inline void gcode_G28(const bool always_home_all) {
   uint32_t homeduration = 0;
 
   // Saves XY current and sets homing current
-  uint16_t currentX = stepperX.rms_current(), currentY = stepperY.rms_current();
+  uint16_t currentX = stepperX.getCurrent(), currentY = stepperY.getCurrent();
   stepperX.rms_current(BEEVC_HOMEXCURRENT,HOLD_MULTIPLIER,R_SENSE);
+  stepperX.push();
   stepperY.rms_current(BEEVC_HOMEYCURRENT,HOLD_MULTIPLIER,R_SENSE);
+  stepperY.push();
 
   // Disables stallGuard2 filter for maximum time precision
   #ifdef BEEVC_TMC2130SGFILTER
@@ -4516,7 +4518,9 @@ enable_all_steppers();
 
     // Restores XY current
     stepperX.rms_current(currentX,HOLD_MULTIPLIER,R_SENSE);
+    stepperX.push();
     stepperY.rms_current(currentY,HOLD_MULTIPLIER,R_SENSE);
+    stepperY.push();
 
     // Resets flags after homing
     thermalManager.sg2_stop = false;
@@ -11769,9 +11773,11 @@ inline void gcode_M502() {
         lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_HOMING);
 
         // Saves XY current and sets homing current
-        uint16_t currentX = stepperX.rms_current(), currentY = stepperY.rms_current();
+        uint16_t currentX = stepperX.getCurrent(), currentY = stepperY.getCurrent();
         stepperX.rms_current(BEEVC_HOMEXCURRENT,HOLD_MULTIPLIER,R_SENSE);
+        stepperX.push();
         stepperY.rms_current(BEEVC_HOMEYCURRENT,HOLD_MULTIPLIER,R_SENSE);
+        stepperY.push();
 
         //Reset default values
         thermalManager.sg2_homing_x_calibration = 5;
@@ -12118,7 +12124,9 @@ inline void gcode_M502() {
 
         // Restores XY current
         stepperX.rms_current(currentX,HOLD_MULTIPLIER,R_SENSE);
+        stepperX.push();
         stepperY.rms_current(currentY,HOLD_MULTIPLIER,R_SENSE);
+        stepperY.push();
 
         // Applies offset to avoid false detections
         thermalManager.sg2_homing_x_calibration -= 5;
