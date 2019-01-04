@@ -849,7 +849,7 @@ static void lcd_implementation_status_screen() {
   }
 
   // Draw a static line of text in the same idiom as a menu item
-  static void lcd_implementation_drawmenu_static(const uint8_t row, const char* pstr, const bool center=true, const bool invert=false, const char* valstr=NULL) {
+  static void lcd_implementation_drawmenu_static(const uint8_t row, const char* pstr, const bool center=false, const bool invert=false, const char* valstr=NULL) {
 
     lcd_implementation_mark_as_selected(row, invert);
 
