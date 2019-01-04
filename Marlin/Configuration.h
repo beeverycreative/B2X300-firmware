@@ -944,7 +944,7 @@
 
 
 // X and Y axis travel speed (mm/m) between probes
-#define XY_PROBE_SPEED 14000
+#define XY_PROBE_SPEED 12000
 
 // Speed for the first approach when double-probing (MULTIPLE_PROBING == 2)
 #define Z_PROBE_SPEED_FAST HOMING_FEEDRATE_Z
@@ -976,7 +976,7 @@
  */
 #define Z_CLEARANCE_DEPLOY_PROBE   6 // Z Clearance for Deploy/Stow
 #define Z_CLEARANCE_BETWEEN_PROBES  2 // Z Clearance between probe points
-#define Z_CLEARANCE_BETWEEN_REPEATS 2 // Z Clearance between repeated probings, represented as 0.1mm per unit
+#define Z_CLEARANCE_BETWEEN_REPEATS 5 // Z Clearance between repeated probings, represented as 0.1mm per unit
 
 // For M851 give a range for adjusting the Z probe offset
 #define Z_PROBE_OFFSET_RANGE_MIN -18
