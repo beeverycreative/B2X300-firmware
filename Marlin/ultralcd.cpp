@@ -778,6 +778,32 @@ uint16_t max_display_update_time = 0;
    }
  #endif
 
+ #define LCD_PRINT_EXT_TEMP() \
+    STATIC_ITEM(_UxGT(" ")); \
+    u8g.setPrintPos(0, 26);\
+    u8g.print("Extruder ");\
+    u8g.print(active_extruder+1);\
+    u8g.print(": ");\
+    if(round(thermalManager.degHotend(active_extruder)) <100) u8g.print(" ");\
+    u8g.print(round(thermalManager.degHotend(active_extruder)));\
+    u8g.print("/");\
+    u8g.print(round(thermalManager.degTargetHotend(active_extruder)));\
+    lcd_printPGM(PSTR(LCD_STR_DEGREE));\
+    u8g.print("C")
+
+  #define LCD_PRINT_EXT_TEMP_STABLE() \
+  STATIC_ITEM(_UxGT(" ")); \
+  u8g.setPrintPos(0, 26);\
+  u8g.print("Extruder ");\
+  u8g.print(active_extruder+1);\
+  u8g.print(": ");\
+  if(round(thermalManager.degTargetHotend(active_extruder)) <100) u8g.print(" ");\
+  u8g.print(round(thermalManager.degTargetHotend(active_extruder)));\
+  u8g.print("/");\
+  u8g.print(round(thermalManager.degTargetHotend(active_extruder)));\
+  lcd_printPGM(PSTR(LCD_STR_DEGREE));\
+  u8g.print("C")
+
 /**
  *
  * "Dual Nozzle Z offset Assistant"
@@ -921,7 +947,7 @@ uint16_t max_display_update_time = 0;
     STATIC_ITEM(_UxGT("Status: finding mesh"), false, false);
     STATIC_ITEM(_UxGT(" "));
     STATIC_ITEM(_UxGT(" "));
-    STATIC_ITEM(_UxGT("Please wait."), true, false);
+    STATIC_ITEM(_UxGT("Please wait."), false, false);
 
     END_SCREEN();
   }
@@ -932,7 +958,7 @@ uint16_t max_display_update_time = 0;
     STATIC_ITEM(_UxGT("Status: printing"), false, false);
     STATIC_ITEM(_UxGT(" "));
     STATIC_ITEM(_UxGT(" "));
-    STATIC_ITEM(_UxGT("Please wait."), true, false);
+    STATIC_ITEM(_UxGT("Please wait."), false, false);
 
     END_SCREEN();
   }
@@ -1253,7 +1279,7 @@ uint16_t max_display_update_time = 0;
 
      lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr42sign((current_position[Z_AXIS] + zprobe_zoffset)));
      lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
-     lcd_implementation_drawmenu_static(4,PSTR("Click to save."));
+     lcd_implementation_drawmenu_static(4,PSTR("Click to save.       "));
 
      END_SCREEN();
    }
@@ -1820,7 +1846,7 @@ void kill_screen(const char* lcd_msg) {
 
       lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr43sign(zprobe_zoffset));
       lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
-      lcd_implementation_drawmenu_static(4,PSTR("Click to save."));
+      lcd_implementation_drawmenu_static(4,PSTR("Click to save.       "));
 
       END_SCREEN();
       
@@ -1970,19 +1996,6 @@ void kill_screen(const char* lcd_msg) {
   //					Filament Change Feature							//
   ////////////////////////////////////////////////////////////////////////
 
-  #define LCD_PRINT_EXT_TEMP() \
-    STATIC_ITEM(_UxGT(" ")); \
-    u8g.setPrintPos(0, 26);\
-    u8g.print("Extruder ");\
-    u8g.print(active_extruder+1);\
-    u8g.print(": ");\
-    if(round(thermalManager.degHotend(active_extruder)) <100) u8g.print(" ");\
-    u8g.print(round(thermalManager.degHotend(active_extruder)));\
-    u8g.print("/");\
-    u8g.print(round(thermalManager.degTargetHotend(active_extruder)));\
-    lcd_printPGM(PSTR(LCD_STR_DEGREE));\
-    u8g.print("C")
-
 	void lcd_filament_change_hotendStatus() {
 		START_SCREEN();
       STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
@@ -2034,7 +2047,7 @@ void kill_screen(const char* lcd_msg) {
       START_SCREEN();
       STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
 
-      LCD_PRINT_EXT_TEMP();
+      LCD_PRINT_EXT_TEMP_STABLE();
       STATIC_ITEM(_UxGT("Status:  heating done"), false,false );
       STATIC_ITEM(_UxGT(" "));
       STATIC_ITEM(_UxGT("Click to continue."),false,false);
@@ -2046,7 +2059,13 @@ void kill_screen(const char* lcd_msg) {
       START_SCREEN();
       STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
 
-      LCD_PRINT_EXT_TEMP();
+      if(round(thermalManager.degHotend(active_extruder)) > (round(thermalManager.degTargetHotend(active_extruder))-10)) {
+        LCD_PRINT_EXT_TEMP_STABLE();
+      } 
+      else {
+        LCD_PRINT_EXT_TEMP();
+      } 
+
       STATIC_ITEM(_UxGT("Status: moving"),false,false);
       STATIC_ITEM(_UxGT(" "));
       STATIC_ITEM(_UxGT("Please wait."),false,false);
@@ -2115,18 +2134,19 @@ void kill_screen(const char* lcd_msg) {
 
       STATIC_ITEM(_UxGT("Sensorless-homing: X"), false, false);
       STATIC_ITEM(_UxGT("Noise and impacts are"), false, false);
+      STATIC_ITEM(_UxGT("expected."), false, false);
 
       if(sensorless_homing_progress == 0) {
-        STATIC_ITEM(_UxGT("expected. Working"), false, false);
+        STATIC_ITEM(_UxGT("Working"), false, false);
       }
       else if (sensorless_homing_progress == 1){
-        STATIC_ITEM(_UxGT("expected. Working."), false, false);
+        STATIC_ITEM(_UxGT("Working."), false, false);
       }
       else if (sensorless_homing_progress == 2){
-        STATIC_ITEM(_UxGT("expected. Working.."), false, false);
+        STATIC_ITEM(_UxGT("Working.."), false, false);
       }
       else if (sensorless_homing_progress >= 3){
-        STATIC_ITEM(_UxGT("expected. Working..."), false, false);
+        STATIC_ITEM(_UxGT("Working..."), false, false);
       }
 
       END_SCREEN();
@@ -2138,18 +2158,19 @@ void kill_screen(const char* lcd_msg) {
 
       STATIC_ITEM(_UxGT("Sensorless-homing: Y"), false, false);
       STATIC_ITEM(_UxGT("Noise and impacts are"), false, false);
+      STATIC_ITEM(_UxGT("expected."), false, false);
 
       if(sensorless_homing_progress == 0) {
-        STATIC_ITEM(_UxGT("expected. Working"), false, false);
+        STATIC_ITEM(_UxGT("Working"), false, false);
       }
       else if (sensorless_homing_progress == 1){
-        STATIC_ITEM(_UxGT("expected. Working."), false, false);
+        STATIC_ITEM(_UxGT("Working."), false, false);
       }
       else if (sensorless_homing_progress == 2){
-        STATIC_ITEM(_UxGT("expected. Working.."), false, false);
+        STATIC_ITEM(_UxGT("Working.."), false, false);
       }
       else if (sensorless_homing_progress >= 3){
-        STATIC_ITEM(_UxGT("expected. Working..."), false, false);
+        STATIC_ITEM(_UxGT("Working..."), false, false);
       }
 
       END_SCREEN();
@@ -5049,23 +5070,11 @@ void lcd_enqueue_filament_change() {
   void beevc_machine_setup_screen_hotend() {
     MACHINE_SETUP_TITLE;
 
-    STATIC_ITEM(_UxGT(" "));
-
-    u8g.setPrintPos(0, 26);
-    u8g.print("Extruder ");
-    u8g.print(active_extruder+1);
-    u8g.print(": ");
-    if(round(thermalManager.degHotend(active_extruder)) <100)
-      u8g.print(" ");
-    u8g.print(round(thermalManager.degHotend(active_extruder)));
-    u8g.print("/");
-    u8g.print(round(thermalManager.degTargetHotend(active_extruder)));
-    lcd_printPGM(PSTR(LCD_STR_DEGREE));
-    u8g.print("C");
+    LCD_PRINT_EXT_TEMP();
 
     STATIC_ITEM(_UxGT("Status:  heating test"));
     STATIC_ITEM(_UxGT(" "));
-    STATIC_ITEM(_UxGT("Please wait."));
+    STATIC_ITEM(_UxGT("Please wait."),false,false);
 
     MACHINE_SETUP_END;
   }
@@ -5073,7 +5082,7 @@ void lcd_enqueue_filament_change() {
 void beevc_machine_setup_screen_hotend_ok() {
     MACHINE_SETUP_TITLE;
 
-    LCD_PRINT_EXT_TEMP();
+    LCD_PRINT_EXT_TEMP_STABLE();
 
     STATIC_ITEM(_UxGT("Status: OK!"), false,false );
     STATIC_ITEM(_UxGT(" "));
@@ -5101,7 +5110,7 @@ void beevc_machine_setup_screen_hotend_cooling() {
 
   STATIC_ITEM(_UxGT("Status:  cooling down"));
   STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Please wait."));
+  STATIC_ITEM(_UxGT("Please wait."),false,false);
 
   MACHINE_SETUP_END;
 }
@@ -5121,7 +5130,7 @@ void beevc_machine_setup_screen_hotbed_ok() {
 
   STATIC_ITEM(_UxGT("Status: OK!"), false, false);
   STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Click to continue."));
+  STATIC_ITEM(_UxGT("Click to continue."),false,false);
 
   MACHINE_SETUP_END;
 }
@@ -5141,7 +5150,7 @@ void beevc_machine_setup_screen_hotbed() {
 
   STATIC_ITEM(_UxGT("Status:  heating test"));
   STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Please wait."));
+  STATIC_ITEM(_UxGT("Please wait."),false,false);
 
   MACHINE_SETUP_END;
 }
@@ -5301,10 +5310,10 @@ void beevc_machine_setup_screen_blower_test_ok() {
 
   MACHINE_SETUP_TITLE;
 
-  STATIC_ITEM(_UxGT("Blower fan:      100%"));
+  STATIC_ITEM(_UxGT("Blower fan:        OK"));
   STATIC_ITEM(_UxGT("Status: OK!"),false,false);
   STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Click to continue."));
+  STATIC_ITEM(_UxGT("Click to continue."), false, false);
 
   MACHINE_SETUP_END;
 }
@@ -5346,7 +5355,7 @@ void beevc_machine_setup_screen_trinamic_ok() {
   STATIC_ITEM(_UxGT("Trinamic drivers: OK!"));
   STATIC_ITEM(_UxGT("Status: OK!"),false,false);
   STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Click to continue."));
+  STATIC_ITEM(_UxGT("Click to continue."), false, false);
 
   MACHINE_SETUP_END;
 }
@@ -5405,7 +5414,7 @@ void beevc_machine_setup_screen_powerloss_ok() {
   STATIC_ITEM(_UxGT("Powerloss:         OK"));
   STATIC_ITEM(_UxGT("Status: OK!"),false,false);
   STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Click to continue."));
+  STATIC_ITEM(_UxGT("Click to continue."), false, false);
 
   MACHINE_SETUP_END;
 }
@@ -5512,7 +5521,7 @@ void beevc_machine_setup_screen_complete(){
   MACHINE_SETUP_TITLE;
 
   STATIC_ITEM(_UxGT("Self-test completed"), false, false);
-  STATIC_ITEM(_UxGT("successfully"), false, false);
+  STATIC_ITEM(_UxGT("successfully."), false, false);
   STATIC_ITEM(_UxGT(" "), false, false);
   STATIC_ITEM(_UxGT("(scroll to read more)"), false, false);
   STATIC_ITEM(_UxGT(" "), false, false);
@@ -5564,14 +5573,13 @@ void beevc_machine_setup_screen_set_offset_calibrate(){
 
     lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr42sign((current_position[Z_AXIS] + zprobe_zoffset)));
     lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
-    lcd_implementation_drawmenu_static(4,PSTR("Click to save."));
+    lcd_implementation_drawmenu_static(4,PSTR("Click to save.       "));
 
     MACHINE_SETUP_END;
   }
 }
 
 void beevc_machine_setup_sensorless_homing (){
-
   beevc_machine_setup_buzz();
 
   // Show info screen
@@ -5722,8 +5730,6 @@ void beevc_machine_setup_test_hotend (uint8_t extruder){
     }
   }
 
-  //Disable E heating
-  thermalManager.setTargetHotend(0, active_extruder);
 
   //Beep
   beevc_machine_setup_buzz();
@@ -5733,6 +5739,9 @@ void beevc_machine_setup_test_hotend (uint8_t extruder){
 
   //Wait for 5sec or click
   beevc_machine_setup_wait(5000);
+
+  //Disable E heating
+  thermalManager.setTargetHotend(0, active_extruder);
 
 }
 
@@ -5751,12 +5760,12 @@ void beevc_machine_setup_test_hotbed (){
   thermalManager.setTargetBed(50);
   //Start counting time
   duration = millis();
-  //Sets a timeout of 120sec
+  //Sets a timeout of 180sec
   timeout = duration + 180000;
 
     lcd_goto_screen(beevc_machine_setup_screen_hotbed);
 
-  while(thermalManager.degBed() < thermalManager.degTargetBed()){
+  while(thermalManager.degBed() < (thermalManager.degTargetBed()-2)){
     lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
     idle(true);
 
