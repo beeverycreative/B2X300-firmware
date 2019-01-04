@@ -814,36 +814,36 @@ uint16_t max_display_update_time = 0;
   void lcd_screen_dual_z_offset_start() {
     START_SCREEN();
     STATIC_ITEM(_UxGT("Nozzle Z-offset test"), true, true);
-    STATIC_ITEM("Test the height",false,false);
-    STATIC_ITEM("offset between both",false,false);
-    STATIC_ITEM("nozzles.",false,false);
-    STATIC_ITEM("(scroll to read more)",false,false);
-    STATIC_ITEM(" ",false,false);
-    STATIC_ITEM("This procedure will",false,false);
-    STATIC_ITEM("help you assert if",false,false);
-    STATIC_ITEM("the 2 nozzles are at",false,false);
-    STATIC_ITEM("the same height",false,false);
-    STATIC_ITEM("relative to the bed.",false,false);
-    STATIC_ITEM(" ",false,false);
-    STATIC_ITEM("Please check the",false,false);
-    STATIC_ITEM("\"Other Codes\" chapter",false,false);
-    STATIC_ITEM("on the User Manual",false,false);
-    STATIC_ITEM("for more information.",false,false);
+    STATIC_ITEM("Test the height");
+    STATIC_ITEM("offset between both");
+    STATIC_ITEM("nozzles.");
+    STATIC_ITEM("(scroll to read more)");
     STATIC_ITEM(" ");
-    STATIC_ITEM("Proc. code: ST81 ", false,false);
+    STATIC_ITEM("This procedure will");
+    STATIC_ITEM("help you assert if");
+    STATIC_ITEM("the 2 nozzles are at");
+    STATIC_ITEM("the same height");
+    STATIC_ITEM("relative to the bed.");
     STATIC_ITEM(" ");
-    STATIC_ITEM("Click to continue.",false,false);
+    STATIC_ITEM("Please check the");
+    STATIC_ITEM("\"Other Codes\" chapter");
+    STATIC_ITEM("on the User Manual");
+    STATIC_ITEM("for more information.");
+    STATIC_ITEM(" ");
+    STATIC_ITEM("Proc. code: ST81 ");
+    STATIC_ITEM(" ");
+    STATIC_ITEM("Click to continue.");
     END_SCREEN();
   }
 
   void lcd_nozzle_z_offset_hotend_status() {
 		START_SCREEN();
       STATIC_ITEM(_UxGT("Nozzle Z-offset test"), true, true);
-      STATIC_ITEM("  ", false, false);
-      STATIC_ITEM("  ", false, false);
-      STATIC_ITEM("Status: heating E1+E2 ", false, false);
+      STATIC_ITEM("  ");
+      STATIC_ITEM("  ");
+      STATIC_ITEM("Status: heating E1+E2 ");
       #ifdef MSG_FILAMENT_CHANGE_HEATING_2
-        STATIC_ITEM("Please wait. ", false, false);
+        STATIC_ITEM("Please wait. ");
       #endif
 
 
@@ -904,10 +904,10 @@ uint16_t max_display_update_time = 0;
 		START_SCREEN();
       STATIC_ITEM(_UxGT("Nozzle Z-offset test"), true, true);
       STATIC_ITEM("  ", true, false);
-      STATIC_ITEM(_UxGT("Status: heating bed"), false, false);
+      STATIC_ITEM(_UxGT("Status: heating bed"));
       STATIC_ITEM("  ", true, false);
       #ifdef MSG_FILAMENT_CHANGE_HEATING_2
-        STATIC_ITEM("Please wait. ", false, false);
+        STATIC_ITEM("Please wait. ");
       #endif
 
 
@@ -944,10 +944,10 @@ uint16_t max_display_update_time = 0;
   void lcd_nozzle_z_offset_homing() {
     START_SCREEN();
     STATIC_ITEM(_UxGT("Nozzle Z-offset test"), true, true);
-    STATIC_ITEM(_UxGT("Status: finding mesh"), false, false);
+    STATIC_ITEM(_UxGT("Status: finding mesh"));
     STATIC_ITEM(_UxGT(" "));
     STATIC_ITEM(_UxGT(" "));
-    STATIC_ITEM(_UxGT("Please wait."), false, false);
+    STATIC_ITEM(_UxGT("Please wait."));
 
     END_SCREEN();
   }
@@ -955,10 +955,10 @@ uint16_t max_display_update_time = 0;
   void lcd_nozzle_z_offset_printing() {
     START_SCREEN();
     STATIC_ITEM(_UxGT("Nozzle Z-offset test"), true, true);
-    STATIC_ITEM(_UxGT("Status: printing"), false, false);
+    STATIC_ITEM(_UxGT("Status: printing"));
     STATIC_ITEM(_UxGT(" "));
     STATIC_ITEM(_UxGT(" "));
-    STATIC_ITEM(_UxGT("Please wait."), false, false);
+    STATIC_ITEM(_UxGT("Please wait."));
 
     END_SCREEN();
   }
@@ -966,10 +966,10 @@ uint16_t max_display_update_time = 0;
   void lcd_nozzle_z_offset_choose_result_ok() {
     START_SCREEN();
     STATIC_ITEM(_UxGT("Nozzle Z-offset test"), true, true);
-    STATIC_ITEM(_UxGT("Status: successful"), false, false);
-    STATIC_ITEM(_UxGT("You can now calibrate"), false, false);
-    STATIC_ITEM(_UxGT("the XY offset. "), false, false);
-    STATIC_ITEM(_UxGT("Click to exit."), false, false);
+    STATIC_ITEM(_UxGT("Status: successful"));
+    STATIC_ITEM(_UxGT("You can now calibrate"));
+    STATIC_ITEM(_UxGT("the XY offset. "));
+    STATIC_ITEM(_UxGT("Click to exit."));
 
     END_SCREEN();
 
@@ -980,18 +980,18 @@ uint16_t max_display_update_time = 0;
   void lcd_nozzle_z_offset_choose_result_nok() {
     START_SCREEN();
     STATIC_ITEM(_UxGT("Nozzle Z-offset test"), true, true);
-    STATIC_ITEM(_UxGT("Status: bad offset"), false, false);
-    STATIC_ITEM(_UxGT("Nozzles are not "), false, false);
-    STATIC_ITEM(_UxGT("parallel to the bed!"), false, false);
-    STATIC_ITEM(_UxGT("(scroll to read more)"), false, false);
-    STATIC_ITEM(_UxGT(" "), false, false);
-    STATIC_ITEM(_UxGT("Please recalibrate "), false, false);
-    STATIC_ITEM(_UxGT("according to the"), false, false);
-    STATIC_ITEM(_UxGT("following procedure!"), false, false);
-    STATIC_ITEM(_UxGT(" "), false, false);
-    STATIC_ITEM(_UxGT("Proc. code: ST81"), false, false);
-    STATIC_ITEM(_UxGT(" "), false, false);
-    STATIC_ITEM(_UxGT("Click to exit."), false, false);
+    STATIC_ITEM(_UxGT("Status: bad offset"));
+    STATIC_ITEM(_UxGT("Nozzles are not "));
+    STATIC_ITEM(_UxGT("parallel to the bed!"));
+    STATIC_ITEM(_UxGT("(scroll to read more)"));
+    STATIC_ITEM(_UxGT(" "));
+    STATIC_ITEM(_UxGT("Please recalibrate "));
+    STATIC_ITEM(_UxGT("according to the"));
+    STATIC_ITEM(_UxGT("following procedure!"));
+    STATIC_ITEM(_UxGT(" "));
+    STATIC_ITEM(_UxGT("Proc. code: ST81"));
+    STATIC_ITEM(_UxGT(" "));
+    STATIC_ITEM(_UxGT("Click to exit."));
 
     END_SCREEN();
 
@@ -1176,66 +1176,66 @@ uint16_t max_display_update_time = 0;
  void beevc_set_offset_home_complete(){
    START_SCREEN();
    STATIC_ITEM(_UxGT("Set nozzle height"), true, true);
-   STATIC_ITEM(_UxGT("Leveling done!"), false, false);
-   STATIC_ITEM(_UxGT("Moving to calibration"), false, false);
-   STATIC_ITEM(_UxGT("position"), false, false);
+   STATIC_ITEM(_UxGT("Leveling done!"));
+   STATIC_ITEM(_UxGT("Moving to calibration"));
+   STATIC_ITEM(_UxGT("position"));
    END_SCREEN();
  }
 
  void beevc_set_offset_explain(){
    START_SCREEN();
    STATIC_ITEM(_UxGT("Set nozzle height"), true, true);
-   STATIC_ITEM(_UxGT("Please, adjust the Z"), false, false);
-   STATIC_ITEM(_UxGT("height by turning the"), false, false);
-   STATIC_ITEM(_UxGT("LCD knob."), false, false);
-   STATIC_ITEM(_UxGT("(scroll to read more)"), false, false);
-   STATIC_ITEM(_UxGT(" "), false, false);
-   STATIC_ITEM(_UxGT("Place a paper sheet "), false, false);
-   STATIC_ITEM(_UxGT("between the nozzle "), false, false);
-   STATIC_ITEM(_UxGT("and the print surface"), false, false);
-   STATIC_ITEM(_UxGT(". Adjust until the "), false, false);
-   STATIC_ITEM(_UxGT("paper is neither free"), false, false);
-   STATIC_ITEM(_UxGT("nor completely stuck"), false, false);
-   STATIC_ITEM(_UxGT(" "), false, false);
-   STATIC_ITEM(_UxGT("Please, check the"), false, false);
-   STATIC_ITEM(_UxGT("\"Other Codes\" chapter"), false, false);
-   STATIC_ITEM(_UxGT("on the User Manual "), false, false);
-   STATIC_ITEM(_UxGT("for more information."), false, false);
-   STATIC_ITEM(_UxGT(" "), false, false);
-   STATIC_ITEM(_UxGT("Proc. code: ST71"), false, false);
-   STATIC_ITEM(_UxGT(" "), false, false);
-   STATIC_ITEM(_UxGT("Click to continue."), false, false);
+   STATIC_ITEM(_UxGT("Please, adjust the Z"));
+   STATIC_ITEM(_UxGT("height by turning the"));
+   STATIC_ITEM(_UxGT("LCD knob."));
+   STATIC_ITEM(_UxGT("(scroll to read more)"));
+   STATIC_ITEM(_UxGT(" "));
+   STATIC_ITEM(_UxGT("Place a paper sheet "));
+   STATIC_ITEM(_UxGT("between the nozzle "));
+   STATIC_ITEM(_UxGT("and the print surface"));
+   STATIC_ITEM(_UxGT(". Adjust until the "));
+   STATIC_ITEM(_UxGT("paper is neither free"));
+   STATIC_ITEM(_UxGT("nor completely stuck"));
+   STATIC_ITEM(_UxGT(" "));
+   STATIC_ITEM(_UxGT("Please, check the"));
+   STATIC_ITEM(_UxGT("\"Other Codes\" chapter"));
+   STATIC_ITEM(_UxGT("on the User Manual "));
+   STATIC_ITEM(_UxGT("for more information."));
+   STATIC_ITEM(_UxGT(" "));
+   STATIC_ITEM(_UxGT("Proc. code: ST71"));
+   STATIC_ITEM(_UxGT(" "));
+   STATIC_ITEM(_UxGT("Click to continue."));
    END_SCREEN();
  }
 
  void beevc_set_offset_homing(){
    START_SCREEN();
    STATIC_ITEM(_UxGT("Set nozzle height"), true, true);
-   STATIC_ITEM(_UxGT("Nozzle height: -----"), false, false);
-   STATIC_ITEM(_UxGT("Status: finding mesh"), false, false);
-   STATIC_ITEM(_UxGT(" "), false, false);
-   STATIC_ITEM(_UxGT("Please wait."), false, false);
+   STATIC_ITEM(_UxGT("Nozzle height: -----"));
+   STATIC_ITEM(_UxGT("Status: finding mesh"));
+   STATIC_ITEM(_UxGT(" "));
+   STATIC_ITEM(_UxGT("Please wait."));
    END_SCREEN();
  }
 
  void beevc_set_offset_moving(){
    START_SCREEN();
    STATIC_ITEM(_UxGT("Set nozzle height"), true, true);
-   STATIC_ITEM(_UxGT("Nozzle height: -----"), false, false);
-   STATIC_ITEM(_UxGT("Status: moving"), false, false);
-   STATIC_ITEM(_UxGT(" "), false, false);
-   STATIC_ITEM(_UxGT("Please wait."), false, false);
+   STATIC_ITEM(_UxGT("Nozzle height: -----"));
+   STATIC_ITEM(_UxGT("Status: moving"));
+   STATIC_ITEM(_UxGT(" "));
+   STATIC_ITEM(_UxGT("Please wait."));
    END_SCREEN();
  }
 
  void beevc_set_offset_complete(){
    START_SCREEN();
    STATIC_ITEM(_UxGT("Set nozzle height"), true, true);
-   STATIC_ITEM(_UxGT(" "), false, false);
+   STATIC_ITEM(_UxGT(" "));
    lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr42sign(zprobe_zoffset));
-   STATIC_ITEM(_UxGT("Status: OK!"), false, false);
-   STATIC_ITEM(_UxGT(" "), false, false);
-   STATIC_ITEM(_UxGT("Click to continue."), false, false);
+   STATIC_ITEM(_UxGT("Status: OK!"));
+   STATIC_ITEM(_UxGT(" "));
+   STATIC_ITEM(_UxGT("Click to continue."));
    END_SCREEN();
  }
 
@@ -1734,7 +1734,7 @@ void kill_screen(const char* lcd_msg) {
       strcat(about_string, "-");
       strncat(about_string, BUILDCOMMIT,7);
       STATIC_ITEM("", true, false, about_string);
-      STATIC_ITEM(" ", false, false);
+      STATIC_ITEM(" ");
       STATIC_ITEM("Diagnostic Info.", false, true);
 
       about_string[0] = '\0';
@@ -2020,9 +2020,9 @@ void kill_screen(const char* lcd_msg) {
 	  #else
 
 		  LCD_PRINT_EXT_TEMP();
-      STATIC_ITEM(_UxGT("Status:heating nozzle"),false,false);
+      STATIC_ITEM(_UxGT("Status:heating nozzle"));
       STATIC_ITEM(_UxGT(" "));
-      STATIC_ITEM(_UxGT("Please wait."),false,false);
+      STATIC_ITEM(_UxGT("Please wait."));
       
 	  #endif
 
@@ -2050,7 +2050,7 @@ void kill_screen(const char* lcd_msg) {
       LCD_PRINT_EXT_TEMP_STABLE();
       STATIC_ITEM(_UxGT("Status:  heating done"), false,false );
       STATIC_ITEM(_UxGT(" "));
-      STATIC_ITEM(_UxGT("Click to continue."),false,false);
+      STATIC_ITEM(_UxGT("Click to continue."));
       END_SCREEN();
     }
 
@@ -2066,9 +2066,9 @@ void kill_screen(const char* lcd_msg) {
         LCD_PRINT_EXT_TEMP();
       } 
 
-      STATIC_ITEM(_UxGT("Status: moving"),false,false);
+      STATIC_ITEM(_UxGT("Status: moving"));
       STATIC_ITEM(_UxGT(" "));
-      STATIC_ITEM(_UxGT("Please wait."),false,false);
+      STATIC_ITEM(_UxGT("Please wait."));
       END_SCREEN();
     }
 
@@ -2132,21 +2132,21 @@ void kill_screen(const char* lcd_msg) {
       START_SCREEN();
       STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
 
-      STATIC_ITEM(_UxGT("Sensorless-homing: X"), false, false);
-      STATIC_ITEM(_UxGT("Noise and impacts are"), false, false);
-      STATIC_ITEM(_UxGT("expected."), false, false);
+      STATIC_ITEM(_UxGT("Sensorless-homing: X"));
+      STATIC_ITEM(_UxGT("Noise and impacts are"));
+      STATIC_ITEM(_UxGT("expected."));
 
       if(sensorless_homing_progress == 0) {
-        STATIC_ITEM(_UxGT("Working"), false, false);
+        STATIC_ITEM(_UxGT("Working"));
       }
       else if (sensorless_homing_progress == 1){
-        STATIC_ITEM(_UxGT("Working."), false, false);
+        STATIC_ITEM(_UxGT("Working."));
       }
       else if (sensorless_homing_progress == 2){
-        STATIC_ITEM(_UxGT("Working.."), false, false);
+        STATIC_ITEM(_UxGT("Working.."));
       }
       else if (sensorless_homing_progress >= 3){
-        STATIC_ITEM(_UxGT("Working..."), false, false);
+        STATIC_ITEM(_UxGT("Working..."));
       }
 
       END_SCREEN();
@@ -2156,21 +2156,21 @@ void kill_screen(const char* lcd_msg) {
       START_SCREEN();
       STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
 
-      STATIC_ITEM(_UxGT("Sensorless-homing: Y"), false, false);
-      STATIC_ITEM(_UxGT("Noise and impacts are"), false, false);
-      STATIC_ITEM(_UxGT("expected."), false, false);
+      STATIC_ITEM(_UxGT("Sensorless-homing: Y"));
+      STATIC_ITEM(_UxGT("Noise and impacts are"));
+      STATIC_ITEM(_UxGT("expected."));
 
       if(sensorless_homing_progress == 0) {
-        STATIC_ITEM(_UxGT("Working"), false, false);
+        STATIC_ITEM(_UxGT("Working"));
       }
       else if (sensorless_homing_progress == 1){
-        STATIC_ITEM(_UxGT("Working."), false, false);
+        STATIC_ITEM(_UxGT("Working."));
       }
       else if (sensorless_homing_progress == 2){
-        STATIC_ITEM(_UxGT("Working.."), false, false);
+        STATIC_ITEM(_UxGT("Working.."));
       }
       else if (sensorless_homing_progress >= 3){
-        STATIC_ITEM(_UxGT("Working..."), false, false);
+        STATIC_ITEM(_UxGT("Working..."));
       }
 
       END_SCREEN();
@@ -2179,30 +2179,30 @@ void kill_screen(const char* lcd_msg) {
     {
       START_SCREEN();
       STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
-      STATIC_ITEM(_UxGT("Sensorless-homing: X"), false, false);
-      STATIC_ITEM(_UxGT("Status: OK!"), false, false);
-      STATIC_ITEM(_UxGT(" "), false, false);
-      STATIC_ITEM(_UxGT("Please wait."), false, false);
+      STATIC_ITEM(_UxGT("Sensorless-homing: X"));
+      STATIC_ITEM(_UxGT("Status: OK!"));
+      STATIC_ITEM(_UxGT(" "));
+      STATIC_ITEM(_UxGT("Please wait."));
       END_SCREEN();
     }
   void lcd_sensorless_homing_calibration_y_done()
     {
       START_SCREEN();
       STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
-      STATIC_ITEM(_UxGT("Sensorless-homing: Y"), false, false);
-      STATIC_ITEM(_UxGT("Status: OK!"), false, false);
-      STATIC_ITEM(_UxGT(" "), false, false);
-      STATIC_ITEM(_UxGT("Please wait."), false, false);
+      STATIC_ITEM(_UxGT("Sensorless-homing: Y"));
+      STATIC_ITEM(_UxGT("Status: OK!"));
+      STATIC_ITEM(_UxGT(" "));
+      STATIC_ITEM(_UxGT("Please wait."));
       END_SCREEN();
     }
   void lcd_sensorless_homing_calibration_homing()
     {
       START_SCREEN();
       STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
-      STATIC_ITEM(_UxGT("Sensorless-homing: XY"), false, false);
-      STATIC_ITEM(_UxGT("Status: homing X+Y"), false, false);
-      STATIC_ITEM(_UxGT(" "), false, false);
-      STATIC_ITEM(_UxGT("Please wait."), false, false);
+      STATIC_ITEM(_UxGT("Sensorless-homing: XY"));
+      STATIC_ITEM(_UxGT("Status: homing X+Y"));
+      STATIC_ITEM(_UxGT(" "));
+      STATIC_ITEM(_UxGT("Please wait."));
       END_SCREEN();
     }
 
@@ -5004,7 +5004,7 @@ void lcd_enqueue_filament_change() {
   #define MACHINE_SETUP_TITLE_WAIT \
     START_SCREEN();\
     STATIC_ITEM(_UxGT("Self-test wizard"), true, true);\
-    STATIC_ITEM(_UxGT("Please wait, while"), false, false)
+    STATIC_ITEM(_UxGT("Please wait, while"))
 
   #define MACHINE_SETUP_END END_SCREEN()
 
@@ -5015,55 +5015,55 @@ void lcd_enqueue_filament_change() {
   #define MACHINE_SETUP_END_CHOICE END_MENU()
 
   #define MACHINE_SETUP_WAIT_FOR(N) \
-    STATIC_ITEM(_UxGT(N), false, false);\
-    STATIC_ITEM(_UxGT("Please wait for"), false, false);\
-    STATIC_ITEM(_UxGT("the process"), false, false);\
-    STATIC_ITEM(_UxGT("to finish"), false, false)
+    STATIC_ITEM(_UxGT(N));\
+    STATIC_ITEM(_UxGT("Please wait for"));\
+    STATIC_ITEM(_UxGT("the process"));\
+    STATIC_ITEM(_UxGT("to finish"))
 
   #define MACHINE_SETUP_CHECK_MANUAL \
-    STATIC_ITEM(_UxGT(" "),false,false);\
-    STATIC_ITEM(_UxGT("(scroll to read more)"),false,false);\
-    STATIC_ITEM(_UxGT("A error occured"), false, false);\
-    STATIC_ITEM(_UxGT("during the self-test"), false, false);\
-    STATIC_ITEM(_UxGT("Please, check the"), false, false);\
-    STATIC_ITEM(_UxGT("\"Error Codes\" chapter"), false, false);\
-    STATIC_ITEM(_UxGT("on the User Manual."), false, false);\
-    STATIC_ITEM(_UxGT(" "), false, false)
+    STATIC_ITEM(_UxGT(" "));\
+    STATIC_ITEM(_UxGT("(scroll to read more)"));\
+    STATIC_ITEM(_UxGT("A error occured"));\
+    STATIC_ITEM(_UxGT("during the self-test"));\
+    STATIC_ITEM(_UxGT("Please, check the"));\
+    STATIC_ITEM(_UxGT("\"Error Codes\" chapter"));\
+    STATIC_ITEM(_UxGT("on the User Manual."));\
+    STATIC_ITEM(_UxGT(" "))
 
   #define MACHINE_SETUP_SHUTDOWN \
-    STATIC_ITEM(_UxGT(" "), false, false);\
-    STATIC_ITEM(_UxGT("Please shutdown the"), false, false);\
-    STATIC_ITEM(_UxGT("printer, fix the"), false, false);\
-    STATIC_ITEM(_UxGT("issue and try again."), false, false)
+    STATIC_ITEM(_UxGT(" "));\
+    STATIC_ITEM(_UxGT("Please shutdown the"));\
+    STATIC_ITEM(_UxGT("printer, fix the"));\
+    STATIC_ITEM(_UxGT("issue and try again."))
 
   void beevc_machine_setup_EEPROM_updated() {
     MACHINE_SETUP_TITLE;
-    STATIC_ITEM(_UxGT("EEPROM structure was"), false, false);
-    STATIC_ITEM(_UxGT("updated, settings"), false, false);
-    STATIC_ITEM(_UxGT("were reset."), false, false);
-    STATIC_ITEM(_UxGT("Press to continue."), false, false);
+    STATIC_ITEM(_UxGT("EEPROM structure was"));
+    STATIC_ITEM(_UxGT("updated, settings"));
+    STATIC_ITEM(_UxGT("were reset."));
+    STATIC_ITEM(_UxGT("Press to continue."));
     MACHINE_SETUP_END;
   }
 
   void beevc_machine_setup_screen_start() {
     MACHINE_SETUP_TITLE;
-    STATIC_ITEM(_UxGT("Welcome to the B2X300"), false, false);
-    STATIC_ITEM(_UxGT("self-test wizard!"), false, false);
-    STATIC_ITEM(_UxGT(" "), false, false);
-    STATIC_ITEM(_UxGT("(scroll to read more)"), false, false);
-    STATIC_ITEM(_UxGT(" "), false, false);
-    STATIC_ITEM(_UxGT("I will guide you"), false, false);
-    STATIC_ITEM(_UxGT("through the initial"), false, false);
-    STATIC_ITEM(_UxGT("printer setup."), false, false);
-    STATIC_ITEM(_UxGT(" "), false, false);
-    STATIC_ITEM(_UxGT("Click to continue."), false, false);
+    STATIC_ITEM(_UxGT("Welcome to the B2X300"));
+    STATIC_ITEM(_UxGT("self-test wizard!"));
+    STATIC_ITEM(_UxGT(" "));
+    STATIC_ITEM(_UxGT("(scroll to read more)"));
+    STATIC_ITEM(_UxGT(" "));
+    STATIC_ITEM(_UxGT("I will guide you"));
+    STATIC_ITEM(_UxGT("through the initial"));
+    STATIC_ITEM(_UxGT("printer setup."));
+    STATIC_ITEM(_UxGT(" "));
+    STATIC_ITEM(_UxGT("Click to continue."));
     MACHINE_SETUP_END;
   }
 
   void beevc_machine_setup_screen_hotend_start() {
     MACHINE_SETUP_TITLE;
-    STATIC_ITEM(_UxGT("The machine will now"), false, false);
-    STATIC_ITEM(_UxGT("test the hotends."), false, false);
+    STATIC_ITEM(_UxGT("The machine will now"));
+    STATIC_ITEM(_UxGT("test the hotends."));
     MACHINE_SETUP_END;
   }
 
@@ -5074,7 +5074,7 @@ void lcd_enqueue_filament_change() {
 
     STATIC_ITEM(_UxGT("Status:  heating test"));
     STATIC_ITEM(_UxGT(" "));
-    STATIC_ITEM(_UxGT("Please wait."),false,false);
+    STATIC_ITEM(_UxGT("Please wait."));
 
     MACHINE_SETUP_END;
   }
@@ -5086,7 +5086,7 @@ void beevc_machine_setup_screen_hotend_ok() {
 
     STATIC_ITEM(_UxGT("Status: OK!"), false,false );
     STATIC_ITEM(_UxGT(" "));
-    STATIC_ITEM(_UxGT("Click to continue."),false,false);
+    STATIC_ITEM(_UxGT("Click to continue."));
 
     MACHINE_SETUP_END;
   }
@@ -5110,7 +5110,7 @@ void beevc_machine_setup_screen_hotend_cooling() {
 
   STATIC_ITEM(_UxGT("Status:  cooling down"));
   STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Please wait."),false,false);
+  STATIC_ITEM(_UxGT("Please wait."));
 
   MACHINE_SETUP_END;
 }
@@ -5128,9 +5128,9 @@ void beevc_machine_setup_screen_hotbed_ok() {
   lcd_printPGM(PSTR(LCD_STR_DEGREE));
   u8g.print("C");
 
-  STATIC_ITEM(_UxGT("Status: OK!"), false, false);
+  STATIC_ITEM(_UxGT("Status: OK!"));
   STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Click to continue."),false,false);
+  STATIC_ITEM(_UxGT("Click to continue."));
 
   MACHINE_SETUP_END;
 }
@@ -5150,7 +5150,7 @@ void beevc_machine_setup_screen_hotbed() {
 
   STATIC_ITEM(_UxGT("Status:  heating test"));
   STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Please wait."),false,false);
+  STATIC_ITEM(_UxGT("Please wait."));
 
   MACHINE_SETUP_END;
 }
@@ -5158,12 +5158,12 @@ void beevc_machine_setup_screen_hotbed() {
 void beevc_machine_setup_screen_error_hotend_hot() {
 MACHINE_SETUP_TITLE;
 
-STATIC_ITEM(_UxGT("Extruder already reading as hot"), false, false);
-STATIC_ITEM(_UxGT("Please verify the"), false, false);
-STATIC_ITEM(_UxGT("thermistor and"), false, false);
-STATIC_ITEM(_UxGT("extruder output by"), false, false);
+STATIC_ITEM(_UxGT("Extruder already reading as hot"));
+STATIC_ITEM(_UxGT("Please verify the"));
+STATIC_ITEM(_UxGT("thermistor and"));
+STATIC_ITEM(_UxGT("extruder output by"));
 MACHINE_SETUP_CHECK_MANUAL;
-STATIC_ITEM(_UxGT("XX"), false, false);
+STATIC_ITEM(_UxGT("XX"));
 MACHINE_SETUP_END;
 }
 
@@ -5256,19 +5256,19 @@ void beevc_machine_setup_screen_error_hotend_sensor_swaped() {
 
 void beevc_machine_setup_screen_error_hotbed_hot() {
 MACHINE_SETUP_TITLE;
-STATIC_ITEM(_UxGT("Hotbed already reading as hot"), false, false);
-STATIC_ITEM(_UxGT("Please verify the"), false, false);
-STATIC_ITEM(_UxGT("thermistor and"), false, false);
-STATIC_ITEM(_UxGT("hotbed output by"), false, false);
+STATIC_ITEM(_UxGT("Hotbed already reading as hot"));
+STATIC_ITEM(_UxGT("Please verify the"));
+STATIC_ITEM(_UxGT("thermistor and"));
+STATIC_ITEM(_UxGT("hotbed output by"));
 MACHINE_SETUP_CHECK_MANUAL;
-STATIC_ITEM(_UxGT("XX"), false, false);
+STATIC_ITEM(_UxGT("XX"));
 MACHINE_SETUP_END;
 }
 
 void beevc_machine_setup_screen_error_hotbed_timeout() {
   MACHINE_SETUP_TITLE;
 
-  STATIC_ITEM("Heated bed:    xx/50\x09\u0043", false,false);
+  STATIC_ITEM("Heated bed:    xx/50\x09\u0043");
 
   STATIC_ITEM(_UxGT("Status: ST33 - ERROR!"));
 
@@ -5283,7 +5283,7 @@ void beevc_machine_setup_screen_error_hotbed_timeout() {
 void beevc_machine_setup_screen_error_hotbed_sensor() {
   MACHINE_SETUP_TITLE;
 
-  STATIC_ITEM("Heated bed:    xx/50\x09\u0043", false,false);
+  STATIC_ITEM("Heated bed:    xx/50\x09\u0043");
 
   STATIC_ITEM(_UxGT("Status: ST31 - ERROR!"));
 
@@ -5297,10 +5297,10 @@ void beevc_machine_setup_screen_error_hotbed_sensor() {
 
 void beevc_machine_setup_screen_blower_start() {
   MACHINE_SETUP_TITLE;
-  STATIC_ITEM(_UxGT("The machine will now"), false, false);
-  STATIC_ITEM(_UxGT("test the blower fan."), false, false);
-  STATIC_ITEM(_UxGT(" "), false, false);
-  STATIC_ITEM(_UxGT("Click to continue."), false, false);
+  STATIC_ITEM(_UxGT("The machine will now"));
+  STATIC_ITEM(_UxGT("test the blower fan."));
+  STATIC_ITEM(_UxGT(" "));
+  STATIC_ITEM(_UxGT("Click to continue."));
   MACHINE_SETUP_END;
 }
 
@@ -5311,9 +5311,9 @@ void beevc_machine_setup_screen_blower_test_ok() {
   MACHINE_SETUP_TITLE;
 
   STATIC_ITEM(_UxGT("Blower fan:        OK"));
-  STATIC_ITEM(_UxGT("Status: OK!"),false,false);
+  STATIC_ITEM(_UxGT("Status: OK!"));
   STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Click to continue."), false, false);
+  STATIC_ITEM(_UxGT("Click to continue."));
 
   MACHINE_SETUP_END;
 }
@@ -5334,7 +5334,7 @@ void beevc_machine_setup_screen_error_blower() {
 
 void beevc_machine_setup_screen_blower_test() {
   MACHINE_SETUP_TITLE_CHOICE;
-  STATIC_ITEM(_UxGT("Is the blower active?"), false, false);
+  STATIC_ITEM(_UxGT("Is the blower active?"));
   MENU_ITEM(submenu, _UxGT(" - Yes"), beevc_machine_setup_screen_blower_test_ok);
   MENU_ITEM(submenu, _UxGT(" - No"), beevc_machine_setup_screen_error_blower);
   MACHINE_SETUP_END_CHOICE;
@@ -5342,10 +5342,10 @@ void beevc_machine_setup_screen_blower_test() {
 
 void beevc_machine_setup_screen_trinamic_start() {
   MACHINE_SETUP_TITLE;
-  STATIC_ITEM(_UxGT("The machine will now"), false, false);
-  STATIC_ITEM(_UxGT("test the trinamic"), false, false);
-  STATIC_ITEM(_UxGT("stepper drivers. "), false, false);
-  STATIC_ITEM(_UxGT("Click to continue."), false, false);
+  STATIC_ITEM(_UxGT("The machine will now"));
+  STATIC_ITEM(_UxGT("test the trinamic"));
+  STATIC_ITEM(_UxGT("stepper drivers. "));
+  STATIC_ITEM(_UxGT("Click to continue."));
   MACHINE_SETUP_END;
 }
 
@@ -5353,9 +5353,9 @@ void beevc_machine_setup_screen_trinamic_ok() {
   MACHINE_SETUP_TITLE;
 
   STATIC_ITEM(_UxGT("Trinamic drivers: OK!"));
-  STATIC_ITEM(_UxGT("Status: OK!"),false,false);
+  STATIC_ITEM(_UxGT("Status: OK!"));
   STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Click to continue."), false, false);
+  STATIC_ITEM(_UxGT("Click to continue."));
 
   MACHINE_SETUP_END;
 }
@@ -5401,10 +5401,10 @@ void beevc_machine_setup_screen_trinamic_error() {
 
 void beevc_machine_setup_screen_powerloss_start() {
   MACHINE_SETUP_TITLE;
-  STATIC_ITEM(_UxGT("The machine will now"), false, false);
-  STATIC_ITEM(_UxGT("test the powerloss"), false, false);
-  STATIC_ITEM(_UxGT("detection board. "), false, false);
-  STATIC_ITEM(_UxGT("Click to continue."), false, false);
+  STATIC_ITEM(_UxGT("The machine will now"));
+  STATIC_ITEM(_UxGT("test the powerloss"));
+  STATIC_ITEM(_UxGT("detection board. "));
+  STATIC_ITEM(_UxGT("Click to continue."));
   MACHINE_SETUP_END;
 }
 
@@ -5412,9 +5412,9 @@ void beevc_machine_setup_screen_powerloss_ok() {
   MACHINE_SETUP_TITLE;
 
   STATIC_ITEM(_UxGT("Powerloss:         OK"));
-  STATIC_ITEM(_UxGT("Status: OK!"),false,false);
+  STATIC_ITEM(_UxGT("Status: OK!"));
   STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Click to continue."), false, false);
+  STATIC_ITEM(_UxGT("Click to continue."));
 
   MACHINE_SETUP_END;
 }
@@ -5438,9 +5438,9 @@ void beevc_machine_setup_screen_sensorless_homing(){
   MACHINE_SETUP_TITLE;
 
   STATIC_ITEM(_UxGT("Sensorless-homing: XY"));
-  STATIC_ITEM(_UxGT("Status: Homing XY"), false, false);
+  STATIC_ITEM(_UxGT("Status: Homing XY"));
   STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Please wait."), false, false);
+  STATIC_ITEM(_UxGT("Please wait."));
 
   MACHINE_SETUP_END;
 }
@@ -5448,93 +5448,93 @@ void beevc_machine_setup_screen_sensorless_homing(){
 void beevc_machine_setup_screen_sensorless_homing_complete(){
   MACHINE_SETUP_TITLE;
 
-  STATIC_ITEM(_UxGT("Sensorless-homing: XY"), false, false);
-  STATIC_ITEM(_UxGT("Status: OK!"), false, false);
-  STATIC_ITEM(_UxGT(" "), false, false);
-  STATIC_ITEM(_UxGT("Click to continue."), false, false);
+  STATIC_ITEM(_UxGT("Sensorless-homing: XY"));
+  STATIC_ITEM(_UxGT("Status: OK!"));
+  STATIC_ITEM(_UxGT(" "));
+  STATIC_ITEM(_UxGT("Click to continue."));
 
   MACHINE_SETUP_END;
 }
 
 void beevc_machine_setup_screen_set_offset_home_complete(){
   MACHINE_SETUP_TITLE;
-  STATIC_ITEM(_UxGT("Leveling done!"), false, false);
-  STATIC_ITEM(_UxGT("Moving to calibration"), false, false);
-  STATIC_ITEM(_UxGT("position"), false, false);
+  STATIC_ITEM(_UxGT("Leveling done!"));
+  STATIC_ITEM(_UxGT("Moving to calibration"));
+  STATIC_ITEM(_UxGT("position"));
   MACHINE_SETUP_END;
 }
 
 void beevc_machine_setup_screen_set_offset_explain(){
   MACHINE_SETUP_TITLE;
-  STATIC_ITEM(_UxGT("Please, adjust the Z"), false, false);
-  STATIC_ITEM(_UxGT("height by turning the"), false, false);
-  STATIC_ITEM(_UxGT("LCD knob."), false, false);
-  STATIC_ITEM(_UxGT("(scroll to read more)"), false, false);
-  STATIC_ITEM(_UxGT(" "), false, false);
-  STATIC_ITEM(_UxGT("Place a paper sheet "), false, false);
-  STATIC_ITEM(_UxGT("between the nozzle "), false, false);
-  STATIC_ITEM(_UxGT("and the print surface"), false, false);
-  STATIC_ITEM(_UxGT(". Adjust until the "), false, false);
-  STATIC_ITEM(_UxGT("paper is neither free"), false, false);
-  STATIC_ITEM(_UxGT("nor completely stuck"), false, false);
-  STATIC_ITEM(_UxGT(" "), false, false);
-  STATIC_ITEM(_UxGT("Please, check the"), false, false);
-  STATIC_ITEM(_UxGT("\"Other Codes\" chapter"), false, false);
-  STATIC_ITEM(_UxGT("on the User Manual"), false, false);
-  STATIC_ITEM(_UxGT("for more information."), false, false);
-  STATIC_ITEM(_UxGT(" "), false, false);
-  STATIC_ITEM(_UxGT("Proc. code: ST71"), false, false);
-  STATIC_ITEM(_UxGT(" "), false, false);
-  STATIC_ITEM(_UxGT("Click to continue."), false, false);
+  STATIC_ITEM(_UxGT("Please, adjust the Z"));
+  STATIC_ITEM(_UxGT("height by turning the"));
+  STATIC_ITEM(_UxGT("LCD knob."));
+  STATIC_ITEM(_UxGT("(scroll to read more)"));
+  STATIC_ITEM(_UxGT(" "));
+  STATIC_ITEM(_UxGT("Place a paper sheet "));
+  STATIC_ITEM(_UxGT("between the nozzle "));
+  STATIC_ITEM(_UxGT("and the print surface"));
+  STATIC_ITEM(_UxGT(". Adjust until the "));
+  STATIC_ITEM(_UxGT("paper is neither free"));
+  STATIC_ITEM(_UxGT("nor completely stuck"));
+  STATIC_ITEM(_UxGT(" "));
+  STATIC_ITEM(_UxGT("Please, check the"));
+  STATIC_ITEM(_UxGT("\"Other Codes\" chapter"));
+  STATIC_ITEM(_UxGT("on the User Manual"));
+  STATIC_ITEM(_UxGT("for more information."));
+  STATIC_ITEM(_UxGT(" "));
+  STATIC_ITEM(_UxGT("Proc. code: ST71"));
+  STATIC_ITEM(_UxGT(" "));
+  STATIC_ITEM(_UxGT("Click to continue."));
   MACHINE_SETUP_END;
 }
 
 void beevc_machine_setup_screen_set_offset_homing(){
   MACHINE_SETUP_TITLE;
-  STATIC_ITEM(_UxGT("Nozzle height: -----"), false, false);
-  STATIC_ITEM(_UxGT("Status: finding mesh"), false, false);
-  STATIC_ITEM(_UxGT(" "), false, false);
-  STATIC_ITEM(_UxGT("Please wait."), false, false);
+  STATIC_ITEM(_UxGT("Nozzle height: -----"));
+  STATIC_ITEM(_UxGT("Status: finding mesh"));
+  STATIC_ITEM(_UxGT(" "));
+  STATIC_ITEM(_UxGT("Please wait."));
   MACHINE_SETUP_END;
 }
 
 void beevc_machine_setup_screen_set_offset_moving(){
   MACHINE_SETUP_TITLE;
-  STATIC_ITEM(_UxGT("Nozzle height: -----"), false, false);
-  STATIC_ITEM(_UxGT("Status: moving"), false, false);
-  STATIC_ITEM(_UxGT(" "), false, false);
-  STATIC_ITEM(_UxGT("Please wait."), false, false);
+  STATIC_ITEM(_UxGT("Nozzle height: -----"));
+  STATIC_ITEM(_UxGT("Status: moving"));
+  STATIC_ITEM(_UxGT(" "));
+  STATIC_ITEM(_UxGT("Please wait."));
   MACHINE_SETUP_END;
 }
 
 void beevc_machine_setup_screen_set_offset_complete(){
   MACHINE_SETUP_TITLE;
-  STATIC_ITEM(_UxGT(" "), false, false);
+  STATIC_ITEM(_UxGT(" "));
   lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr42sign(zprobe_zoffset));
-  STATIC_ITEM(_UxGT("Status: OK!"), false, false);
-  STATIC_ITEM(_UxGT(" "), false, false);
-  STATIC_ITEM(_UxGT("Click to continue."), false, false);
+  STATIC_ITEM(_UxGT("Status: OK!"));
+  STATIC_ITEM(_UxGT(" "));
+  STATIC_ITEM(_UxGT("Click to continue."));
   MACHINE_SETUP_END;
 }
 
 void beevc_machine_setup_screen_complete(){
   MACHINE_SETUP_TITLE;
 
-  STATIC_ITEM(_UxGT("Self-test completed"), false, false);
-  STATIC_ITEM(_UxGT("successfully."), false, false);
-  STATIC_ITEM(_UxGT(" "), false, false);
-  STATIC_ITEM(_UxGT("(scroll to read more)"), false, false);
-  STATIC_ITEM(_UxGT(" "), false, false);
-  STATIC_ITEM(_UxGT("Extruder 1: OK"), false, false);
-  STATIC_ITEM(_UxGT("Extruder 2: OK"), false, false);
-  STATIC_ITEM(_UxGT("Heated bed: OK"), false, false);
-  STATIC_ITEM(_UxGT("Blower Fan: OK"), false, false);
+  STATIC_ITEM(_UxGT("Self-test completed"));
+  STATIC_ITEM(_UxGT("successfully."));
+  STATIC_ITEM(_UxGT(" "));
+  STATIC_ITEM(_UxGT("(scroll to read more)"));
+  STATIC_ITEM(_UxGT(" "));
+  STATIC_ITEM(_UxGT("Extruder 1: OK"));
+  STATIC_ITEM(_UxGT("Extruder 2: OK"));
+  STATIC_ITEM(_UxGT("Heated bed: OK"));
+  STATIC_ITEM(_UxGT("Blower Fan: OK"));
   STATIC_ITEM(_UxGT("Homing X:"), false, false, i8tostr3(thermalManager.sg2_homing_x_calibration));
   STATIC_ITEM(_UxGT("Homing Y:"), false, false, i8tostr3(thermalManager.sg2_homing_y_calibration));
-  STATIC_ITEM(_UxGT("Homing Z: OK"), false, false);
+  STATIC_ITEM(_UxGT("Homing Z: OK"));
   STATIC_ITEM(_UxGT("Nozzle height: "), false, false, ftostr42sign(zprobe_zoffset));
-  STATIC_ITEM(_UxGT(" "), false, false);
-  STATIC_ITEM(_UxGT("Click to exit."), false, false);
+  STATIC_ITEM(_UxGT(" "));
+  STATIC_ITEM(_UxGT("Click to exit."));
   MACHINE_SETUP_END;
 }
 
@@ -7130,17 +7130,17 @@ void beevc_machine_setup_test_powerloss (){
         duration_t elapsed = stats.printTime;
         elapsed.toString(buffer);
 
-        STATIC_ITEM(MSG_INFO_PRINT_TIME ": ", false, false);                                           // Total print Time:
+        STATIC_ITEM(MSG_INFO_PRINT_TIME ": ");                                           // Total print Time:
         STATIC_ITEM("", false, false, buffer);                                                         // 99y 364d 23h 59m 59s
 
         elapsed = stats.longestPrint;
         elapsed.toString(buffer);
 
-        STATIC_ITEM(MSG_INFO_PRINT_LONGEST ": ", false, false);                                        // Longest job time:
+        STATIC_ITEM(MSG_INFO_PRINT_LONGEST ": ");                                        // Longest job time:
         STATIC_ITEM("", false, false, buffer);                                                         // 99y 364d 23h 59m 59s
 
         sprintf_P(buffer, PSTR("%ld.%im"), long(stats.filamentUsed / 1000), int16_t(stats.filamentUsed / 100) % 10);
-        STATIC_ITEM(MSG_INFO_PRINT_FILAMENT ": ", false, false);                                       // Extruded total:
+        STATIC_ITEM(MSG_INFO_PRINT_FILAMENT ": ");                                       // Extruded total:
         STATIC_ITEM("", false, false, buffer);                                                         // 125m
         END_SCREEN();
       }
@@ -7360,7 +7360,7 @@ void beevc_machine_setup_test_powerloss (){
     void lcd_advanced_pause_toocold_menu() {
       START_MENU();
       STATIC_ITEM(MSG_HEATING_FAILED_LCD, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_MINTEMP STRINGIFY(EXTRUDE_MINTEMP) ".", false, false);
+      STATIC_ITEM(MSG_FILAMENT_CHANGE_MINTEMP STRINGIFY(EXTRUDE_MINTEMP) ".");
       MENU_BACK(MSG_BACK);
       #if LCD_HEIGHT > 4
         STATIC_ITEM(" ");
