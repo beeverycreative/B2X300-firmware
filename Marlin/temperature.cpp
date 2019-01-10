@@ -557,7 +557,7 @@ uint8_t Temperature::soft_pwm_amount[HOTENDS],
           (WATCH_TEMP_INCREASE + TEMP_HYSTERESIS + 1)
         #endif
       ;
-      const int8_t watch_temp_period =
+      const int16_t watch_temp_period =
         #if ENABLED(THERMAL_PROTECTION_BED) && ENABLED(PIDTEMPBED) && ENABLED(THERMAL_PROTECTION_HOTENDS) && ENABLED(PIDTEMP)
           hotend < 0 ? WATCH_BED_TEMP_PERIOD : WATCH_TEMP_PERIOD
         #elif ENABLED(THERMAL_PROTECTION_BED) && ENABLED(PIDTEMPBED)
