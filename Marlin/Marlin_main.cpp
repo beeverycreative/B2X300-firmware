@@ -248,6 +248,9 @@
  * M720 - Sets startup wizard flag
  * M721 - Disables startup wizard flag
  * M722 - Sets startup wizard flag with EEPROM changed warning
+ * M730 - Prints dual nozzle Z offset test
+ * M731 - Prints dual nozzle XY offset test
+ * M740 - Prints a prime line with the active extruder
  * M916 - Set chopping mode (Only works for TMC2130 or TMC2208)
  * M917 - Read stallGuard2 values
  * M918 - Set Sensorless_homing calibration value
@@ -754,6 +757,12 @@ XYZ_CONSTS_FROM_CONFIG(signed char, home_dir, HOME_DIR);
 #endif
 ///////////////////////////////////////////////////////
 
+////////////     Better autoleveling     //////////////
+#ifdef BEEVC_B2X300
+	bool G28_stow = true;
+#endif
+///////////////////////////////////////////////////////
+
 /**
  * ***************************************************************************
  * ******************************** FUNCTIONS ********************************
@@ -895,6 +904,38 @@ extern "C" {
   extern void digipot_i2c_set_current(uint8_t channel, float current);
   extern void digipot_i2c_init();
 #endif
+
+//////////////// BEEVC Auxiliary function /////////////
+void do_move_to (float posX, float posY, float posZ, float posE, float feed) {
+  destination[X_AXIS] = posX;
+  destination[Y_AXIS] = posY;
+  destination[Z_AXIS] = posZ;
+  destination[E_AXIS] = posE;
+  feedrate_mm_s = feed;
+
+  prepare_move_to_destination();
+
+  stepper.synchronize();
+}
+
+void do_relative_move_to (float posX, float posY, float posZ, float posE, float feed) {
+  // Reset extruded value to 0
+  stepper.synchronize();
+  current_position[E_AXIS] = 0;
+  destination[E_AXIS] = 0;
+  sync_plan_position_e();
+  report_current_position();
+
+  destination[X_AXIS] = posX;
+  destination[Y_AXIS] = posY;
+  destination[Z_AXIS] = posZ;
+  destination[E_AXIS] = posE;
+  feedrate_mm_s = feed;
+
+  prepare_move_to_destination();
+  stepper.synchronize();
+}
+///////////////////////////////////////////////////////
 
 /**
  * Inject the next "immediate" command, when possible, onto the front of the queue.
@@ -1730,14 +1771,21 @@ void do_blocking_move_to(const float &rx, const float &ry, const float &rz, cons
 
   #else
 
-    // If Z needs to raise, do it before moving XY
-    if (current_position[Z_AXIS] < rz) {
-      feedrate_mm_s = z_feedrate;
-      current_position[Z_AXIS] = rz;
-      buffer_line_to_current_position();
-    }
+    // // If Z needs to raise, do it before moving XY
+    // if (current_position[Z_AXIS] < rz) {
+    //   feedrate_mm_s = z_feedrate;
+    //   current_position[Z_AXIS] = rz;
+    //   buffer_line_to_current_position();
+    // }
 
-    feedrate_mm_s = fr_mm_s ? fr_mm_s : XY_PROBE_FEEDRATE_MM_S;
+    // feedrate_mm_s = fr_mm_s ? fr_mm_s : XY_PROBE_FEEDRATE_MM_S;
+    // current_position[X_AXIS] = rx;
+    // current_position[Y_AXIS] = ry;
+    // buffer_line_to_current_position();
+
+    // If Z is raising, move XY and Z at the same time
+    feedrate_mm_s = XY_PROBE_FEEDRATE_MM_S; //(current_position[Z_AXIS] < rz)? z_feedrate : XY_PROBE_FEEDRATE_MM_S;
+    current_position[Z_AXIS] = rz;
     current_position[X_AXIS] = rx;
     current_position[Y_AXIS] = ry;
     buffer_line_to_current_position();
@@ -2339,23 +2387,42 @@ static void clean_up_after_endstop_or_probe_move() {
     #endif
 
     #if MULTIPLE_PROBING > 2
-      float probes_total = 0;
-      for (uint8_t p = MULTIPLE_PROBING + 1; --p;) {
+      float probes_total[MULTIPLE_PROBING] = {0};
+      float mean = 0;
+      for (uint8_t p = 0; p < MULTIPLE_PROBING ; p++) {
     #endif
 
         // move down slowly to find bed
         if (do_probe_move(-10, Z_PROBE_SPEED_SLOW)) return NAN;
 
     #if MULTIPLE_PROBING > 2
-        probes_total += current_position[Z_AXIS];
-        if (p > 1) do_blocking_move_to_z(current_position[Z_AXIS] + Z_CLEARANCE_BETWEEN_PROBES, MMM_TO_MMS(Z_PROBE_SPEED_FAST));
+        probes_total[p] = current_position[Z_AXIS];
+        mean += current_position[Z_AXIS];
+        //SERIAL_ECHO("Measured Z = ");
+        //SERIAL_ECHOLN(current_position[Z_AXIS]);
+        do_blocking_move_to_z(current_position[Z_AXIS] + ((float)Z_CLEARANCE_BETWEEN_REPEATS/10), MMM_TO_MMS(Z_PROBE_SPEED_FAST));
       }
     #endif
 
     #if MULTIPLE_PROBING > 2
 
+      // Excludes the farthest outlier
+      mean = mean* (1.0 / (MULTIPLE_PROBING));
+      
+      // Finds the index of the number furthest away from the mean
+      uint8_t toIgnoreIndex = 0;
+      for(uint8_t k = 1;k<MULTIPLE_PROBING ;k++ ) if (!(abs(mean - probes_total[toIgnoreIndex]) > abs(mean - probes_total[k]))) toIgnoreIndex = k;
+      // Sums every number except the outlier
+      float result = 0;
+      for(uint8_t k = 0;k<MULTIPLE_PROBING ;k++ ) if(k != toIgnoreIndex) result+= probes_total[k];
+
+      // Return the average value of all probes witout the farthest outlier
+      // SERIAL_ECHO("Measured Z mean= ");
+      // SERIAL_ECHOLN(result * (1.0 / (MULTIPLE_PROBING-1)));
+      return (result * (1.0 / (MULTIPLE_PROBING-1)));
+
       // Return the average value of all probes
-      return probes_total * (1.0 / (MULTIPLE_PROBING));
+      //return probes_total * (1.0 / (MULTIPLE_PROBING));
 
     #elif MULTIPLE_PROBING == 2
 
@@ -2425,16 +2492,16 @@ static void clean_up_after_endstop_or_probe_move() {
     feedrate_mm_s = XY_PROBE_FEEDRATE_MM_S;
 
     // Move the probe to the starting XYZ
-    do_blocking_move_to(nx, ny, nz);
+    do_blocking_move_to(nx, ny, (nz+Z_CLEARANCE_BETWEEN_PROBES));
 
     float measured_z = NAN;
     if (!DEPLOY_PROBE()) {
       measured_z = run_z_probe() + zprobe_zoffset;
 
-      if (!stow)
-        do_blocking_move_to_z(current_position[Z_AXIS] + Z_CLEARANCE_BETWEEN_PROBES, MMM_TO_MMS(Z_PROBE_SPEED_FAST));
-      else
-        if (STOW_PROBE()) measured_z = NAN;
+      // if (!stow)
+      //   //do_blocking_move_to_z(current_position[Z_AXIS] + Z_CLEARANCE_BETWEEN_PROBES, MMM_TO_MMS(Z_PROBE_SPEED_FAST));
+      // else
+        if(stow) if(STOW_PROBE()) measured_z=NAN;
     }
 
     if (verbose_level > 2) {
@@ -3161,7 +3228,7 @@ static void homeaxis(const AxisEnum axis) {
 
   // Put away the Z probe
   #if HOMING_Z_WITH_PROBE
-    if (axis == Z_AXIS && STOW_PROBE()) return;
+    if(G28_stow) if(axis == Z_AXIS && STOW_PROBE()) return;
   #endif
 
   #if ENABLED(DEBUG_LEVELING_FEATURE)
@@ -4099,7 +4166,7 @@ inline void gcode_G4() {
  *  Z   Home to the Z endstop
  *
  */
-inline void gcode_G28(const bool always_home_all) {
+inline void gcode_G28(const bool always_home_all, bool onlyZ) {
 
 #ifdef BEEVC_TMC2130READSG
   uint8_t pre_home_move_mm = 20;
@@ -4107,9 +4174,11 @@ inline void gcode_G28(const bool always_home_all) {
   uint32_t homeduration = 0;
 
   // Saves XY current and sets homing current
-  uint16_t currentX = stepperX.rms_current(), currentY = stepperY.rms_current();
+  uint16_t currentX = stepperX.getCurrent(), currentY = stepperY.getCurrent();
   stepperX.rms_current(BEEVC_HOMEXCURRENT,HOLD_MULTIPLIER,R_SENSE);
+  stepperX.push();
   stepperY.rms_current(BEEVC_HOMEYCURRENT,HOLD_MULTIPLIER,R_SENSE);
+  stepperY.push();
 
   // Disables stallGuard2 filter for maximum time precision
   #ifdef BEEVC_TMC2130SGFILTER
@@ -4119,7 +4188,6 @@ inline void gcode_G28(const bool always_home_all) {
     stepperX.sg_filter(false);
     stepperY.sg_filter(false);
   #endif // BEEVC_TMC2130SGFILTER
-
 
   // Sets homing and stallGuard2 reading flag
   thermalManager.sg2_homing   = true;
@@ -4143,6 +4211,10 @@ inline void gcode_G28(const bool always_home_all) {
 
       //safe_delay(400);
     }
+
+  // Stores old acceleration and sets the correct acceleration for leveling/ homing
+  float old_acceleration = planner.travel_acceleration;
+  planner.travel_acceleration = 750;
 
 #endif // BEEVC_TMC2130READSG
 
@@ -4202,7 +4274,7 @@ enable_all_steppers();
 
     const bool homeX = always_home_all || parser.seen('X'),
                homeY = always_home_all || parser.seen('Y'),
-               homeZ = always_home_all || parser.seen('Z'),
+               homeZ = always_home_all || parser.seen('Z') || onlyZ,
                home_all = (!homeX && !homeY && !homeZ) || (homeX && homeY && homeZ);
 
     set_destination_from_current();
@@ -4309,6 +4381,9 @@ enable_all_steppers();
             //SERIAL_ECHOLNPAIR("X axis homing duration", homeduration);
           }
 
+          // Sets X as homed
+          axis_homed[X_AXIS] = true;
+
         #else
         // Normal Homing
           HOMEAXIS(X);
@@ -4339,6 +4414,7 @@ enable_all_steppers();
           homeduration = 0;
           while (homeduration < 250) {
             // Moves Y a little away from limit to avoid eroneous detections
+            
             do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] > (Y_MIN_POS + pre_home_move_mm) ? current_position[Y_AXIS]-pre_home_move_mm : current_position[Y_AXIS]),25);
 
             // Wait for planner moves to finish!
@@ -4355,6 +4431,9 @@ enable_all_steppers();
             //DEBUG
             //SERIAL_ECHOLNPAIR("Y axis homing duration", homeduration);
           }
+
+          // Sets Y as homed
+          axis_homed[Y_AXIS] = true;;
         #else
         // Normal Homing
           HOMEAXIS(Y);
@@ -4445,7 +4524,9 @@ enable_all_steppers();
 
     // Restores XY current
     stepperX.rms_current(currentX,HOLD_MULTIPLIER,R_SENSE);
+    stepperX.push();
     stepperY.rms_current(currentY,HOLD_MULTIPLIER,R_SENSE);
+    stepperY.push();
 
     // Resets flags after homing
     thermalManager.sg2_stop = false;
@@ -4467,6 +4548,9 @@ enable_all_steppers();
       stepperY.coolstep_min_speed(0);
       stepperY.stealthChop(1);
     }
+
+    // Restores old acceleration settings
+    planner.travel_acceleration = old_acceleration;
 
 
   #endif // BEEVC_TMC2130READSG
@@ -4820,10 +4904,13 @@ void home_all_axes() { gcode_G28(true); }
     thermalManager.sg2_to_read  = false; // Temporarily disables reading to avoid problems with probing Z
     #endif // BEEVC_TMC2130READSG
 
+    // Stores old acceleration and sets the correct acceleration for leveling/ homing
+    float old_acceleration = planner.travel_acceleration;
+    planner.travel_acceleration = 750;
+
 	  //DR-Stores the extruder and changes to E0
-	uint8_t extruderNumber = active_extruder;
-	if (extruderNumber != 0)
-		tool_change(0);
+    uint8_t extruderNumber = active_extruder;
+    if (extruderNumber != 0) tool_change(0);
 
 
     // G29 Q is also available if debugging
@@ -4852,6 +4939,14 @@ void home_all_axes() { gcode_G28(true); }
     #else
       bool constexpr faux = false;
     #endif
+
+    // Forces a new G28 without probe stow to improve measuring accuracy
+    G28_stow = false;
+    // Avoids repetition of XY homing 
+    if(axis_homed[X_AXIS] && axis_homed[Y_AXIS])  gcode_G28(false,true);
+    else                                          gcode_G28(true);
+    
+    G28_stow = true;
 
     // Don't allow auto-leveling without homing first
     if (axis_unhomed_error()) return;
@@ -5653,6 +5748,9 @@ void home_all_axes() { gcode_G28(true); }
 
 	// DR-Restores to the previous extruder
 	tool_change(extruderNumber);
+
+  // Restores old acceleration settings
+  planner.travel_acceleration = old_acceleration;
 
   // Stores new mesh on EEPROM
   (void)settings.save();
@@ -10396,177 +10494,7 @@ inline void gcode_M502() {
 
 #endif // SKEW_CORRECTION_GCODE
 
-#if ENABLED(ADVANCED_PAUSE_FEATURE)
-  /**
-   * M620 Filament change feature
-   *
-   *  U[boolean]  - If enabled unload filament
-   *
-   */
-   inline void gcode_M620() {
-
-    // Save and pause the print job timer
-    const bool job_running = print_job_timer.isRunning();
-    print_job_timer.pause();
-
-    // Save current position of all axes
-    float lastpos[XYZE];
-    COPY(lastpos, current_position);
-    set_destination_from_current();
-
-    // Synchronize the steppers
-    stepper.synchronize();
-
-		// Set the planner to the current position to avoid erroneous movements
-	sync_plan_position();
-
-
-	// Extrudes a small ammount to fluidify the tip of the filament
-	destination[E_AXIS] += 15;
-
-	RUNPLAN(ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
-	stepper.synchronize();
-
-
-	lcd_advanced_pause_show_message(FILAMENT_CHANGE_MESSAGE_MOVING);
-	//idle();
-
-	// Checks if the unload flag is enabled, to see if it should execute Load or Unload
-	bool unloadFlag = (parser.seen('U') ? parser.value_bool() : 0);
-	if(unloadFlag)
-	{
-
-		// Unload filament
-		destination[E_AXIS] += -(FILAMENT_CHANGE_UNLOAD_LENGTH);
-
-		RUNPLAN(FILAMENT_CHANGE_UNLOAD_FEEDRATE);
-		stepper.synchronize();
-
-
-		// Asks if a load is to be performed
-		KEEPALIVE_STATE(PAUSED_FOR_USER);
-		wait_for_user = false;
-		lcd_advanced_pause_show_message(FILAMENT_CHANGE_UNLOAD_OPTION);
-		while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
-		KEEPALIVE_STATE(IN_HANDLER);
-
-    // Beeps and waits for user input to start the loading procedure
-		if (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_LOAD)
-    {
-      unloadFlag = false;
-      lcd_advanced_pause_show_message(FILAMENT_CHANGE_PRESS);
-
-      //Beep while waiting for button press
-      KEEPALIVE_STATE(PAUSED_FOR_USER);
-      wait_for_user = true;    // LCD click or M108 will clear this
-  	  unsigned long next_update = millis() + 100;
-
-  	while (wait_for_user ) {
-  		if(next_update < millis())
-  		{
-  			#if HAS_BUZZER
-  			buzzer.tone(100, 2000);
-  			#endif
-  			idle(true);
-  			next_update = millis() + 1000;
-  		}
-  	  }
-    }
-
-	}
-
-
-	// When loading
-	if (!unloadFlag)
-	{
-    lcd_advanced_pause_show_message(FILAMENT_CHANGE_MESSAGE_MOVING);
-
-		//Checks if Bowden to apply the correct 3 phase load process
-		#ifndef BEEVC_Bowden
-
-			//Direct drive
-
-			// Load filament
-			destination[E_AXIS] += FILAMENT_CHANGE_LOAD_LENGTH;
-			RUNPLAN(FILAMENT_CHANGE_LOAD_FEEDRATE);
-			stepper.synchronize();
-
-		#else
-
-	//Bowden
-
-		// Load filament slowly into PTFE tube
-		destination[E_AXIS] += 50;
-		RUNPLAN(ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
-		stepper.synchronize();
-
-		// Load filament quickly into PTFE tube
-		destination[E_AXIS] += FILAMENT_CHANGE_LOAD_LENGTH;
-		RUNPLAN(FILAMENT_CHANGE_LOAD_FEEDRATE);
-		stepper.synchronize();
-
-	#endif
-
-	// Extrude filament
-	do
-	{
-		lcd_advanced_pause_show_message(FILAMENT_CHANGE_MESSAGE_MOVING);
-
-		// Extrude filament to get into hotend
-		destination[E_AXIS] += ADVANCED_PAUSE_EXTRUDE_LENGTH;
-		RUNPLAN(ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
-		stepper.synchronize();
-
-		// Show "Extrude More" / "Resume" menu and wait for reply
-		KEEPALIVE_STATE(PAUSED_FOR_USER);
-		wait_for_user = false;
-		lcd_advanced_pause_show_message(FILAMENT_CHANGE_MESSAGE_OPTION);
-		while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
-		KEEPALIVE_STATE(IN_HANDLER);
-
-		// Keep looping if "Extrude More" was selected
-	} while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE);
-
-	}
-
-	/* debug
-	// Waits for movements to finish
-	while (destination[E_AXIS] != current_position[E_AXIS])
-	{
-		RUNPLAN(ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
-		idle(true);
-		stepper.synchronize();
-	}
-	*/
-
-	// Set extruder to saved position
-		destination[E_AXIS] = current_position[E_AXIS] = lastpos[E_AXIS];
-		planner.set_e_position_mm(current_position[E_AXIS]);
-
-		#if IS_KINEMATIC
-		  // Move XYZ to starting position
-		  planner.buffer_line_kinematic(lastpos, FILAMENT_CHANGE_XY_FEEDRATE, active_extruder);
-		#else
-		  // Move XY to starting position, then Z
-		  destination[X_AXIS] = lastpos[X_AXIS];
-		  destination[Y_AXIS] = lastpos[Y_AXIS];
-		  RUNPLAN(175);
-		  destination[Z_AXIS] = lastpos[Z_AXIS];
-		  RUNPLAN(5);
-		#endif
-
-	// Force steppers to synchronize before finishing the command
-	RUNPLAN(5);
-	stepper.synchronize();
-
-    // Show status screen
-    lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_STATUS);
-
-    // Resume the print job timer if it was running
-    if (job_running) print_job_timer.start();
-
-   }
-
+#ifdef ADVANCED_PAUSE_FEATURE
   /**
    * M600: Pause for filament change
    *
@@ -11666,25 +11594,31 @@ inline void gcode_M502() {
         //Variables
         bool x_home_to_calibrate = true;
         bool y_home_to_calibrate = true;
-        uint16_t xy_home_duration_expected = 255;
-        uint16_t x_home_duration_limit = 285;
-        uint16_t y_home_duration_limit = 285;
+        uint16_t xy_home_duration_expected = 300;
+        uint16_t x_home_duration_limit = 315;
+        uint16_t y_home_duration_limit = 315;
         uint32_t xy_home_duration_temp = 0;
         uint32_t xy_home_duration_sum;
         calibrating_sensorless_homing_x = true;
         calibrating_sensorless_homing_y = true;
 
+        // Stores old acceleration and sets the correct acceleration for leveling/ homing
+        float old_acceleration = planner.travel_acceleration;
+        planner.travel_acceleration = 750;
+
         // Show homing screen
         lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_HOMING);
 
         // Saves XY current and sets homing current
-        uint16_t currentX = stepperX.rms_current(), currentY = stepperY.rms_current();
+        uint16_t currentX = stepperX.getCurrent(), currentY = stepperY.getCurrent();
         stepperX.rms_current(BEEVC_HOMEXCURRENT,HOLD_MULTIPLIER,R_SENSE);
+        stepperX.push();
         stepperY.rms_current(BEEVC_HOMEYCURRENT,HOLD_MULTIPLIER,R_SENSE);
+        stepperY.push();
 
         //Reset default values
         thermalManager.sg2_homing_x_calibration = 5;
-        thermalManager.sg2_homing_y_calibration = 60;
+        thermalManager.sg2_homing_y_calibration = 20;
         axis_homed[X_AXIS] = false;
         axis_homed[Y_AXIS] = false;
 
@@ -12027,12 +11961,16 @@ inline void gcode_M502() {
 
         // Restores XY current
         stepperX.rms_current(currentX,HOLD_MULTIPLIER,R_SENSE);
+        stepperX.push();
         stepperY.rms_current(currentY,HOLD_MULTIPLIER,R_SENSE);
+        stepperY.push();
 
         // Applies offset to avoid false detections
         thermalManager.sg2_homing_x_calibration -= 5;
         thermalManager.sg2_homing_y_calibration -= 10;
 
+        // Restores old acceleration settings
+        planner.travel_acceleration = old_acceleration;
       }
     #endif //(ENABLED(X_IS_TMC2130) && ENABLED(Y_IS_TMC2130))
 
@@ -12045,6 +11983,7 @@ inline void gcode_M502() {
     SERIAL_ECHOPAIR("\nX axis sensorless homing calibration  :", thermalManager.sg2_homing_x_calibration);
     SERIAL_ECHOPAIR("\nY axis sensorless homing calibration  :", thermalManager.sg2_homing_y_calibration);
 
+    
   }
   #endif  //BEEVC_TMC2130READSG
 
@@ -12298,8 +12237,14 @@ inline void gcode_M999() {
  * M720 - Sets startup wizard flag
  * M721 - Disables startup wizard flag
  * M722 - Sets startup wizard flag with EEPROM changed warning
+ * M730 - Prints dual nozzle Z offset test
+ * M731 - Prints dual nozzle XY offset test
+ * M740 - Prints a prime line with the active extruder
  *
  */
+
+
+ #ifdef BEEVC_Restore
 
  /**
   * M701: Store current position to EEPROM
@@ -12316,7 +12261,6 @@ inline void gcode_M999() {
   *
   *
  */
- #ifdef BEEVC_Restore
 
 	 inline void gcode_M701()
 	{
@@ -12518,41 +12462,6 @@ inline void gcode_M999() {
 		kill(PSTR(MSG_KILLED));
 
 	}
-
-  /**
-    * M720 - Resets startup wizard flag
-    *
-    * Signals to start setup wizard on next boot
-    *
-    *
-   */
-   inline void gcode_M720()
- 	{
-      //Sets the startup wizard flag
-      uint8_t temp = 0;
-      int eeprom_index = 100-sizeof(temp);
-      EEPROM_write(eeprom_index, (uint8_t*)&temp, sizeof(temp));
-
-      SERIAL_ECHOLNPGM("Startup wizard set up!");
-  }
-
-  /**
-    * M721 - Disables startup wizard flag
-    *
-    * Signals to disable startup wizard
-    *
-    *
-   */
-
-   inline void gcode_M721()
- 	{
-    // Disables the startup wizard flag
-    toCalibrate = 255;
-    int eeprom_index = 100-sizeof(toCalibrate);
-    EEPROM_write(eeprom_index, (uint8_t*)&toCalibrate, sizeof(toCalibrate));
-
-    SERIAL_ECHOLNPGM("Startup wizard disabled!");
-    }
 
   /**
     * M712 - Clears the Z height register
@@ -13276,9 +13185,47 @@ inline void gcode_M999() {
 
 		toRecover = false;
 	}
-#endif
 
   /**
+    * M720 - Resets startup wizard flag
+    *
+    * Signals to start setup wizard on next boot
+    *
+    *
+   */
+
+#endif
+
+#ifdef BEEVC_B2X300
+  inline void gcode_M720()
+  {
+     //Sets the startup wizard flag
+     uint8_t temp = 0;
+     int eeprom_index = 100-sizeof(temp);
+     EEPROM_write(eeprom_index, (uint8_t*)&temp, sizeof(temp));
+
+     SERIAL_ECHOLNPGM("Startup wizard set up!");
+  }
+
+  /**
+   * M721 - Disables startup wizard flag
+   *
+   * Signals to disable startup wizard
+   *
+   *
+  */
+
+  inline void gcode_M721()
+  {
+   // Disables the startup wizard flag
+   toCalibrate = 255;
+   int eeprom_index = 100-sizeof(toCalibrate);
+   EEPROM_write(eeprom_index, (uint8_t*)&toCalibrate, sizeof(toCalibrate));
+
+   SERIAL_ECHOLNPGM("Startup wizard disabled!");
+   }
+
+   /**
    * M722 - Sets startup wizard flag with EEPROM updated warning
    *
    *
@@ -13297,7 +13244,162 @@ inline void gcode_M999() {
    }
 
 
-  
+  /**
+   * M730 - Prints dual nozzle Z offset test
+   *
+   * Prints the test lines
+   *
+   *
+  */
+   inline void gcode_M730() {
+     // Reset extruded value to 0
+     stepper.synchronize();
+     current_position[E_AXIS] = 0;
+     destination[E_AXIS] = 0;
+     sync_plan_position_e();
+     report_current_position();
+
+     // Change to E1
+     tool_change(0);
+
+     // Prime nozzle E1
+     gcode_M740();
+
+     // Move to start position
+     do_relative_move_to(152,190,current_position[Z_AXIS],0,100);
+     do_relative_move_to(152,190,0.3,0,6);
+
+     // Print code
+     do_relative_move_to(152,190,0.3,5,50);
+
+     do_relative_move_to(152,10,0.3,14,8);
+     do_relative_move_to(152,10,0.3,-5,50);
+
+     // Change to E2
+     tool_change(1);
+
+     // Prime nozzle E2
+     gcode_M740();
+
+     // Print code
+     do_relative_move_to(148,190,0.3,0,100);
+     do_relative_move_to(148,190,0.3,5,50);
+
+     do_relative_move_to(148,10,0.3,14,8);
+     do_relative_move_to(148,10,0.3,-5,50);
+
+     // Move to origin
+     do_relative_move_to(300,180,0.3,0,100);
+
+     tool_change(0);
+   }
+
+   /**
+    * M731 - Prints dual nozzle XY offset test
+    *
+    * Prints the test lines
+    *
+    *
+   */
+
+
+    inline void gcode_M731() {
+      // Change to E1
+      tool_change(0);
+
+      // Go to starting height
+      do_blocking_move_to_z(0.3, 8);
+
+      // Go to starting position
+      do_blocking_move_to_xy(152,190,150);
+
+      // Print code
+      do_move_to(152,190,0.3,10,10);
+
+      do_move_to(152,10,0.3,19,7);
+      do_move_to(152,10,0.3,14,10);
+
+      tool_change(1);
+      do_move_to(150,5,0.3,14,150);
+      do_move_to(148,190,0.3,14,150);
+
+      do_move_to(148,190,0.3,24,10);
+      do_move_to(148,10,0.3,33,10);
+
+      do_move_to(300,200,10,33,150);
+
+      tool_change(0);
+    }
+
+    /**
+     * M740 - Prints a prime line with the active extruder
+     *
+     * Prints the prime lines
+     *
+     *
+    */
+
+
+     inline void gcode_M740() {
+       // Temporary variable to store the required extruder
+       uint8_t extruder = active_extruder;
+
+       // Checks if there is a E letter on the code if so chooses the correct extruder
+       if (parser.seenval('E')) {
+         uint8_t temp = parser.value_byte();
+         switch (temp) {
+           default: break;
+           case 1:  extruder = 0;
+                    break;
+           case 2:  extruder = 1;
+                    break;
+         }
+       }
+
+       // Chooses the correct X position to make the movemente depending on the active extruder
+       int16_t x_prime_pos = X_BED_SIZE;
+       if (active_extruder != 0)
+        x_prime_pos = 0;
+
+       // Go to starting position
+       do_relative_move_to(x_prime_pos,150,0.3,0,100);
+
+       // Stores old active extruder
+       uint8_t old_extruder = active_extruder;
+
+       // Changes to the required extruder, this ensures offsets are compensated
+       if (extruder != active_extruder) {
+         if (extruder == 0 )
+           tool_change(0);
+         else
+           tool_change(1);
+       }
+
+       // De-retract
+       do_relative_move_to(x_prime_pos,150,0.3,5,8);
+
+       // Print prime line fast
+       do_relative_move_to(x_prime_pos,60,0.3,10,8);
+
+       // Print prime line slow (release pressure)
+       do_relative_move_to(x_prime_pos,50,0.3,1,2);
+
+       // Retraction
+       do_relative_move_to(x_prime_pos,50,0.3,-5,50);
+
+       // Restores the old active extruder
+       if (old_extruder != active_extruder) {
+         if (old_extruder == 0 )
+           tool_change(0);
+         else
+           tool_change(1);
+       }
+     }
+
+#endif // BEEVC_B2X300
+
+
+
 #if ENABLED(SWITCHING_EXTRUDER)
   #if EXTRUDERS > 3
     #define REQ_ANGLES 4
@@ -14551,10 +14653,6 @@ void process_parsed_command() {
           gcode_M600();
           break;
 
-		case 620: // M620: Filament change manual
-		  gcode_M620();
-		  break;
-
       #endif // ADVANCED_PAUSE_FEATURE
 
       #if ENABLED(DUAL_X_CARRIAGE) || ENABLED(DUAL_NOZZLE_DUPLICATION_MODE)
@@ -14758,6 +14856,18 @@ void process_parsed_command() {
       case 722:  //Enables startup wizard flag with EEPROM warning
   				gcode_M722();
   				break;
+
+      case 730:  //Prints dual nozzle Z offset test lines
+  				gcode_M730();
+  				break;
+
+      case 731:  //Prints dual nozzle XY offset test lines
+  				gcode_M731();
+  				break;
+
+      case 740: //Prints a prime line with the active extruder
+          gcode_M740();
+          break;
 
 		#endif
     }
@@ -17089,7 +17199,7 @@ void setup() {
       tempdata |= ((uint8_t) (planner.acceleration/250)) << 4;
 
   		EEPROM_write(eeprom_index, (uint8_t*)&tempdata, sizeof(tempdata));
-  		#ifdef SERIAL_DEBUG
+      #ifdef SERIAL_DEBUG
 			eeprom_busy_wait();
 			SERIAL_ECHO("Saved data: ");
 			SERIAL_ECHO_BIN8(tempdata);

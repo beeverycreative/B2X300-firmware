@@ -1,5 +1,4 @@
 # Marlin Firmware for B2X300 by BEEVERYCREATIVE
-
 Marlin firmware fork for B2X300 by BEEVERYCREATIVE.
 
 For support, please visit https://beeverycreative.com/forum

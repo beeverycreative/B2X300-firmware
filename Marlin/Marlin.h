@@ -84,6 +84,12 @@ void manage_inactivity(bool ignore_stepper_queue = false);
 #endif
 ///////////////////////////////////////////////////////
 
+////////////     Better autoleveling     //////////////
+#ifdef BEEVC_B2X300
+	extern bool G28_stow;
+#endif
+///////////////////////////////////////////////////////
+
 
 #if ENABLED(DUAL_X_CARRIAGE) || ENABLED(DUAL_NOZZLE_DUPLICATION_MODE)
   extern bool extruder_duplication_enabled;
@@ -225,11 +231,15 @@ inline bool IsStopped() { return !Running; }
 bool enqueue_and_echo_command(const char* cmd, bool say_ok=false); // Add a single command to the end of the buffer. Return false on failure.
 void enqueue_and_echo_commands_P(const char * const cmd);          // Set one or more commands to be prioritized over the next Serial/SD command.
 void gcode_M918();
-void gcode_G28(const bool always_home_all);
+void gcode_G28(const bool always_home_all, bool onlyZ = false);
 void gcode_G29();
 void gcode_M720();
 void gcode_M721();
 void gcode_M722();
+void gcode_M730();
+void gcode_M740();
+void do_move_to (float posX, float posY, float posZ, float posE, float feed);
+void do_relative_move_to (float posX, float posY, float posZ, float posE, float feed);
 void clear_command_queue();
 
 extern millis_t previous_cmd_ms;

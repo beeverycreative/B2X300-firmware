@@ -467,9 +467,15 @@
   //#define  DEFAULT_Ki 1.08
   //#define  DEFAULT_Kd 114
 
-    #define  DEFAULT_Kp 18.0
-    #define  DEFAULT_Ki 0.40
-    #define  DEFAULT_Kd 110
+  // B2X300 V0
+  // #define  DEFAULT_Kp 18.0
+  // #define  DEFAULT_Ki 0.40
+  // #define  DEFAULT_Kd 110
+
+  // B2X300 V1 205ºC 100% blower
+  #define  DEFAULT_Kp 52.00
+  #define  DEFAULT_Ki 10.24
+  #define  DEFAULT_Kd 66.04
 
   // MakerGear
   //#define  DEFAULT_Kp 7.0
@@ -537,9 +543,15 @@
 
   // B2X300
   #ifdef BEEVC_B2X300
-    #define DEFAULT_bedKp 300
-    #define  DEFAULT_bedKi 5
-    #define  DEFAULT_bedKd 350
+    // V2 @75% PWM power  
+     #define DEFAULT_bedKp 85.49
+     #define  DEFAULT_bedKi 7.67
+     #define  DEFAULT_bedKd 238.12
+
+    // V1 @80% PWM power  
+    // #define DEFAULT_bedKp 300
+    // #define  DEFAULT_bedKi 5
+    // #define  DEFAULT_bedKd 350
   #else
     //hBp
     #define DEFAULT_bedKp 194.02
@@ -944,7 +956,7 @@
 
 
 // X and Y axis travel speed (mm/m) between probes
-#define XY_PROBE_SPEED 14000
+#define XY_PROBE_SPEED 12000
 
 // Speed for the first approach when double-probing (MULTIPLE_PROBING == 2)
 #define Z_PROBE_SPEED_FAST HOMING_FEEDRATE_Z
@@ -976,6 +988,7 @@
  */
 #define Z_CLEARANCE_DEPLOY_PROBE   6 // Z Clearance for Deploy/Stow
 #define Z_CLEARANCE_BETWEEN_PROBES  2 // Z Clearance between probe points
+#define Z_CLEARANCE_BETWEEN_REPEATS 5 // Z Clearance between repeated probings, represented as 0.1mm per unit
 
 // For M851 give a range for adjusting the Z probe offset
 #define Z_PROBE_OFFSET_RANGE_MIN -18
