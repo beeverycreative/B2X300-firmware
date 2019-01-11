@@ -4166,7 +4166,7 @@ inline void gcode_G4() {
  *  Z   Home to the Z endstop
  *
  */
-inline void gcode_G28(const bool always_home_all) {
+inline void gcode_G28(const bool always_home_all, bool onlyZ) {
 
 #ifdef BEEVC_TMC2130READSG
   uint8_t pre_home_move_mm = 20;
@@ -4274,7 +4274,7 @@ enable_all_steppers();
 
     const bool homeX = always_home_all || parser.seen('X'),
                homeY = always_home_all || parser.seen('Y'),
-               homeZ = always_home_all || parser.seen('Z'),
+               homeZ = always_home_all || parser.seen('Z') || onlyZ,
                home_all = (!homeX && !homeY && !homeZ) || (homeX && homeY && homeZ);
 
     set_destination_from_current();
@@ -4381,6 +4381,9 @@ enable_all_steppers();
             //SERIAL_ECHOLNPAIR("X axis homing duration", homeduration);
           }
 
+          // Sets X as homed
+          axis_homed[X_AXIS] = true;
+
         #else
         // Normal Homing
           HOMEAXIS(X);
@@ -4428,6 +4431,9 @@ enable_all_steppers();
             //DEBUG
             //SERIAL_ECHOLNPAIR("Y axis homing duration", homeduration);
           }
+
+          // Sets Y as homed
+          axis_homed[Y_AXIS] = true;;
         #else
         // Normal Homing
           HOMEAXIS(Y);
@@ -4936,7 +4942,10 @@ void home_all_axes() { gcode_G28(true); }
 
     // Forces a new G28 without probe stow to improve measuring accuracy
     G28_stow = false;
-    gcode_G28(true);
+    // Avoids repetition of XY homing 
+    if(axis_homed[X_AXIS] && axis_homed[Y_AXIS])  gcode_G28(false,true);
+    else                                          gcode_G28(true);
+    
     G28_stow = true;
 
     // Don't allow auto-leveling without homing first
