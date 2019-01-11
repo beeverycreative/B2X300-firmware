@@ -467,9 +467,15 @@
   //#define  DEFAULT_Ki 1.08
   //#define  DEFAULT_Kd 114
 
-    #define  DEFAULT_Kp 18.0
-    #define  DEFAULT_Ki 0.40
-    #define  DEFAULT_Kd 110
+  // B2X300 V0
+  // #define  DEFAULT_Kp 18.0
+  // #define  DEFAULT_Ki 0.40
+  // #define  DEFAULT_Kd 110
+
+  // B2X300 V1 205ºC 100% blower
+  #define  DEFAULT_Kp 52.00
+  #define  DEFAULT_Ki 10.24
+  #define  DEFAULT_Kd 66.04
 
   // MakerGear
   //#define  DEFAULT_Kp 7.0
@@ -537,9 +543,15 @@
 
   // B2X300
   #ifdef BEEVC_B2X300
-    #define DEFAULT_bedKp 300
-    #define  DEFAULT_bedKi 5
-    #define  DEFAULT_bedKd 350
+    // V2 @75% PWM power  
+     #define DEFAULT_bedKp 85.49
+     #define  DEFAULT_bedKi 7.67
+     #define  DEFAULT_bedKd 238.12
+
+    // V1 @80% PWM power  
+    // #define DEFAULT_bedKp 300
+    // #define  DEFAULT_bedKi 5
+    // #define  DEFAULT_bedKd 350
   #else
     //hBp
     #define DEFAULT_bedKp 194.02
