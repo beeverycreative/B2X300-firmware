@@ -1695,7 +1695,7 @@ void kill_screen(const char* lcd_msg) {
         //MENU_ITEM(submenu, _UxGT("Cold pull"), _lcd_menu_z_offset);
 
       // Calibrate Dual nozzle Z offset
-        MENU_ITEM(submenu, _UxGT("Nozzle Z-offset test"), lcd_nozzle_z_offset_start);
+       // MENU_ITEM(submenu, _UxGT("Nozzle Z-offset test"), lcd_nozzle_z_offset_start);
 
       // Auto Home/ Level Bed
         // Leveling only appears when automatic bed leveling method exists
