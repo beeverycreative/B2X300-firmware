@@ -631,11 +631,11 @@ uint16_t max_display_update_time = 0;
         static millis_t doubleclick_expire_ms = 0;
         // Going to lcd_main_menu from status screen? Remember first click time.
         // Going back to status screen within a very short time? Go to Z babystepping.
-        if (screen == lcd_main_menu) {
+        if (screen == beevc_main_menu) {
           if (currentScreen == lcd_status_screen)
             doubleclick_expire_ms = millis() + DOUBLECLICK_MAX_INTERVAL;
         }
-        else if (screen == lcd_status_screen && currentScreen == lcd_main_menu && PENDING(millis(), doubleclick_expire_ms))
+        else if (screen == lcd_status_screen && currentScreen == beevc_main_menu && PENDING(millis(), doubleclick_expire_ms))
           screen =
             #if ENABLED(BABYSTEP_ZPROBE_OFFSET)
               lcd_babystep_zoffset
