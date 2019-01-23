@@ -4416,7 +4416,7 @@ enable_all_steppers();
             // Moves Y a little away from limit to avoid eroneous detections
             // Only acts if the duration is bigger than 10 to avoid loop on frame hit
             if(homeduration > 10) do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] >= (Y_MIN_POS + pre_home_move_mm) ? current_position[Y_AXIS]-pre_home_move_mm : current_position[Y_AXIS]),25);
-            
+
             // Wait for planner moves to finish!
             stepper.synchronize();
 
@@ -11595,8 +11595,8 @@ inline void gcode_M502() {
         bool x_home_to_calibrate = true;
         bool y_home_to_calibrate = true;
         uint16_t xy_home_duration_expected = 300;
-        uint16_t x_home_duration_limit = 315;
-        uint16_t y_home_duration_limit = 315;
+        uint16_t x_home_duration_limit = 318;
+        uint16_t y_home_duration_limit = 318;
         uint32_t xy_home_duration_temp = 0;
         uint32_t xy_home_duration_sum;
         calibrating_sensorless_homing_x = true;
@@ -11673,7 +11673,7 @@ inline void gcode_M502() {
           #endif
 
           // Raise Z
-          destination[Z_AXIS] = Z_HOMING_HEIGHT;
+          destination[Z_AXIS] = Z_CLEARANCE_DEPLOY_PROBE;
           do_blocking_move_to_z(destination[Z_AXIS]);
 
           setup_for_endstop_or_probe_move();
@@ -11748,7 +11748,7 @@ inline void gcode_M502() {
               xy_home_duration_temp = millis()- xy_home_duration_temp;
             }
 
-            SERIAL_ECHOLNPAIR("X axis homing duration", xy_home_duration_temp);
+            //SERIAL_ECHOLNPAIR("X axis homing duration", xy_home_duration_temp);
 
             // Makes sure the result never leads to false positives
             if (xy_home_duration_temp < xy_home_duration_expected)
@@ -11855,7 +11855,7 @@ inline void gcode_M502() {
               xy_home_duration_temp = millis()- xy_home_duration_temp;
             }
 
-            SERIAL_ECHOLNPAIR("Y axis homing duration", xy_home_duration_temp);
+            //SERIAL_ECHOLNPAIR("Y axis homing duration", xy_home_duration_temp);
 
             // Makes sure the result never leads to false positives
             if (xy_home_duration_temp < xy_home_duration_expected)
@@ -11966,8 +11966,8 @@ inline void gcode_M502() {
         stepperY.push();
 
         // Applies offset to avoid false detections
-        thermalManager.sg2_homing_x_calibration -= 5;
-        thermalManager.sg2_homing_y_calibration -= 10;
+        //thermalManager.sg2_homing_x_calibration -= 5;
+        thermalManager.sg2_homing_y_calibration += 10;
 
         // Restores old acceleration settings
         planner.travel_acceleration = old_acceleration;
@@ -11983,7 +11983,8 @@ inline void gcode_M502() {
     SERIAL_ECHOPAIR("\nX axis sensorless homing calibration  :", thermalManager.sg2_homing_x_calibration);
     SERIAL_ECHOPAIR("\nY axis sensorless homing calibration  :", thermalManager.sg2_homing_y_calibration);
 
-    
+    // Show status screen
+      lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_STATUS);
   }
   #endif  //BEEVC_TMC2130READSG
 
