@@ -4169,7 +4169,7 @@ inline void gcode_G4() {
 inline void gcode_G28(const bool always_home_all, bool onlyZ) {
 
 #ifdef BEEVC_TMC2130READSG
-  uint8_t pre_home_move_mm = 20;
+  uint8_t pre_home_move_mm = abs(Y_MIN_POS);
   bool restore_stealthchop_x = false, restore_stealthchop_y = false;
   uint32_t homeduration = 0;
 
@@ -4411,12 +4411,12 @@ enable_all_steppers();
           // Enables Y sensorless detection
           thermalManager.sg2_y_limit_hit = 0;
 
-          homeduration = 0;
+          homeduration = 11;
           while (homeduration < 250) {
             // Moves Y a little away from limit to avoid eroneous detections
+            // Only acts if the duration is bigger than 10 to avoid loop on frame hit
+            if(homeduration > 10) do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] >= (Y_MIN_POS + pre_home_move_mm) ? current_position[Y_AXIS]-pre_home_move_mm : current_position[Y_AXIS]),25);
             
-            do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] > (Y_MIN_POS + pre_home_move_mm) ? current_position[Y_AXIS]-pre_home_move_mm : current_position[Y_AXIS]),25);
-
             // Wait for planner moves to finish!
             stepper.synchronize();
 
