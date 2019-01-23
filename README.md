@@ -7,6 +7,34 @@ For support, please visit https://beeverycreative.com/forum
 
 ## Changelog
 
+#### `B2X300-20190123`
+- Change filament reworked
+- Corrected PID to match latest bed and current settings
+- G29 now only homes XY if unhomed
+- Bed PID autotune fix - No printer halted error
+- Cleaned unecessary parameters and functions
+- Improvements to menus and screens
+- Menu items now aligns to the left by default
+- Reduced XY probing speed and increased probing clearance between repeats
+- M918 A improvements (Sensorless homing autocalibration)
+- Improved current save and restore for G28,G29,M918
+- Improved Self-test wizard Trinamic tests
+- Faster bed leveling feature
+- Offset XY test and prime line gcode
+- Defined max bed temperature to 130ºC to be consistent with datasheet
+- G28 Z now probes with the probe centered on the bed
+- Disabled leveling fade height as it affected leveling performance
+- Implemented live nozzle height shortcut
+- Bugfix - corrected G28 Y loop on frame collision
+
+**NEW FEATURES**: 
+- Change filament is now more reactive, has more visual feedback and uses less unnecessary movements
+- Faster auto bed leveling
+- Improved bed leveling repeatability and precision
+- Live nozzle height is now easily accessible by long pressing the lcd button on the status screen
+
+Thanks to our clients for the feedback that allowed the new features to be implemented.
+
 #### `B2X300-20181214`
 - Bugfix - corrected filament change skipping temperature stabilization
 - Corrected compiler warnings
