@@ -438,7 +438,7 @@
 #define HEATER_2_MAXTEMP 275
 #define HEATER_3_MAXTEMP 275
 #define HEATER_4_MAXTEMP 275
-#define BED_MAXTEMP 150
+#define BED_MAXTEMP 130
 
 //===========================================================================
 //============================= PID Settings ================================
@@ -522,7 +522,7 @@
     #define MAX_BED_POWER 255 // limits duty cycle to bed; 255=full current
   #else
     // B2X300 release bed
-    #define MAX_BED_POWER 192 // limits duty cycle to bed; 255=full current (192 = 75%)
+    #define MAX_BED_POWER 205 // limits duty cycle to bed; 255=full current
   #endif
 
 #else
@@ -1261,7 +1261,7 @@
   // Gradually reduce leveling correction until a set height is reached,
   // at which point movement will be level to the machine's XY plane.
   // The height can be set with M420 Z<height>
-  #define ENABLE_LEVELING_FADE_HEIGHT
+  // #define ENABLE_LEVELING_FADE_HEIGHT
 
   // For Cartesian machines, instead of dividing moves on mesh boundaries,
   // split up moves into short segments like a Delta. This follows the
@@ -1434,8 +1434,8 @@
 
 
 #if ENABLED(Z_SAFE_HOMING)
-  #define Z_SAFE_HOMING_X_POINT ((X_BED_SIZE) / 2)    // X point for Z homing when homing all axes (G28).
-  #define Z_SAFE_HOMING_Y_POINT ((Y_BED_SIZE) / 2)    // Y point for Z homing when homing all axes (G28).
+  #define Z_SAFE_HOMING_X_POINT ((X_BED_SIZE) / 2)-X_PROBE_OFFSET_FROM_EXTRUDER    // X point for Z homing when homing all axes (G28).
+  #define Z_SAFE_HOMING_Y_POINT ((Y_BED_SIZE) / 2)-Y_PROBE_OFFSET_FROM_EXTRUDER    // Y point for Z homing when homing all axes (G28).
 #endif
 
 // Homing speeds (mm/m)
