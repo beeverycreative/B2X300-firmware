@@ -288,7 +288,7 @@ uint16_t max_display_update_time = 0;
   static void lcd_filament_change_choose_action ();
   static void lcd_filament_change_action_load ();
   static void lcd_filament_change_action_unload ();
-  static void lcd_filament_change_unload_load (uint16_t changetemp, bool just_heating, bool unload_load);
+  static void lcd_filament_change_unload_load (uint16_t changetemp, bool manual_extrude, bool unload_load);
   static void manual_move_to_current(AxisEnum axis
     #if E_MANUAL > 1
       , int8_t eindex
@@ -2189,7 +2189,7 @@ void kill_screen(const char* lcd_msg) {
       #if LCD_HEIGHT > 2
         STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
       #endif
-      MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_RESUME, lcd_filament_change_resume_print);
+      MENU_ITEM(function, _UxGT("Back"), lcd_filament_change_resume_print);
       MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_EXTRUDE, lcd_filament_change_extrude_more);
       END_MENU();
     }
@@ -2294,37 +2294,6 @@ void kill_screen(const char* lcd_msg) {
     if(!load) {
       // Unload filament
       beevc_move_axis_blocking(E_AXIS,-(FILAMENT_CHANGE_UNLOAD_LENGTH),FILAMENT_CHANGE_UNLOAD_FEEDRATE);
-
-      // Asks if a load is to be performed
-      KEEPALIVE_STATE(PAUSED_FOR_USER);
-      wait_for_user = false;
-      lcd_advanced_pause_show_message(FILAMENT_CHANGE_UNLOAD_OPTION);
-
-      while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
-
-      KEEPALIVE_STATE(IN_HANDLER);
-
-      // Beeps and waits for user input to start the loading procedure
-      if (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_LOAD)
-      {
-        load = true;
-        lcd_advanced_pause_show_message(FILAMENT_CHANGE_PRESS);
-
-        //Beep while waiting for button press
-        KEEPALIVE_STATE(PAUSED_FOR_USER);
-        wait_for_user = true;    // LCD click or M108 will clear this
-        unsigned long next_update = millis() + 100;
-
-        while (wait_for_user ) {
-          if(next_update < millis()){
-            #if HAS_BUZZER
-              buzzer.tone(100, 2000);
-            #endif
-            idle(true);
-            next_update = millis() + 1000;
-          }
-        }
-      }
     }
 
     // Load
@@ -2373,7 +2342,7 @@ void kill_screen(const char* lcd_msg) {
     KEEPALIVE_STATE(IN_HANDLER);
   }
 
-static void lcd_filament_change_unload_load (uint16_t changetemp, bool just_heating, bool unload_load)
+static void lcd_filament_change_unload_load (uint16_t changetemp, bool manual_extrude, bool unload_load)
 {
   // Ensure the correct extruder is set
   if (active_extruder != filament_change_extruder)
@@ -2425,43 +2394,44 @@ static void lcd_filament_change_unload_load (uint16_t changetemp, bool just_heat
 
     }
 
-	//Shows "Press to continue" and beeps while waiting
-	lcd_goto_screen(lcd_filament_change_press);
-  KEEPALIVE_STATE(PAUSED_FOR_USER);
-  wait_for_user = true;    // LCD click or M108 will clear this
-	next_update = millis();
-	while (wait_for_user )
-  {
-		if(next_update < millis())
-  		{
-  			#if HAS_BUZZER
-  			   buzzer.tone(100, 2000);
-  			#endif
+	//Shows "Press to continue" and beeps while waiting if not unloading
+  if (unload_load){
+    lcd_goto_screen(lcd_filament_change_press);
+    KEEPALIVE_STATE(PAUSED_FOR_USER);
+    wait_for_user = true;    // LCD click or M108 will clear this
+    next_update = millis();
+    while (wait_for_user ) {
+      if(next_update < millis()) {
+          #if HAS_BUZZER
+            buzzer.tone(100, 2000);
+          #endif
 
-        // Deactivated for now
-        // Detects if the filament sensor is activated
-        // #ifdef FILAMENT_RUNOUT_DUAL
-        //   if (extruder)
-        //     // E0
-        //     {
-        //       if (!(READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING))
-        //         break;
-        //     }
-        //   else
-        //     // E1
-        //     {
-        //       if (!(READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING))
-        //         break;
-        //     }
-        // #endif //FILAMENT_RUNOUT_DUAL
-  			next_update = millis() + 1000;
-  	}
-    idle(true);
-	}
+          // Deactivated for now
+          // Detects if the filament sensor is activated
+          // #ifdef FILAMENT_RUNOUT_DUAL
+          //   if (extruder)
+          //     // E0
+          //     {
+          //       if (!(READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING))
+          //         break;
+          //     }
+          //   else
+          //     // E1
+          //     {
+          //       if (!(READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING))
+          //         break;
+          //     }
+          // #endif //FILAMENT_RUNOUT_DUAL
+          next_update = millis() + 1000;
+      }
+      idle(true);
+    }
+  }
+  else buzzer.tone(1000, 2000);
 
   KEEPALIVE_STATE(IN_HANDLER);
 
-  if(! just_heating){
+  if(! manual_extrude){
     // Load/unload
     beevc_load_unload(unload_load);
   }
@@ -2484,8 +2454,8 @@ static void lcd_filament_change_finish_movement () {
   lcd_filament_change_moving();
   beevc_screen_constant_update = true;
 
-  // Checks if necessary movements have been made
-  if ((current_position[Z_AXIS] == 50) && axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS]){
+  // Checks if necessary movements have been made or if unloading
+  if (((current_position[Z_AXIS] == 50) && axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS]) || !filament_change_load){
     //beevc_screen_constant_update = false;
     lcd_filament_change_unload_load (filament_change_temp,filament_change_manual, filament_change_load);
   }
@@ -2493,11 +2463,21 @@ static void lcd_filament_change_finish_movement () {
 }
 
 static void lcd_filament_change_home_move () {
-  // homing and moving to Z = 50
-  if (!((current_position[Z_AXIS] == 50) && axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS])) {
-    axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
-    enqueue_and_echo_commands_P(PSTR("G28"));
-    enqueue_and_echo_commands_P(PSTR("G1 Z50 F3000"));
+  // only moves if loading or manually extruding
+  if (filament_change_load){
+    // if not homed homes axis and lifts Z
+    if (!(axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS])){
+      // Forces a home on all the axes
+      axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
+      // Home
+      enqueue_and_echo_commands_P(PSTR("G28"));
+      enqueue_and_echo_commands_P(PSTR("G1 Z50 F3000"));
+    }
+
+    // if homed only moves to load position
+    else if (!((current_position[X_AXIS] == 146) && (current_position[Y_AXIS] == 59) && (current_position[Z_AXIS] == 50)) && filament_change_load) {
+      enqueue_and_echo_commands_P(PSTR("G1 X146 Y59 Z50 F8000"));
+    }
   }
 
   lcd_goto_screen(lcd_filament_change_finish_movement);
@@ -2519,6 +2499,7 @@ static void lcd_filament_change_action_load () {
 }
 
 static void lcd_filament_change_action_move () {
+  filament_change_load = true ;
   filament_change_manual = true ;
   
   lcd_goto_screen(lcd_filament_change_home_move);
