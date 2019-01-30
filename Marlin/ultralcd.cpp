@@ -5483,9 +5483,9 @@ void beevc_machine_setup_screen_error_blower() {
 void beevc_machine_setup_screen_blower_test() {
   MACHINE_SETUP_TITLE_CHOICE;
   STATIC_ITEM(_UxGT("Is the blower active?"));
-  MENU_ITEM(submenu, _UxGT(" - Yes"), beevc_machine_setup_screen_blower_test_ok);
-  MENU_ITEM(submenu, _UxGT(" - No"), beevc_machine_setup_screen_error_blower);
-  MACHINE_SETUP_END_CHOICE;
+  MENU_ITEM_MIX(submenu, _UxGT(" - Yes"), beevc_machine_setup_screen_blower_test_ok);
+  MENU_ITEM_MIX(submenu, _UxGT(" - No"), beevc_machine_setup_screen_error_blower);
+  END_SCREEN();
 }
 
 void beevc_machine_setup_screen_trinamic_start() {
