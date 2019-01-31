@@ -191,6 +191,8 @@ uint16_t max_display_update_time = 0;
   void beevc_machine_motion_offset_menu();
   void beevc_machine_temperature_menu();
   void beevc_about_menu();
+  void beevc_recover_screen();
+  void beevc_recover_now_screen();
 
   // void lcd_main_menu();
   // void lcd_tune_menu();
@@ -765,13 +767,22 @@ uint16_t max_display_update_time = 0;
      }
    }
 
-   void beevc_wait(uint16_t milliseconds) {
+   void beevc_wait(uint16_t milliseconds, bool display_timeout = false) {
      wait_for_user = true;    // LCD click or M108 will clear this
      uint32_t temptime= millis() + milliseconds;
      while((temptime > millis()) && wait_for_user){
        // Avoid returning to status screen
        defer_return_to_status = true;
 
+       // Display remaining time if requested
+       if(display_timeout){
+        beevc_screen_constant_update = true;
+        u8g.setPrintPos(0, 36);
+        u8g.print("in ");
+        u8g.print((int)((temptime-millis())/1000));
+        u8g.print(" seconds");
+       }
+       
        // Manage idle time
        idle(true);
      }
@@ -1365,8 +1376,12 @@ void lcd_status_screen() {
   // If there is a print to restore and the bed temperature target (previously set when loading the flag)
   // is less than 5 degree away from current bed temperature or 0, starts the recovery on it's own
   if (toRecoverNow){
-    toRecoverNow = false;
-    recover_print();
+    beevc_recover_now_screen();
+  }
+
+  // If there is a print to restore and the bed temperature is more than 5 degree aways from set temp shows recover screen
+  if (toRecover){
+    beevc_recover_screen();
   }
 
   // Ensures the LCD is alive, re-initializing it every 10s
@@ -1605,6 +1620,121 @@ void kill_screen(const char* lcd_msg) {
   /**
    * BEEVC
    *
+   * "Recover" screen
+   *
+   */
+  void beevc_recover_screen_yes(){
+    // Enables return to status on timeout
+    defer_return_to_status = false;
+
+    // Return to status
+    lcd_return_to_status();
+    beevc_force_screen_update();
+
+    // Enqueues restore print command
+    enqueue_and_echo_commands_P(PSTR("M710"));
+    toRecover = false;
+
+    // Allows return to status
+    beevc_continue = true ;
+  }
+  void beevc_recover_screen_no(){
+    // Enables return to status on timeout
+    defer_return_to_status = false;
+
+    // Clears lcd text
+    lcd_setstatus("B2X300 ready.");
+
+    // Disables heating
+    thermalManager.disable_all_heaters();
+
+    // Return to status
+    lcd_return_to_status();
+    beevc_force_screen_update();
+
+    // Clears recover flag
+    enqueue_and_echo_commands_P(PSTR("M712"));
+    toRecover = false;
+
+    // Allows return to status
+    beevc_continue = true ;
+  }
+
+  void beevc_recover_screen_display(){
+    START_MENU();
+    STATIC_ITEM(_UxGT("Powerloss detected"), true, true);
+    STATIC_ITEM(_UxGT("Recover print?"));
+    MENU_ITEM_MIX(submenu, _UxGT(" - Yes"), beevc_recover_screen_yes);
+    MENU_ITEM_MIX(submenu, _UxGT(" - No"), beevc_recover_screen_no);
+    END_SCREEN();
+  }
+
+  void beevc_recover_screen() {
+    // Unset recovery flag
+    toRecoverNow = false;
+    toRecover = false;
+
+    // Disabes return to status on timeout
+    defer_return_to_status = true;
+
+    // Buzz
+    beevc_buzz();
+
+    // Set so a loop can be executed while selecting
+    beevc_continue = 0;
+
+    // Shows screen
+    lcd_goto_screen(beevc_recover_screen_display);
+
+    // Waits for choice
+    while(!beevc_continue){
+      idle(true);
+    }
+  }
+
+  void beevc_recover_now_screen_display(){
+    START_SCREEN();
+    STATIC_ITEM(_UxGT("Powerloss detected"), true, true);
+    STATIC_ITEM(_UxGT("Auto-recovering print"));
+    STATIC_ITEM(_UxGT(" "));
+    STATIC_ITEM(_UxGT(" "));
+    STATIC_ITEM(_UxGT("Click to cancel."));
+    END_SCREEN();
+  }
+
+  void beevc_recover_now_screen() {
+    // Unset recovery flag
+    toRecoverNow = false;
+    toRecover = false;
+
+    // Disabes return to status on timeout
+    defer_return_to_status = true;
+
+    // Buzz
+    beevc_buzz();
+
+    // Shows screen
+    lcd_goto_screen(beevc_recover_now_screen_display);
+
+    // Waits for 10 seconds or click
+    beevc_wait(10000,true);
+
+    beevc_screen_constant_update = false;
+
+    // Waits for choice
+    if(wait_for_user) {
+      // Did not click so restores print
+      beevc_recover_screen_yes();
+    }
+    else {
+      // Clicked so restore is canceled
+      beevc_recover_screen_no();
+    }
+  }
+
+  /**
+   * BEEVC
+   *
    * "Main" menu
    *
    */
@@ -1612,12 +1742,6 @@ void kill_screen(const char* lcd_msg) {
   void beevc_main_menu() {
     START_MENU();
     MENU_BACK(MSG_WATCH);
-
-  	// This shows an option to recover the print from the menu
-  	#ifdef BEEVC_Restore
-  		if (toRecover)
-  			MENU_ITEM(function, _UxGT("Restore print"), recover_print);
-  	#endif
 
     // Only shows when not printing and still
     if(!(planner.movesplanned() || IS_SD_PRINTING || IS_SD_FILE_OPEN)){
