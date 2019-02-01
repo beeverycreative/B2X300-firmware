@@ -1275,7 +1275,7 @@ uint16_t max_display_update_time = 0;
  void beevc_set_offset_calibrate(){
    if (lcd_clicked)
      {
-       zprobe_zoffset = round((current_position[Z_AXIS] + zprobe_zoffset)*100)/100;
+       zprobe_zoffset = (float)(round((current_position[Z_AXIS] + zprobe_zoffset)*100))/100;
        lcd_completion_feedback(settings.save());
        z_offset_finished = true;
 
@@ -1310,7 +1310,7 @@ uint16_t max_display_update_time = 0;
      START_SCREEN();
      STATIC_ITEM(_UxGT("Set nozzle height"), true, true);
 
-     lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr42sign((current_position[Z_AXIS] + zprobe_zoffset)));
+     lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr42sign((float)(round((current_position[Z_AXIS] + zprobe_zoffset)*100))/100));
      lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
      lcd_implementation_drawmenu_static(4,PSTR("Click to save.       "));
 
@@ -1339,7 +1339,7 @@ uint16_t max_display_update_time = 0;
    do_blocking_move_to_xy(((X_BED_SIZE) / 2),((Y_BED_SIZE) / 2), 120);
 
    // Lowers Z axis
-   current_position[Z_AXIS] = round((current_position[Z_AXIS]-8)*10)/10;
+   current_position[Z_AXIS] = (float)(round((current_position[Z_AXIS]-8)*10))/10;
    manual_move_to_current(Z_AXIS,0);
 
    // Waits a few seconds to allow movement to finish
@@ -1981,7 +1981,7 @@ void kill_screen(const char* lcd_msg) {
         if (planner.leveling_active)
           thermalManager.babystep_axis(Z_AXIS, babystep_increment);
 
-        zprobe_zoffset = round(new_zoffset*100)/100;
+        zprobe_zoffset = (float)(round(new_zoffset*100))/100;
         lcdDrawUpdate = LCDVIEW_CALL_REDRAW_NEXT;
       }
     }
@@ -5888,7 +5888,7 @@ void beevc_machine_setup_set_offset(){
   do_blocking_move_to_xy(((X_BED_SIZE) / 2),((Y_BED_SIZE) / 2), 120);
 
   // Lowers Z axis
-  current_position[Z_AXIS] = round((current_position[Z_AXIS]-8)*10)/10;
+  current_position[Z_AXIS] = (float)(round((current_position[Z_AXIS]-8)*10))/10;
   manual_move_to_current(Z_AXIS,0);
 
   // Waits a few seconds to allow movement to finish
