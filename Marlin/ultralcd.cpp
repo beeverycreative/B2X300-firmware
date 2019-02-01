@@ -1336,8 +1336,7 @@ uint16_t max_display_update_time = 0;
    lcd_goto_screen(beevc_set_offset_moving);
 
    // Moves the carriage and bed to the offset adjust position
-   axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
-   gcode_G28(1);
+   do_blocking_move_to_xy(((X_BED_SIZE) / 2),((Y_BED_SIZE) / 2), 120);
 
    // Lowers Z axis
    current_position[Z_AXIS] -= 8;
@@ -5914,8 +5913,7 @@ void beevc_machine_setup_set_offset(){
   lcd_goto_screen(beevc_machine_setup_screen_set_offset_moving);
 
   // Moves the carriage and bed to the offset adjust position
-  axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
-  gcode_G28(1);
+  do_blocking_move_to_xy(((X_BED_SIZE) / 2),((Y_BED_SIZE) / 2), 120);
 
   // Lowers Z axis
   current_position[Z_AXIS] -= 8;
