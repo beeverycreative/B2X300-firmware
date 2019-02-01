@@ -832,7 +832,7 @@ uint16_t max_display_update_time = 0;
     STATIC_ITEM("on the User Manual");
     STATIC_ITEM("for more information.");
     STATIC_ITEM(" ");
-    STATIC_ITEM("Proc. code: ST81 ");
+    STATIC_ITEM("Proc. code: OC02 ");
     STATIC_ITEM(" ");
     STATIC_ITEM("Click to continue.");
     END_SCREEN();
@@ -991,7 +991,7 @@ uint16_t max_display_update_time = 0;
     STATIC_ITEM(_UxGT("according to the"));
     STATIC_ITEM(_UxGT("following procedure!"));
     STATIC_ITEM(_UxGT(" "));
-    STATIC_ITEM(_UxGT("Proc. code: ST81"));
+    STATIC_ITEM(_UxGT("Proc. code: OC02"));
     STATIC_ITEM(_UxGT(" "));
     STATIC_ITEM(_UxGT("Click to exit."));
 
@@ -1204,7 +1204,7 @@ uint16_t max_display_update_time = 0;
    STATIC_ITEM(_UxGT("on the User Manual "));
    STATIC_ITEM(_UxGT("for more information."));
    STATIC_ITEM(_UxGT(" "));
-   STATIC_ITEM(_UxGT("Proc. code: ST71"));
+   STATIC_ITEM(_UxGT("Proc. code: OC01"));
    STATIC_ITEM(_UxGT(" "));
    STATIC_ITEM(_UxGT("Click to continue."));
    END_SCREEN();
@@ -5320,19 +5320,19 @@ void beevc_machine_setup_screen_error_hotend_timeout() {
   STATIC_ITEM("", false,false, string_to_print);
 
   if(active_extruder){
-    STATIC_ITEM(_UxGT("Status: ST23 - ERROR!"));
+    STATIC_ITEM(_UxGT("Status: EC23 - ERROR!"));
   }
   else{
-    STATIC_ITEM(_UxGT("Status: ST13 - ERROR!"));
+    STATIC_ITEM(_UxGT("Status: EC13 - ERROR!"));
   }
 
   MACHINE_SETUP_CHECK_MANUAL;
 
   if(active_extruder){
-    STATIC_ITEM(_UxGT("Error code: ST23"));
+    STATIC_ITEM(_UxGT("Error code: EC23"));
   }
   else{
-    STATIC_ITEM(_UxGT("Error code: ST13"));
+    STATIC_ITEM(_UxGT("Error code: EC13"));
   }
 
   MACHINE_SETUP_SHUTDOWN;
@@ -5349,19 +5349,19 @@ void beevc_machine_setup_screen_error_hotend_sensor() {
   STATIC_ITEM("", false,false, string_to_print);
 
   if(active_extruder){
-    STATIC_ITEM(_UxGT("Status: ST21 - ERROR!"));
+    STATIC_ITEM(_UxGT("Status: EC21 - ERROR!"));
   }
   else{
-    STATIC_ITEM(_UxGT("Status: ST11 - ERROR!"));
+    STATIC_ITEM(_UxGT("Status: EC11 - ERROR!"));
   }
 
   MACHINE_SETUP_CHECK_MANUAL;
 
   if(active_extruder){
-    STATIC_ITEM(_UxGT("Error code: ST21"));
+    STATIC_ITEM(_UxGT("Error code: EC21"));
   }
   else{
-    STATIC_ITEM(_UxGT("Error code: ST11"));
+    STATIC_ITEM(_UxGT("Error code: EC11"));
   }
 
   MACHINE_SETUP_SHUTDOWN;
@@ -5378,19 +5378,19 @@ void beevc_machine_setup_screen_error_hotend_sensor_swaped() {
   STATIC_ITEM("", false,false, string_to_print);
 
   if(active_extruder){
-    STATIC_ITEM(_UxGT("Status: ST22 - ERROR!"));
+    STATIC_ITEM(_UxGT("Status: EC22 - ERROR!"));
   }
   else{
-    STATIC_ITEM(_UxGT("Status: ST12 - ERROR!"));
+    STATIC_ITEM(_UxGT("Status: EC12 - ERROR!"));
   }
 
   MACHINE_SETUP_CHECK_MANUAL;
 
   if(active_extruder){
-    STATIC_ITEM(_UxGT("Error code: ST22"));
+    STATIC_ITEM(_UxGT("Error code: EC22"));
   }
   else{
-    STATIC_ITEM(_UxGT("Error code: ST12"));
+    STATIC_ITEM(_UxGT("Error code: EC12"));
   }
 
   MACHINE_SETUP_SHUTDOWN;
@@ -5413,11 +5413,11 @@ void beevc_machine_setup_screen_error_hotbed_timeout() {
 
   STATIC_ITEM("Heated bed:    xx/50\x09\u0043");
 
-  STATIC_ITEM(_UxGT("Status: ST33 - ERROR!"));
+  STATIC_ITEM(_UxGT("Status: EC33 - ERROR!"));
 
   MACHINE_SETUP_CHECK_MANUAL;
 
-  STATIC_ITEM(_UxGT("Error code: ST33"));
+  STATIC_ITEM(_UxGT("Error code: EC33"));
 
   MACHINE_SETUP_SHUTDOWN;
   MACHINE_SETUP_END;
@@ -5428,11 +5428,11 @@ void beevc_machine_setup_screen_error_hotbed_sensor() {
 
   STATIC_ITEM("Heated bed:    xx/50\x09\u0043");
 
-  STATIC_ITEM(_UxGT("Status: ST31 - ERROR!"));
+  STATIC_ITEM(_UxGT("Status: EC31 - ERROR!"));
 
   MACHINE_SETUP_CHECK_MANUAL;
 
-  STATIC_ITEM(_UxGT("Error code: ST31"));
+  STATIC_ITEM(_UxGT("Error code: EC31"));
 
   MACHINE_SETUP_SHUTDOWN;
   MACHINE_SETUP_END;
@@ -5465,11 +5465,11 @@ void beevc_machine_setup_screen_error_blower() {
   MACHINE_SETUP_TITLE;
 
   STATIC_ITEM(_UxGT("Blower fan:      ---%"));
-  STATIC_ITEM(_UxGT("Status: ST41 - ERROR!"));
+  STATIC_ITEM(_UxGT("Status: EC41 - ERROR!"));
 
   MACHINE_SETUP_CHECK_MANUAL;
 
-  STATIC_ITEM(_UxGT("Error code: ST41"));
+  STATIC_ITEM(_UxGT("Error code: EC41"));
 
   MACHINE_SETUP_SHUTDOWN;
   MACHINE_SETUP_END;
@@ -5532,11 +5532,11 @@ void beevc_machine_setup_screen_trinamic_error() {
   }
 
 
-  STATIC_ITEM(_UxGT("Status: ST51 - ERROR!"));
+  STATIC_ITEM(_UxGT("Status: EC51 - ERROR!"));
 
   MACHINE_SETUP_CHECK_MANUAL;
 
-  STATIC_ITEM(_UxGT("Error code: ST51"));
+  STATIC_ITEM(_UxGT("Error code: EC51"));
 
   MACHINE_SETUP_SHUTDOWN;
   MACHINE_SETUP_END;
@@ -5567,11 +5567,11 @@ void beevc_machine_setup_screen_powerloss_error() {
 
   STATIC_ITEM(_UxGT("Powerloss:        NOK"));
 
-  STATIC_ITEM(_UxGT("Status: ST61 - ERROR!"));
+  STATIC_ITEM(_UxGT("Status: EC61 - ERROR!"));
 
   MACHINE_SETUP_CHECK_MANUAL;
 
-  STATIC_ITEM(_UxGT("Error code: ST61"));
+  STATIC_ITEM(_UxGT("Error code: EC61"));
 
   MACHINE_SETUP_SHUTDOWN;
   MACHINE_SETUP_END;
@@ -5626,7 +5626,7 @@ void beevc_machine_setup_screen_set_offset_explain(){
   STATIC_ITEM(_UxGT("on the User Manual"));
   STATIC_ITEM(_UxGT("for more information."));
   STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Proc. code: ST71"));
+  STATIC_ITEM(_UxGT("Proc. code: OC01"));
   STATIC_ITEM(_UxGT(" "));
   STATIC_ITEM(_UxGT("Click to continue."));
   MACHINE_SETUP_END;
