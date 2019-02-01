@@ -1973,7 +1973,7 @@ void kill_screen(const char* lcd_msg) {
     defer_return_to_status = true;
     ENCODER_DIRECTION_NORMAL();
     if (encoderPosition) {
-      const int16_t babystep_increment = (int32_t)encoderPosition * (BABYSTEP_MULTIPLICATOR);
+      const int16_t babystep_increment = -((int32_t)encoderPosition * (BABYSTEP_MULTIPLICATOR));
       encoderPosition = 0;
 
       const float new_zoffset = zprobe_zoffset + planner.steps_to_mm[Z_AXIS] * babystep_increment;
