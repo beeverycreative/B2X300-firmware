@@ -7128,6 +7128,7 @@ inline void gcode_M17() {
       #endif
 
       // Load filament
+      do_pause_e_move(50, ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
       do_pause_e_move(load_length, FILAMENT_CHANGE_LOAD_FEEDRATE);
     }
 
@@ -10511,7 +10512,6 @@ inline void gcode_M502() {
    */
   inline void gcode_M600() {
 
-
     point_t park_point = NOZZLE_PARK_POINT;
 
     #if ENABLED(HOME_BEFORE_FILAMENT_CHANGE)
@@ -10565,6 +10565,8 @@ inline void gcode_M502() {
     );
 
     const bool job_running = print_job_timer.isRunning();
+
+    pause_filament_runout = parser.seen('F');
 
     if (pause_print(retract, park_point, unload_length, beep_count, true)) {
       wait_for_filament_reload(beep_count);

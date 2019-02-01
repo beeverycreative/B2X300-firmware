@@ -272,6 +272,22 @@ uint16_t max_display_update_time = 0;
 	#endif
 	///////////////////////////////////////////////////////
 
+  ////////////   Pause/Filament runout   //////////////
+	bool pause_filament_runout = false;
+  enum pause {
+    pause_init,
+    pause_unload,
+    pause_wait,
+    pause_heatup,
+    pause_insert,
+    pause_load,
+    pause_extrude,
+    pause_resume,
+    pause_option
+  };
+  uint8_t pause_status = pause_init;
+	///////////////////////////////////////////////////////
+
   ////////////   Filament Change   //////////////
 	uint16_t filament_change_temp = 0;
   uint8_t filament_change_extruder = 0;
@@ -802,10 +818,9 @@ uint16_t max_display_update_time = 0;
     u8g.print("Extruder ");\
     u8g.print(active_extruder+1);\
     u8g.print(": ");\
-    if(round(thermalManager.degHotend(active_extruder)) <100) u8g.print(" ");\
-    u8g.print(round(thermalManager.degHotend(active_extruder)));\
+    u8g.print(itostr3((thermalManager.degHotend(active_extruder))));\
     u8g.print("/");\
-    u8g.print(round(thermalManager.degTargetHotend(active_extruder)));\
+    u8g.print(itostr3(thermalManager.degTargetHotend(active_extruder)));\
     lcd_printPGM(PSTR(LCD_STR_DEGREE));\
     u8g.print("C")
 
@@ -2459,7 +2474,7 @@ void kill_screen(const char* lcd_msg) {
         // Show "Extrude More" / "Resume" menu and wait for reply
         KEEPALIVE_STATE(PAUSED_FOR_USER);
         wait_for_user = false;
-        lcd_advanced_pause_show_message(FILAMENT_CHANGE_MESSAGE_OPTION);
+        lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_OPTION);
         while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
         KEEPALIVE_STATE(IN_HANDLER);
 
@@ -7641,247 +7656,125 @@ void beevc_machine_setup_test_powerloss (){
       END_MENU();
     }
 
-    void lcd_advanced_pause_resume_print() {
-      advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_RESUME_PRINT;
-    }
-
-    void lcd_advanced_pause_extrude_more() {
-      advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE;
-    }
+    void lcd_advanced_pause_resume_print() {advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_RESUME_PRINT;}
+    void lcd_advanced_pause_extrude_more() {advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE;}
 
     void lcd_advanced_pause_option_menu() {
       START_MENU();
-      #if LCD_HEIGHT > 2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_OPTION_HEADER, true, false);
-      #endif
+      if(pause_filament_runout) {STATIC_ITEM("Filament runout", true, true);}
+      else                      {STATIC_ITEM("Change filament", true, true);}
       MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_RESUME, lcd_advanced_pause_resume_print);
       MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_EXTRUDE, lcd_advanced_pause_extrude_more);
       END_MENU();
     }
 
-    void lcd_advanced_pause_init_message() {
+    void lcd_advanced_pause_screens() {
       START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_INIT_1);
-      #ifdef MSG_FILAMENT_CHANGE_INIT_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_INIT_2);
-        #define __FC_LINES_A 3
-      #else
-        #define __FC_LINES_A 2
-      #endif
-      #ifdef MSG_FILAMENT_CHANGE_INIT_3
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_INIT_3);
-        #define _FC_LINES_A (__FC_LINES_A + 1)
-      #else
-        #define _FC_LINES_A __FC_LINES_A
-      #endif
-      #if LCD_HEIGHT > _FC_LINES_A + 1
-        STATIC_ITEM(" ");
-      #endif
-      HOTEND_STATUS_ITEM();
+      if(pause_filament_runout) {STATIC_ITEM("Filament runout", true, true);}
+      else                      {STATIC_ITEM("Change filament", true, true);}
+      LCD_PRINT_EXT_TEMP();
+
+      switch (pause_status){
+        case pause_init:
+          STATIC_ITEM("Status: moving");               
+          STATIC_ITEM(" ");
+          STATIC_ITEM("Please wait.");
+          break;
+        case pause_unload:
+          STATIC_ITEM("Status: unloading");               
+          STATIC_ITEM(" ");
+          STATIC_ITEM("Please wait.");
+          break;
+        case pause_wait:
+          STATIC_ITEM("Status: heating");               
+          STATIC_ITEM(" ");
+          STATIC_ITEM("Please wait.");
+          break;
+        case pause_heatup:
+          STATIC_ITEM("Status: standby");               
+          STATIC_ITEM(" ");
+          STATIC_ITEM("Click to reheat.");
+          break;
+        case pause_insert:
+          STATIC_ITEM("Status: waiting");               
+          STATIC_ITEM("Please, load filament");
+          STATIC_ITEM("and click to continue");
+          break;
+        case pause_load:
+          STATIC_ITEM("Status: loading");               
+          STATIC_ITEM(" ");
+          STATIC_ITEM("Please wait.");
+          break;
+        case pause_extrude:
+          STATIC_ITEM("Status: extruding");               
+          STATIC_ITEM(" ");
+          STATIC_ITEM("Please wait.");
+          break;
+        case pause_resume:
+          STATIC_ITEM("Status: resuming");               
+          STATIC_ITEM(" ");
+          STATIC_ITEM("Please wait.");
+          break;
+      }
       END_SCREEN();
     }
 
-    void lcd_advanced_pause_unload_message() {
-      START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_UNLOAD_1);
-      #ifdef MSG_FILAMENT_CHANGE_UNLOAD_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_UNLOAD_2);
-        #define __FC_LINES_B 3
-      #else
-        #define __FC_LINES_B 2
-      #endif
-      #ifdef MSG_FILAMENT_CHANGE_UNLOAD_3
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_UNLOAD_3);
-        #define _FC_LINES_B (__FC_LINES_B + 1)
-      #else
-        #define _FC_LINES_B __FC_LINES_B
-      #endif
-      #if LCD_HEIGHT > _FC_LINES_B + 1
-        STATIC_ITEM(" ");
-      #endif
-      HOTEND_STATUS_ITEM();
-      END_SCREEN();
-    }
-
-    void lcd_advanced_pause_wait_for_nozzles_to_heat() {
-      START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_1);
-      #ifdef MSG_FILAMENT_CHANGE_HEATING_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_2);
-        #define _FC_LINES_C 3
-      #else
-        #define _FC_LINES_C 2
-      #endif
-      #if LCD_HEIGHT > _FC_LINES_C + 1
-        STATIC_ITEM(" ");
-      #endif
-      HOTEND_STATUS_ITEM();
-      END_SCREEN();
-    }
-
-    void lcd_advanced_pause_heat_nozzle() {
-      START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEAT_1);
-      #ifdef MSG_FILAMENT_CHANGE_INSERT_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_HEAT_2);
-        #define _FC_LINES_D 3
-      #else
-        #define _FC_LINES_D 2
-      #endif
-      #if LCD_HEIGHT > _FC_LINES_D + 1
-        STATIC_ITEM(" ");
-      #endif
-      HOTEND_STATUS_ITEM();
-      END_SCREEN();
-    }
-
-    void lcd_advanced_pause_insert_message() {
-      START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_INSERT_1);
-      #ifdef MSG_FILAMENT_CHANGE_INSERT_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_INSERT_2);
-        #define __FC_LINES_E 3
-      #else
-        #define __FC_LINES_E 2
-      #endif
-      #ifdef MSG_FILAMENT_CHANGE_INSERT_3
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_INSERT_3);
-        #define _FC_LINES_E (__FC_LINES_E + 1)
-      #else
-        #define _FC_LINES_E __FC_LINES_E
-      #endif
-      #if LCD_HEIGHT > _FC_LINES_E + 1
-        STATIC_ITEM(" ");
-      #endif
-      HOTEND_STATUS_ITEM();
-      END_SCREEN();
-    }
-
-    void lcd_advanced_pause_load_message() {
-      START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_LOAD_1);
-      #ifdef MSG_FILAMENT_CHANGE_LOAD_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_LOAD_2);
-        #define __FC_LINES_F 3
-      #else
-        #define __FC_LINES_F 2
-      #endif
-      #ifdef MSG_FILAMENT_CHANGE_LOAD_3
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_LOAD_3);
-        #define _FC_LINES_F (__FC_LINES_F + 1)
-      #else
-        #define _FC_LINES_F __FC_LINES_F
-      #endif
-      #if LCD_HEIGHT > _FC_LINES_F + 1
-        STATIC_ITEM(" ");
-      #endif
-      HOTEND_STATUS_ITEM();
-      END_SCREEN();
-    }
-
-    void lcd_advanced_pause_extrude_message() {
-      START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_EXTRUDE_1);
-      #ifdef MSG_FILAMENT_CHANGE_EXTRUDE_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_EXTRUDE_2);
-        #define __FC_LINES_G 3
-      #else
-        #define __FC_LINES_G 2
-      #endif
-      #ifdef MSG_FILAMENT_CHANGE_EXTRUDE_3
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_EXTRUDE_3);
-        #define _FC_LINES_G (__FC_LINES_G + 1)
-      #else
-        #define _FC_LINES_G __FC_LINES_G
-      #endif
-      #if LCD_HEIGHT > _FC_LINES_G + 1
-        STATIC_ITEM(" ");
-      #endif
-      HOTEND_STATUS_ITEM();
-      END_SCREEN();
-    }
-
-    void lcd_advanced_pause_resume_message() {
-      START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_RESUME_1);
-      #ifdef MSG_FILAMENT_CHANGE_RESUME_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_RESUME_2);
-      #endif
-      #ifdef MSG_FILAMENT_CHANGE_RESUME_3
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_RESUME_3);
-      #endif
-      END_SCREEN();
-    }
+    #define ADVANCED_PAUSE_SETUP \
+      defer_return_to_status = true; \
+      beevc_screen_constant_update = true
 
     void lcd_advanced_pause_show_message(const AdvancedPauseMessage message) {
       switch (message) {
         case ADVANCED_PAUSE_MESSAGE_INIT:
-          defer_return_to_status = true;
-          lcd_goto_screen(lcd_advanced_pause_init_message);
+          ADVANCED_PAUSE_SETUP;
+          pause_status = pause_init;
+          lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_UNLOAD:
-          defer_return_to_status = true;
-          lcd_goto_screen(lcd_advanced_pause_unload_message);
+          ADVANCED_PAUSE_SETUP;
+          pause_status = pause_unload;
+          lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_INSERT:
-          defer_return_to_status = true;
-          lcd_goto_screen(lcd_advanced_pause_insert_message);
+          ADVANCED_PAUSE_SETUP;
+          pause_status = pause_insert;
+          lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_LOAD:
-          defer_return_to_status = true;
-          lcd_goto_screen(lcd_advanced_pause_load_message);
+          ADVANCED_PAUSE_SETUP;
+          pause_status = pause_load;
+          lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_EXTRUDE:
-          defer_return_to_status = true;
-          lcd_goto_screen(lcd_advanced_pause_extrude_message);
+          ADVANCED_PAUSE_SETUP;
+          pause_status = pause_extrude;
+          lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_CLICK_TO_HEAT_NOZZLE:
-          defer_return_to_status = true;
-          lcd_goto_screen(lcd_advanced_pause_heat_nozzle);
+          ADVANCED_PAUSE_SETUP;
+          pause_status = pause_heatup;
+          lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_WAIT_FOR_NOZZLES_TO_HEAT:
-          defer_return_to_status = true;
-          lcd_goto_screen(lcd_advanced_pause_wait_for_nozzles_to_heat);
+          ADVANCED_PAUSE_SETUP;
+          pause_status = pause_wait;
+          lcd_goto_screen(lcd_advanced_pause_screens);
+          break;
+        case ADVANCED_PAUSE_MESSAGE_RESUME:
+          ADVANCED_PAUSE_SETUP;
+          pause_status = pause_resume;
+          lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_OPTION:
-          defer_return_to_status = true;
+          ADVANCED_PAUSE_SETUP;
           advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
           lcd_goto_screen(lcd_advanced_pause_option_menu);
           break;
-        case ADVANCED_PAUSE_MESSAGE_RESUME:
-          defer_return_to_status = true;
-          lcd_goto_screen(lcd_advanced_pause_resume_message);
-          break;
-        case ADVANCED_PAUSE_MESSAGE_STATUS:
-          lcd_return_to_status();
-          break;
 
-		 // DR - 09/11/17 - Filament change move
-		case FILAMENT_CHANGE_MESSAGE_MOVING:
-		  defer_return_to_status = true;
-          lcd_goto_screen(lcd_filament_change_moving);
-          break;
-    case FILAMENT_CHANGE_PRESS:
-      defer_return_to_status = true;
-          lcd_goto_screen(lcd_filament_change_press);
-          break;
-		case FILAMENT_CHANGE_MESSAGE_OPTION:
-		  defer_return_to_status = true;
-          advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
-          lcd_goto_screen(lcd_filament_change_option_menu);
-          break;
-		 case FILAMENT_CHANGE_UNLOAD_OPTION:
-		  defer_return_to_status = true;
-          advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
-          lcd_goto_screen(lcd_filament_change_unload_option_menu);
+        case ADVANCED_PAUSE_MESSAGE_STATUS:
+          beevc_screen_constant_update = false;
+          lcd_return_to_status();
+          beevc_force_screen_update();
           break;
 
     // BEEVC - Sensorless homing auto calibration

@@ -55,6 +55,10 @@
   void kill_screen(const char* lcd_msg);
   bool lcd_detected(void);
 
+  ////////////   Pause/Filament runout   //////////////
+	extern bool pause_filament_runout;
+	///////////////////////////////////////////////////////
+
   extern uint8_t lcdDrawUpdate;
   inline void lcd_refresh() { lcdDrawUpdate = LCDVIEW_CLEAR_CALL_REDRAW; }
 
