@@ -931,7 +931,7 @@
   #define MSG_DAC_EEPROM_WRITE                _UxGT("DAC EEPROM Write")
 #endif
 #ifndef MSG_FILAMENT_CHANGE_HEADER
-  #define MSG_FILAMENT_CHANGE_HEADER          _UxGT("PRINT PAUSED")
+  #define MSG_FILAMENT_CHANGE_HEADER          _UxGT("Print paused")
 #endif
 #ifndef MSG_FILAMENT_CHANGE_OPTION_HEADER
   #define MSG_FILAMENT_CHANGE_OPTION_HEADER   _UxGT("RESUME OPTIONS:")
