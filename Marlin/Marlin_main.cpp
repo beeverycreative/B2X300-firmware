@@ -12585,6 +12585,8 @@ inline void gcode_M999() {
 	inline void gcode_M710()
 	{
 		//Loads most variables from EEPROM to the respective spots
+    bool z_lift = true;
+    uint8_t z_lift_mm = 2;
 
 		// Sets the eeprom index to the begining
 		int eeprom_index = 0 ;
@@ -12599,6 +12601,11 @@ inline void gcode_M999() {
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
+    // If Z values has been set negative it means Z axis lift was already executed so revert it back and disable Z lift
+    if(current_position[Z_AXIS] < 0){
+      current_position[Z_AXIS] = - current_position[Z_AXIS];
+      z_lift = false;
+    }
 
 		//Loads X position
 		float xPosition = 0;
@@ -12634,8 +12641,8 @@ inline void gcode_M999() {
     axis_relative_modes[E_AXIS] = ((active_extruder & 0b00000100) == 0b00000100);
     // Loads acceleration
     planner.acceleration = (active_extruder >> 4) * 250;
-	planner.travel_acceleration = planner.acceleration * 1.5;
-	active_extruder = active_extruder & 0b00000011;
+    planner.travel_acceleration = planner.acceleration * 1.5;
+    active_extruder = active_extruder & 0b00000011;
 
 		#ifdef SERIAL_DEBUG
 				SERIAL_ECHOPAIR("Loaded active extruder: ", active_extruder);
@@ -12647,9 +12654,10 @@ inline void gcode_M999() {
 		#endif
 
 		//Loads extrusion ammount
-		EEPROM_read(eeprom_index, (uint8_t*)&current_position[E_AXIS], sizeof(current_position[E_AXIS]));
+    float temp_current_position_e = 0;
+		EEPROM_read(eeprom_index, (uint8_t*)&temp_current_position_e, sizeof(current_position[E_AXIS]));
 		#ifdef SERIAL_DEBUG
-			SERIAL_ECHOPAIR("Loaded E ammount: ", current_position[E_AXIS]);
+			SERIAL_ECHOPAIR("Loaded E ammount: ", temp_current_position_e);
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
@@ -12719,83 +12727,77 @@ inline void gcode_M999() {
     //Heats up bed to avoid the print from lifting
 		unsigned long now = millis()+1000;
 		lcd_setstatus("Heating Bed");
-		while (abs((thermalManager.degBed() - thermalManager.degTargetBed()) >= 2 ))
-		{
-			if (millis() > now)
-			{
+		while (abs((thermalManager.degBed() - thermalManager.degTargetBed()) >= 2 )) {
+			if (millis() > now) {
 				now = millis()+1000;
 				thermalManager.print_heaterstates();
-
 			}
-			else
-				if(thermalManager.degTargetBed() <30)
-					break;
-			else
-				idle();
-		  }
+			else{
+        if(thermalManager.degTargetBed() <30) break;
+        else idle();
+      }
+		}
 
 
-      // Heats up extruders that were hot to 100ºC in case it is stuck to the printed parts
-      if ((active_extruder == 0) || tempE0 > 100)
-        {
-          //Verifies if  the hotend isn't above 100ºC already
-          if(thermalManager.degHotend(0) >=100)
-            thermalManager.target_temperature[0] = tempE0;
-          else
-            thermalManager.target_temperature[0] = 100;
-        }
+    // Heats up extruders that were hot to 100ºC in case it is stuck to the printed parts
+    if ((active_extruder == 0) || tempE0 > 100){
+      //Verifies if  the hotend isn't above 100ºC already
+      if(thermalManager.degHotend(0) >=100)
+        thermalManager.target_temperature[0] = tempE0;
+      else
+        thermalManager.target_temperature[0] = 100;
+    }
 
-
-      if ((active_extruder == 1) || tempE1 > 100)
-      {
-        //Verifies if  the hotend isn't above 100ºC already
-        if(thermalManager.degHotend(1) >=100)
+    if ((active_extruder == 1) || tempE1 > 100)
+    {
+      //Verifies if  the hotend isn't above 100ºC already
+      if(thermalManager.degHotend(1) >=100)
         thermalManager.target_temperature[1] = tempE1;
       else
         thermalManager.target_temperature[1] = 100;
+    }
+
+    //Waits for hotend 0 temperature to stabilized to atleast 100ºC
+    lcd_setstatus("Pre-Heating E0");
+    while ((abs(thermalManager.degHotend(0) - thermalManager.degTargetHotend(0)) > 5 )) {
+      if (millis() > now) {
+        now = millis()+1000;
+        thermalManager.print_heaterstates();
       }
-
-      //Waits for hotend 0 temperature to stabilized to atleast 100ºC
-      lcd_setstatus("Pre-Heating E0");
-      while ((abs(thermalManager.degHotend(0) - thermalManager.degTargetHotend(0)) > 5 ))
-      {
-        if (millis() > now)
-        {
-          now = millis()+1000;
-          thermalManager.print_heaterstates();
-
-        }
-        // Ensures the loop does't try heating up to low temperatures or cooling down if hot enough
-        else
-          if(thermalManager.degTargetHotend(0) <30 || thermalManager.degTargetHotend(0) > 100 )
-            break;
-        else
-        idle();
+      // Ensures the loop does't try heating up to low temperatures or cooling down if hot enough
+      else {
+        if(thermalManager.degTargetHotend(0) <30 || thermalManager.degTargetHotend(0) > 100 ) break;
+        else idle();
       }
+    }
 
-		  //Waits for hotend 1 temperature to stabilized to atleast 100ºC
-		  lcd_setstatus("Pre-Heating E1");
-  		while (abs((thermalManager.degHotend(1) - thermalManager.degTargetHotend(1)) > 5 ))
-  		{
-  			if (millis() > now)
-  			{
-  				now = millis()+1000;
-  				thermalManager.print_heaterstates();
-
-  			}
-  			else
-  				if(thermalManager.degTargetHotend(1) <30 || thermalManager.degTargetHotend(1) > 100 )
-  					break;
-  			else
-  				idle();
-  		}
+    //Waits for hotend 1 temperature to stabilized to atleast 100ºC
+    lcd_setstatus("Pre-Heating E1");
+    while (abs((thermalManager.degHotend(1) - thermalManager.degTargetHotend(1)) > 5 )){
+      if (millis() > now){
+        now = millis()+1000;
+        thermalManager.print_heaterstates();
+      }
+      else{
+        if(thermalManager.degTargetHotend(1) <30 || thermalManager.degTargetHotend(1) > 100 ) break;
+        else idle();
+      }
+    }
 
     //Lifts Z 20mm and homes X Y not moving the Z axis
-    SYNC_PLAN_POSITION_KINEMATIC(); // Makes current position the planner position G92
-    set_destination_from_current();
-    do_blocking_move_to_z((current_position[Z_AXIS]+20), 4);
-    lcd_setstatus("Homing XY...");
+    if(z_lift){
+      // Reverts stored Z flag to avoid repeating lift
+      float temp = - current_position[Z_AXIS];
+      eeprom_index = 0;
+      EEPROM_write(eeprom_index, (uint8_t*)&temp, sizeof(current_position[Z_AXIS]));
 
+      // Lifts Z
+      SYNC_PLAN_POSITION_KINEMATIC(); // Makes current position the planner position G92
+      do_blocking_move_to_z((current_position[Z_AXIS]+z_lift_mm), 4);
+    }
+    
+    // Homing XY
+    lcd_setstatus("Homing XY...");
     #ifdef BEEVC_TMC2130READSG
       uint8_t pre_home_move_mm = 20;
       bool restore_stealthchop_x = false, restore_stealthchop_y = false;
@@ -12940,7 +12942,7 @@ inline void gcode_M999() {
     #endif // BEEVC_TMC2130READSG
 
     // Wait for planner moves to finish!
-    stepper.synchronize();
+    //stepper.synchronize();
 
     //Sets the correct extruder temperatures for printing
     thermalManager.target_temperature[0] = tempE0;
@@ -12948,64 +12950,44 @@ inline void gcode_M999() {
 
     //Waits for hotend 0 temperature to stabilized
     lcd_setstatus("Heating E0");
-    while ((abs(thermalManager.degHotend(0) - thermalManager.degTargetHotend(0)) > 5 ))
-    {
-      if (millis() > now)
-      {
+    while ((abs(thermalManager.degHotend(0) - thermalManager.degTargetHotend(0)) > 5 )) {
+      if (millis() > now) {
         now = millis()+1000;
         thermalManager.print_heaterstates();
-
       }
       // Ensures the loop does't try heating up to low temperatures
-      else
-        if(thermalManager.degTargetHotend(0) <30)
-          break;
-      else
-      idle();
+      else{
+        if(thermalManager.degTargetHotend(0) <30)   break;
+        else                                        idle();
+      }
     }
 
     //Waits for hotend 1 temperature to stabilized
     lcd_setstatus("Heating E1");
-    while (abs((thermalManager.degHotend(1) - thermalManager.degTargetHotend(1)) > 5 ))
-    {
-      if (millis() > now)
-      {
+    while (abs((thermalManager.degHotend(1) - thermalManager.degTargetHotend(1)) > 5 )) {
+      if (millis() > now) {
         now = millis()+1000;
         thermalManager.print_heaterstates();
-
       }
-      else
-        if(thermalManager.degTargetHotend(1) <30)
-          break;
-      else
-        idle();
+      else{
+        if(thermalManager.degTargetHotend(1) <30)   break;
+        else                                        idle();
+      }
     }
+
+    //Extrudes a priming amount
+    lcd_setstatus("Priming extruder...");
+    do_pause_e_move(5,5);
 
     // Moves the printhead to the printed part and lowers Z
     lcd_setstatus("Recovering print...");
-		buffer_line_to_current_position();
 		do_blocking_move_to_xy(xPosition,yPosition,40);
-    do_blocking_move_to_z((current_position[2]-20), 4);
+    do_blocking_move_to_z((current_position[2]-z_lift_mm), 4);
     if(active_extruder == 1){
       active_extruder = 0;
       tool_change(0);
       tool_change(1);
     }
-
-    
-
-		//Extrudes a priming amount
-		/*
-		destination[E_AXIS] = current_position[E_AXIS];
-		current_position[E_AXIS] -= 12;
-
-		stepper.synchronize();
-		current_position[E_AXIS] += 12;
-		destination[E_AXIS] = current_position[E_AXIS];
-		*/
-		//destination[E_AXIS] = current_position[E_AXIS];
-		//current_position[E_AXIS] -= 1;
-
 
     #ifdef BEEVC_Restore_LiftRetract
 
@@ -13139,30 +13121,27 @@ inline void gcode_M999() {
         }
     #endif
 
+    // Clears EEPROM recovery flag
+		gcode_M712();
 
-		//Sets the stored Z height to 0 because printer has already been restored
-			float temp = 0;
-			int eeprom_index_recover = 0;
-			EEPROM_write(eeprom_index_recover, (uint8_t*)&temp, sizeof(current_position[Z_AXIS]));
+    #ifdef SERIAL_DEBUG
+      SERIAL_ECHOPAIR("Postion E: ", (current_position[E_AXIS]));
+      SERIAL_ECHOLNPGM("! ");
+      SERIAL_ECHOPAIR("Destination E: ", (destination[E_AXIS]));
+      SERIAL_ECHOLNPGM("! ");
+      SERIAL_ECHOPAIR("Filament size: ", (planner.filament_size[0]));
+      SERIAL_ECHOLNPGM("! ");
+      SERIAL_ECHOPAIR("flow0: ", (planner.e_factor[0]));
+      SERIAL_ECHOLNPGM("! ");
+      SERIAL_ECHOPAIR("flow1: ", (planner.e_factor[1]));
+      SERIAL_ECHOLNPGM("! ");
+      SERIAL_ECHOPAIR("percentage0: ", (planner.flow_percentage[0]));
+      SERIAL_ECHOLNPGM("! ");
+      SERIAL_ECHOPAIR("percentage1: ", (planner.flow_percentage[1]));
+      SERIAL_ECHOLNPGM("! ");
+    #endif
 
-      #ifdef SERIAL_DEBUG
-				SERIAL_ECHOPAIR("Postion E: ", (current_position[E_AXIS]));
-				SERIAL_ECHOLNPGM("! ");
-				SERIAL_ECHOPAIR("Destination E: ", (destination[E_AXIS]));
-				SERIAL_ECHOLNPGM("! ");
-        SERIAL_ECHOPAIR("Filament size: ", (planner.filament_size[0]));
-				SERIAL_ECHOLNPGM("! ");
-        SERIAL_ECHOPAIR("flow0: ", (planner.e_factor[0]));
-				SERIAL_ECHOLNPGM("! ");
-        SERIAL_ECHOPAIR("flow1: ", (planner.e_factor[1]));
-				SERIAL_ECHOLNPGM("! ");
-        SERIAL_ECHOPAIR("percentage0: ", (planner.flow_percentage[0]));
-				SERIAL_ECHOLNPGM("! ");
-        SERIAL_ECHOPAIR("percentage1: ", (planner.flow_percentage[1]));
-				SERIAL_ECHOLNPGM("! ");
-			#endif
-
-		//destination[E_AXIS] = current_position[E_AXIS] = 0
+		destination[E_AXIS] = current_position[E_AXIS] = temp_current_position_e;
     set_destination_from_current();
     sync_plan_position();
 
@@ -13187,6 +13166,8 @@ inline void gcode_M999() {
     #endif
 
 		toRecover = false;
+
+    lcd_setstatus("Printing...");
 	}
 
   /**
