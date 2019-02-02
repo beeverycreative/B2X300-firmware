@@ -5256,34 +5256,6 @@ void lcd_enqueue_filament_change() {
   #endif
   ///////////////////////////////////////////////////////
 
-  void beevc_machine_setup_buzz(){
-    lcd_buzz(100, 659);
-    lcd_buzz(100, 698);
-  }
-
-  void beevc_machine_setup_wait_click() {
-    wait_for_user = true;    // LCD click or M108 will clear this
-    while(wait_for_user){
-      // Avoid returning to status screen
-      defer_return_to_status = true;
-
-      // Manage idle time
-      idle(true);
-    }
-  }
-
-  void beevc_machine_setup_wait(uint16_t milliseconds) {
-    wait_for_user = true;    // LCD click or M108 will clear this
-    uint32_t temptime= millis() + milliseconds;
-    while((temptime > millis()) && wait_for_user){
-      // Avoid returning to status screen
-      defer_return_to_status = true;
-
-      // Manage idle time
-      idle(true);
-    }
-  }
-
   #define MACHINE_SETUP_TITLE \
     START_SCREEN();\
     STATIC_ITEM(_UxGT("Self-test wizard"), true, true)
@@ -5867,13 +5839,13 @@ void beevc_machine_setup_screen_set_offset_calibrate(){
 }
 
 void beevc_machine_setup_sensorless_homing (){
-  beevc_machine_setup_buzz();
+  beevc_buzz();
 
   // Show info screen
   lcd_goto_screen(beevc_machine_setup_screen_sensorless_homing);
 
   // Waits for click or timeout
-  beevc_machine_setup_wait(1000);
+  beevc_wait(1000);
 
   // Starts variables to force calibration
   calibrating_sensorless_homing_x = true;
@@ -5886,10 +5858,10 @@ void beevc_machine_setup_sensorless_homing (){
   lcd_goto_screen(beevc_machine_setup_screen_sensorless_homing_complete);
 
   //Beep
-  beevc_machine_setup_buzz();
+  beevc_buzz();
 
   //Wait for 5sec or click
-  beevc_machine_setup_wait(5000);
+  beevc_wait(5000);
 }
 
 void beevc_machine_setup_measure_xy(){
@@ -5903,7 +5875,7 @@ void beevc_machine_setup_set_offset(){
   lcd_goto_screen(beevc_machine_setup_screen_set_offset_homing);
 
   // Waits for click or timeout
-  beevc_machine_setup_wait(1000);
+  beevc_wait(1000);
 
   // Homes and autoleves axes
   gcode_G28(1);
@@ -5928,7 +5900,7 @@ void beevc_machine_setup_set_offset(){
 
   // Shows the help screen
   lcd_goto_screen(beevc_machine_setup_screen_set_offset_explain);
-  beevc_machine_setup_wait(20000);
+  beevc_wait(20000);
 
   // Shows the leveling screen
   lcd_goto_screen(beevc_machine_setup_screen_set_offset_calibrate);
@@ -5939,10 +5911,10 @@ void beevc_machine_setup_set_offset(){
   }
 
   //Beep
-  beevc_machine_setup_buzz();
+  beevc_buzz();
 
   //Wait for 5sec or click
-  beevc_machine_setup_wait(5000);
+  beevc_wait(5000);
 }
 
 void beevc_machine_setup_test_hotend (uint8_t extruder){
@@ -6018,13 +5990,13 @@ void beevc_machine_setup_test_hotend (uint8_t extruder){
 
 
   //Beep
-  beevc_machine_setup_buzz();
+  beevc_buzz();
 
   //Display Hotbed ok screen
   lcd_goto_screen(beevc_machine_setup_screen_hotend_ok);
 
   //Wait for 5sec or click
-  beevc_machine_setup_wait(5000);
+  beevc_wait(5000);
 
   //Disable E heating
   thermalManager.setTargetHotend(0, active_extruder);
@@ -6067,19 +6039,19 @@ void beevc_machine_setup_test_hotbed (){
   thermalManager.setTargetBed(0);
 
   //Beep
-  beevc_machine_setup_buzz();
+  beevc_buzz();
 
   //Display Hotbed ok screen
   lcd_goto_screen(beevc_machine_setup_screen_hotbed_ok);
 
   //Wait for 5sec or click
-  beevc_machine_setup_wait(5000);
+  beevc_wait(5000);
 }
 
 void beevc_machine_setup_test_blower (){
     lcd_goto_screen(beevc_machine_setup_screen_blower_start);
 
-    beevc_machine_setup_wait(5000);
+    beevc_wait(5000);
     fanSpeeds[0] = 255;
     beevc_continue = 0;
 
@@ -6092,10 +6064,10 @@ void beevc_machine_setup_test_blower (){
     fanSpeeds[0] = 0;
 
     //Beep
-    beevc_machine_setup_buzz();
+    beevc_buzz();
 
     //Wait for 5sec or click
-    beevc_machine_setup_wait(5000);
+    beevc_wait(5000);
 }
 
 void beevc_machine_setup_test_trinamic (){
@@ -6103,7 +6075,7 @@ void beevc_machine_setup_test_trinamic (){
     lcd_goto_screen(beevc_machine_setup_screen_trinamic_start);
 
     // Waits for 5s or click
-    beevc_machine_setup_wait(5000);
+    beevc_wait(5000);
 
     // Re-initializes variable
     trinamic_ok = 0;
@@ -6182,13 +6154,13 @@ void beevc_machine_setup_test_trinamic (){
     }
 
     //Beep
-    beevc_machine_setup_buzz();
+    beevc_buzz();
 
     // Display ok screen
     lcd_goto_screen(beevc_machine_setup_screen_trinamic_ok);
 
     //Wait for 5sec or click
-    beevc_machine_setup_wait(5000);
+    beevc_wait(5000);
 }
 
 void beevc_machine_setup_test_powerloss (){
@@ -6196,7 +6168,7 @@ void beevc_machine_setup_test_powerloss (){
     lcd_goto_screen(beevc_machine_setup_screen_powerloss_start);
 
     // Waits for 5s or click
-    beevc_machine_setup_wait(5000);
+    beevc_wait(5000);
 
     // Tests if the powerloss pin is ofline as it should be
     if (digitalRead(11) != 0){
@@ -6207,13 +6179,13 @@ void beevc_machine_setup_test_powerloss (){
     }
 
     //Beep
-    beevc_machine_setup_buzz();
+    beevc_buzz();
 
     // Display ok screen
     lcd_goto_screen(beevc_machine_setup_screen_powerloss_ok);
 
     //Wait for 5sec or click
-    beevc_machine_setup_wait(5000);
+    beevc_wait(5000);
 }
 
   /**
@@ -6231,7 +6203,7 @@ void beevc_machine_setup_test_powerloss (){
     // Shows EEPROM updated screen
     if(toCalibrate == 1) {
       lcd_goto_screen(beevc_machine_setup_EEPROM_updated);
-      beevc_machine_setup_wait_click();
+      beevc_wait_click();
     }
 
     // Start screen
@@ -6239,13 +6211,13 @@ void beevc_machine_setup_test_powerloss (){
     lcd_goto_screen(beevc_machine_setup_screen_start);
 
     // Wait for click
-    beevc_machine_setup_wait_click();
+    beevc_wait_click();
 
     // Verify Hotend connections
     lcd_goto_screen(beevc_machine_setup_screen_hotend_start);
 
     // Wait for while to allow the user to read the message
-    beevc_machine_setup_wait(5000);
+    beevc_wait(5000);
 
     // Verify E1 connection
       // Test E1
@@ -6293,7 +6265,7 @@ void beevc_machine_setup_test_powerloss (){
     lcd_goto_screen(beevc_machine_setup_screen_complete);
 
     // Waits for click
-    beevc_machine_setup_wait_click();
+    beevc_wait_click();
 
     // Return to status screen
     lcd_return_to_status();
