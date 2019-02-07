@@ -12881,11 +12881,12 @@ inline void gcode_M999() {
       // Y
       // Home Y
       thermalManager.sg2_y_limit_hit = 0;
-
-      homeduration = 0;
+      homeduration = 11;
+      
       while (homeduration < 250) {
         // Moves Y a little away from limit to avoid eroneous detections
-        do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] > (Y_MIN_POS + pre_home_move_mm) ? current_position[Y_AXIS]-pre_home_move_mm : current_position[Y_AXIS]),25);
+        // Only acts if the duration is bigger than 10 to avoid loop on frame hit
+        if(homeduration > 10) do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] >= (Y_MIN_POS + pre_home_move_mm) ? current_position[Y_AXIS]-pre_home_move_mm : current_position[Y_AXIS]),25);
 
         // Wait for planner moves to finish!
         stepper.synchronize();
