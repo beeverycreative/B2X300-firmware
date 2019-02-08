@@ -12610,9 +12610,6 @@ inline void gcode_M999() {
 		// Sets the eeprom index to the begining
 		int eeprom_index = 0 ;
 
-    // Activated bed leveling mesh before loading Z height
-    set_bed_leveling_enabled(true);
-
 		//Loads Z height
 		EEPROM_read(eeprom_index, (uint8_t*)&current_position[Z_AXIS], sizeof(current_position[Z_AXIS]));
 		#ifdef SERIAL_DEBUG
@@ -12620,11 +12617,14 @@ inline void gcode_M999() {
 			SERIAL_ECHOPAIR(" at position ", eeprom_index);
 			SERIAL_ECHOLNPGM(" ");
 		#endif
+    SERIAL_PROTOCOLLNPAIR_F("Z value after read : ", current_position[Z_AXIS]);
+
     // If Z values has been set negative it means Z axis lift was already executed so revert it back and disable Z lift
     if(current_position[Z_AXIS] < 0){
       current_position[Z_AXIS] = - current_position[Z_AXIS];
       z_lift = false;
     }
+    SERIAL_PROTOCOLLNPAIR_F("Z value after test : ", current_position[Z_AXIS]);
 
 		//Loads X position
 		float xPosition = 0;
@@ -12645,6 +12645,12 @@ inline void gcode_M999() {
 				SERIAL_ECHOPAIR(" at position ", eeprom_index);
 				SERIAL_ECHOLNPGM(" ");
 		#endif
+
+    // Activated bed leveling mesh now that powerloss X Y Z position is known to allow the mesh to be set on the correct place
+    float leveling_z_ammount = current_position[Z_AXIS];
+    set_bed_leveling_enabled(true);
+    leveling_z_ammount -= current_position[Z_AXIS];
+    SERIAL_PROTOCOLLNPAIR_F("Z change on leveling : ", leveling_z_ammount);
 
     //Loads active extruder & extruder mode & acceleration
 		EEPROM_read(eeprom_index, (uint8_t*)&active_extruder, sizeof(active_extruder));
@@ -12803,16 +12809,17 @@ inline void gcode_M999() {
       }
     }
 
-    //Lifts Z 20mm and homes X Y not moving the Z axis
+    //Lifts Z some mm and homes X Y not moving the Z axis
     if(z_lift){
-      // Reverts stored Z flag to avoid repeating lift
-      float temp = - current_position[Z_AXIS];
-      eeprom_index = 0;
-      EEPROM_write(eeprom_index, (uint8_t*)&temp, sizeof(current_position[Z_AXIS]));
-
       // Lifts Z
       SYNC_PLAN_POSITION_KINEMATIC(); // Makes current position the planner position G92
       do_blocking_move_to_z((current_position[Z_AXIS]+z_lift_mm), 4);
+
+      // Reverts stored Z flag and remove Z_leveling to avoid repeating lift
+      float temp = - (current_position[Z_AXIS] + leveling_z_ammount);
+      eeprom_index = 0;
+      EEPROM_write(eeprom_index, (uint8_t*)&temp, sizeof(current_position[Z_AXIS]));
+      SERIAL_PROTOCOLLNPAIR_F("Z value after lift : ", temp);
     }
     
     // Homing XY
