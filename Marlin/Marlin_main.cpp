@@ -16467,7 +16467,7 @@ void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
     if ((IS_SD_PRINTING || print_job_timer.isRunning()) && (READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING)  && (active_extruder == 0))
 			handle_filament_runout();
 
-	if ((IS_SD_PRINTING || print_job_timer.isRunning()) && (READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING) && (active_extruder == 1))
+	  if ((IS_SD_PRINTING || print_job_timer.isRunning()) && (READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING) && (active_extruder == 1))
 			handle_filament_runout();
 
   #elif ENABLED(FILAMENT_RUNOUT_SENSOR)
