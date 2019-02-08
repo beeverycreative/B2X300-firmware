@@ -2386,6 +2386,11 @@ static void clean_up_after_endstop_or_probe_move() {
       }
     #endif
 
+    #ifdef SERIAL_DEBUG
+      SERIAL_ECHO("Measured Z = ");
+    #endif //SERIAL_DEBUG
+    
+
     #if MULTIPLE_PROBING > 2
       float probes_total[MULTIPLE_PROBING] = {0};
       float mean = 0;
@@ -2395,11 +2400,19 @@ static void clean_up_after_endstop_or_probe_move() {
         // move down slowly to find bed
         if (do_probe_move(-10, Z_PROBE_SPEED_SLOW)) return NAN;
 
+        #ifdef SERIAL_DEBUG
+          // Prints the read Z value
+          SERIAL_PROTOCOL_F(current_position[Z_AXIS],3);
+        #endif //SERIAL_DEBUG
+
     #if MULTIPLE_PROBING > 2
         probes_total[p] = current_position[Z_AXIS];
         mean += current_position[Z_AXIS];
-        //SERIAL_ECHO("Measured Z = ");
-        //SERIAL_ECHOLN(current_position[Z_AXIS]);
+
+        #ifdef SERIAL_DEBUG
+          SERIAL_ECHO(", ");
+        #endif //SERIAL_DEBUG
+  
         do_blocking_move_to_z(current_position[Z_AXIS] + ((float)Z_CLEARANCE_BETWEEN_REPEATS/10), MMM_TO_MMS(Z_PROBE_SPEED_FAST));
       }
     #endif
@@ -2416,9 +2429,14 @@ static void clean_up_after_endstop_or_probe_move() {
       float result = 0;
       for(uint8_t k = 0;k<MULTIPLE_PROBING ;k++ ) if(k != toIgnoreIndex) result+= probes_total[k];
 
+      #ifdef SERIAL_DEBUG
+        SERIAL_PROTOCOL_F(probes_total[toIgnoreIndex],3);
+        SERIAL_ECHO(", ");
+        SERIAL_PROTOCOL_F(result * (1.0 / (MULTIPLE_PROBING-1)),3);
+        SERIAL_ECHOLN(" ");
+      #endif //SERIAL_DEBUG
+
       // Return the average value of all probes witout the farthest outlier
-      // SERIAL_ECHO("Measured Z mean= ");
-      // SERIAL_ECHOLN(result * (1.0 / (MULTIPLE_PROBING-1)));
       return (result * (1.0 / (MULTIPLE_PROBING-1)));
 
       // Return the average value of all probes
@@ -7770,9 +7788,9 @@ inline void gcode_M42() {
     if (verbose_level > 0)
       SERIAL_PROTOCOLLNPGM("M48 Z-Probe Repeatability Test");
 
-    const int8_t n_samples = parser.byteval('P', 10);
-    if (!WITHIN(n_samples, 4, 50)) {
-      SERIAL_PROTOCOLLNPGM("?Sample size not plausible (4-50).");
+    const uint16_t n_samples = parser.ushortval('P', 10);
+    if (!WITHIN(n_samples, 4, 200)) {
+      SERIAL_PROTOCOLLNPGM("?Sample size not plausible (4-200).");
       return;
     }
 
@@ -7828,11 +7846,12 @@ inline void gcode_M42() {
 
     setup_for_endstop_or_probe_move();
 
-    double mean = 0.0, sigma = 0.0, min = 99999.9, max = -99999.9, sample_set[n_samples];
+    double mean = 0.0, sigma = 0.0, min = 99999.9, max = -99999.9;
+    float sample_set[n_samples];
 
     // Move to the first point, deploy, and probe
     const float t = probe_pt(X_probe_location, Y_probe_location, stow_probe_after_each, verbose_level);
-    bool probing_good = !isnan(t);
+    bool probing_good = !isnan((double)t);
 
     if (probing_good) {
       randomSeed(millis());
@@ -7910,7 +7929,7 @@ inline void gcode_M42() {
         sample_set[n] = probe_pt(X_probe_location, Y_probe_location, stow_probe_after_each, 0);
 
         // Break the loop if the probe fails
-        probing_good = !isnan(sample_set[n]);
+        probing_good = !isnan((double)sample_set[n]);
         if (!probing_good) break;
 
         /**
