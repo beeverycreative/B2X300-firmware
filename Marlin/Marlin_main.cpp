@@ -853,6 +853,9 @@ void report_current_position_detail();
 ////////////   SENSORLESS HOMING    //////////////
 #ifdef BEEVC_TMC2130READSG
   #define SENSORLESSHOMEAXIS(LETTER) sensorless_homeaxis(LETTER##_AXIS)
+  #define STALLGUARDTRIGGERENDSTOPS(axis, enable) \
+    if (axis == X_AXIS)   thermalManager.sg2_x_limit_hit = !enable; \
+    else                  thermalManager.sg2_y_limit_hit = !enable
 
   static void homeaxis(const AxisEnum axis);
 
@@ -892,6 +895,18 @@ void report_current_position_detail();
   }
 
   static void sensorless_homeaxis_restore_stepper(const AxisEnum axis, bool *stealthchop_restore, uint16_t *old_current){
+    // Resets flags after homing
+    thermalManager.sg2_homing = false;
+    thermalManager.sg2_polling_wait_cycles = 255; // decreases the polling frequency to the lowest possible
+    
+    #ifndef BEEVC_TMC2130STEPLOSS
+      // Stops further stallGuard2 status reading if step loss detection is inactive
+      thermalManager.sg2_to_read  = false;
+    #else
+      thermalManager.sg2_to_read  = true;
+      thermalManager.sg2_timeout = millis() + 2000;
+    #endif
+    
     // Stores required stepper in variable
     TMC2130Stepper st = ( axis == X_AXIS? stepperX : stepperY);
 
@@ -907,52 +922,53 @@ void report_current_position_detail();
     st.sg_filter(true);
 
     st.push();
-    
-    // Resets flags after homing
-    thermalManager.sg2_homing = false;
-    thermalManager.sg2_polling_wait_cycles = 255; // increases the polling frequency to the lowest possible
-
-    #ifndef BEEVC_TMC2130STEPLOSS
-      // Stops further stallGuard2 status reading if step loss detection is inactive
-      thermalManager.sg2_to_read  = false;
-    #else
-      thermalManager.sg2_to_read  = true;
-      thermalManager.sg2_timeout = millis() + 2000;
-    #endif
   }
 
   void sensorless_homeaxis_loop(const AxisEnum axis){
-    uint32_t homeduration  = (axis == X_AXIS ? 0 : 11);
+    // Forces a movement away from homing direction on first loop
+    uint32_t homeduration  = 11;
 
     while (homeduration < 250) {
+      // Stops stallGuard reading from triggering endstop
+      STALLGUARDTRIGGERENDSTOPS(axis,false);
+
+      // Only acts if the duration is bigger than 10 to avoid loop on frame hit
+      if(homeduration > 10){
+        // Moves axis sligtly away from wall to allow new measurement
       // If moving X
-      if (axis == X_AXIS){ 
-        // Moves X a little away from limit to avoid eroneous detections
+        if (axis == X_AXIS)
         #ifdef BEEVC_TMC2130HOMEXREVERSE
           // Homes X to the right
-          do_blocking_move_to_xy((current_position[X_AXIS] > (X_MIN_POS + abs(Y_MIN_POS)) ? current_position[X_AXIS]-abs(Y_MIN_POS) : current_position[X_AXIS]),current_position[Y_AXIS],25);
+          do_blocking_move_to_xy((current_position[X_AXIS] >= (X_MIN_POS + abs(X_MIN_POS)) ? current_position[X_AXIS]-abs(X_MIN_POS) : current_position[X_AXIS]),current_position[Y_AXIS],25);
         #else
           // Homes X to the left
           do_blocking_move_to_xy((current_position[X_AXIS] < (X_MAX_POS - abs(Y_MIN_POS)) ? current_position[X_AXIS]+abs(Y_MIN_POS) : current_position[X_AXIS]),current_position[Y_AXIS],25);
         #endif //BEEVC_TMC2130HOMEXREVERSE
-      }
+
       // If moving Y
-      else{
-        // Moves Y a little away from limit to avoid eroneous detections
-        // Only acts if the duration is bigger than 10 to avoid loop on frame hit
-        if(homeduration > 10) do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] >= (Y_MIN_POS + abs(Y_MIN_POS)) ? current_position[Y_AXIS]-abs(Y_MIN_POS) : current_position[Y_AXIS]),25);
+        else
+          do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] >= (Y_MIN_POS + abs(Y_MIN_POS)) ? current_position[Y_AXIS]-abs(Y_MIN_POS) : current_position[Y_AXIS]),25);
       }
       
-      // Wait for planner moves to finish!
-      //stepper.synchronize();
-
       homeduration = millis();
-      homeaxis(axis);
+
+      // Allows stallGuard reading from triggering endstop
+      STALLGUARDTRIGGERENDSTOPS(axis,true);
+
+      // Equivalent to homeaxis(axis) but leaner
+        // Resets planner axis position to zero
+        planner.set_position_mm(axis,0);
+        // Sets movement to 1.5 times the axis size and moves there
+        current_position[axis] = 1.5 * max_length(axis) * home_dir(axis);
+        planner.buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], homing_feedrate(axis), active_extruder);
+        // Loop untill collision or timeout
+        stepper.synchronize();
+
       homeduration = millis()- homeduration;
 
-      // Avoids making too much homed calls
-      if(homeduration < 250)
-        safe_delay(100);
+      // // Avoids making too much homing calls in case it is in contact with a wall, enough time for stallGuard to read new value
+      // if(homeduration < 250)
+      //   safe_delay(100);
 
       #ifdef SERIAL_DEBUG
         if (axis == X_AXIS)   SERIAL_ECHOLNPAIR("X axis homing duration:  ", homeduration);
@@ -960,30 +976,45 @@ void report_current_position_detail();
       #endif
     }
 
-    // Stops stallGuard reading from triggering endstop
-    // if X
-    if (axis == X_AXIS)   thermalManager.sg2_x_limit_hit = 1;
-    else                  thermalManager.sg2_y_limit_hit = 1;
+    // Set the axis to its home position
+    current_position[axis] = base_home_pos(axis);
+    axis_known_position[axis] = axis_homed[axis] = true;
+    planner.set_position_mm(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
+    set_destination_from_current();
 
-    axis_homed[axis] = true;
+    // Stops stallGuard reading from triggering endstop
+    STALLGUARDTRIGGERENDSTOPS(axis,false);
   }
 
   static void sensorless_homeaxis(const AxisEnum axis){
     uint16_t current_store = 0;
     bool stealthchop_restore = false;
 
+    #ifdef SERIAL_DEBUG
+      SERIAL_PROTOCOLLN("Preparing stepper");
+    #endif
+
     // Prepare stepper and store necessary data
     sensorless_homeaxis_prepare_stepper(axis,&stealthchop_restore,&current_store);
     
+    #ifdef SERIAL_DEBUG
+      SERIAL_PROTOCOLLN("Homing loop");
+    #endif
+
     // Does the loop to measure wall position
     sensorless_homeaxis_loop(axis);
+
+    #ifdef SERIAL_DEBUG
+      SERIAL_PROTOCOLLN("Restoring stepper");
+    #endif
 
     // Restores stepper driver to former state
     sensorless_homeaxis_restore_stepper(axis,&stealthchop_restore,&current_store);
 
     #ifdef SERIAL_DEBUG
-      SERIAL_PROTOCOLLNPAIR("current_restore:       ", current_store);
-      SERIAL_PROTOCOLLNPAIR("stealthchop_restore:   ", stealthchop_restore);
+      SERIAL_PROTOCOLLN("Finished homing");
+      //SERIAL_PROTOCOLLNPAIR("current_restore:       ", current_store);
+      //SERIAL_PROTOCOLLNPAIR("stealthchop_restore:   ", stealthchop_restore);
     #endif
   }
 
@@ -4309,6 +4340,10 @@ inline void gcode_G4() {
  */
 inline void gcode_G28(const bool always_home_all, bool onlyZ) {
 
+  #ifdef SERIAL_DEBUG
+      SERIAL_PROTOCOLLN("Entering G28");
+  #endif
+
   // Stores old acceleration and sets the correct acceleration for leveling/ homing
   float old_acceleration = planner.travel_acceleration;
   planner.travel_acceleration = 750;
@@ -4418,6 +4453,10 @@ enable_all_steppers();
 
     // Home X
     if (home_all || homeX) {
+      #ifdef SERIAL_DEBUG
+      SERIAL_PROTOCOLLN("G28 Homing X");
+      #endif
+
       #if ENABLED(DUAL_X_CARRIAGE)
 
         // Always home the 2nd (right) extruder first
@@ -4453,10 +4492,13 @@ enable_all_steppers();
       #endif
     }
 
-
     #if DISABLED(HOME_Y_BEFORE_X)
       // Home Y
       if (home_all || homeY) {
+
+        #ifdef SERIAL_DEBUG
+        SERIAL_PROTOCOLLN("G28 Homing Y");
+        #endif
 
         #ifdef BEEVC_TMC2130READSG
           sensorless_homeaxis(Y_AXIS);
@@ -4474,6 +4516,10 @@ enable_all_steppers();
     // Home Z last if homing towards the bed
     #if Z_HOME_DIR < 0
       if (home_all || homeZ) {
+        #ifdef SERIAL_DEBUG
+          SERIAL_PROTOCOLLN("G28 Homing Z");
+        #endif
+
         #if ENABLED(Z_SAFE_HOMING)
           home_z_safely();
         #else
@@ -4485,9 +4531,13 @@ enable_all_steppers();
       } // home_all || homeZ
     #endif // Z_HOME_DIR < 0
 
-    SYNC_PLAN_POSITION_KINEMATIC();
+    //SYNC_PLAN_POSITION_KINEMATIC();
 
   #endif // !DELTA (gcode_G28)
+
+  #ifdef SERIAL_DEBUG
+      SERIAL_PROTOCOLLN("G28 Finishing");
+  #endif
 
   endstops.not_homing();
 
@@ -4531,6 +4581,10 @@ enable_all_steppers();
 
     // Restores old acceleration settings
     planner.travel_acceleration = old_acceleration;
+
+  #ifdef SERIAL_DEBUG
+      SERIAL_PROTOCOLLN("Exiting G28");
+  #endif
 
 } // G28
 
@@ -11749,8 +11803,6 @@ inline void gcode_M502() {
               }
             }
 
-
-
             sensorless_homing_progress++;
             if(sensorless_homing_progress > 3)
               sensorless_homing_progress = 0;
@@ -12611,8 +12663,8 @@ inline void gcode_M999() {
     axis_relative_modes[E_AXIS] = ((active_extruder & 0b00000100) == 0b00000100);
     // Loads acceleration
     planner.acceleration = (active_extruder >> 4) * 250;
-	planner.travel_acceleration = planner.acceleration * 1.5;
-	active_extruder = active_extruder & 0b00000011;
+	  planner.travel_acceleration = planner.acceleration * 1.5;
+	  active_extruder = active_extruder & 0b00000011;
 
 		#ifdef SERIAL_DEBUG
 				SERIAL_ECHOPAIR("Loaded active extruder: ", active_extruder);
