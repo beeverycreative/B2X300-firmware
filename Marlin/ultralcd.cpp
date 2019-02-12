@@ -769,6 +769,14 @@ uint16_t max_display_update_time = 0;
 
   #define ACTIVE_FILAMENT_SENSOR_WAITING (((READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING) && (active_extruder == 1)) || ((READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING)  && (active_extruder == 0))) 
 
+  #ifdef SERIAL_DEBUG
+    #define SERIAL_DEBUG_MESSAGE(str)             SERIAL_PROTOCOLLN(str)
+    #define SERIAL_DEBUG_MESSAGE_VALUE(str, val)  SERIAL_PROTOCOLLNPAIR(str, val)
+  #else
+    #define SERIAL_DEBUG_MESSAGE(str) 
+    #define SERIAL_DEBUG_MESSAGE_VALUE(str, val)
+  #endif
+
    void beevc_buzz(){
      lcd_buzz(100, 659);
      lcd_buzz(100, 698);
@@ -2474,7 +2482,11 @@ void kill_screen(const char* lcd_msg) {
 
         // Extrude filament
         do {
+          // Show loading
           lcd_goto_screen(lcd_filament_change_loading);
+
+          // Forces screen refresh
+          beevc_force_screen_update();
 
           // Extrude filament to get into hotend
           beevc_move_axis_blocking(E_AXIS,ADVANCED_PAUSE_EXTRUDE_LENGTH,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
@@ -2498,7 +2510,7 @@ void kill_screen(const char* lcd_msg) {
         // Store the filament sensor state
         bool filament_sensor_waiting = manual_extrude ?0:ACTIVE_FILAMENT_SENSOR_WAITING;
       #endif //FILAMENT_RUNOUT_DUAL
-      
+
       SERIAL_DEBUG_MESSAGE_VALUE("Filament sensor state: ",ACTIVE_FILAMENT_SENSOR_WAITING);
 
       // Ensure the correct extruder is set
@@ -2574,8 +2586,8 @@ void kill_screen(const char* lcd_msg) {
               next_update = millis() + 1000;
           }
 
-              #ifdef FILAMENT_RUNOUT_DUAL
-                //Detects if the filament sensor is activated
+          #ifdef FILAMENT_RUNOUT_DUAL
+            //Detects if the filament sensor is activated
             //Only works if filament sensor started out empty
             if(filament_sensor_waiting){
               if(!ACTIVE_FILAMENT_SENSOR_WAITING){
@@ -2586,10 +2598,10 @@ void kill_screen(const char* lcd_msg) {
                 buzzer.tone(200, 2000);
                 beevc_wait(2000);
 
-                    break;
-                }
+                break;
+              }
             }
-              #endif //FILAMENT_RUNOUT_DUAL
+          #endif //FILAMENT_RUNOUT_DUAL
 
           idle(true);
         }
@@ -2679,6 +2691,7 @@ void kill_screen(const char* lcd_msg) {
       MENU_ITEM(function, _UxGT("Auto Load"), lcd_filament_change_action_load);
       MENU_ITEM(function, _UxGT("Auto Unload"), lcd_filament_change_action_unload);
       MENU_ITEM(function, _UxGT("Manual Extrusion"), lcd_filament_change_action_move);
+      MENU_ITEM(function, "Exit", lcd_return_to_status);
       END_MENU();
     }
 
@@ -7686,7 +7699,7 @@ void beevc_machine_setup_test_powerloss (){
       START_MENU();
       if(pause_filament_runout) {STATIC_ITEM("Filament runout", true, true);}
       else                      {STATIC_ITEM("Change filament", true, true);}
-      MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_RESUME, lcd_advanced_pause_resume_print);
+      MENU_ITEM(function, "Back                \x04", lcd_advanced_pause_resume_print);
       MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_EXTRUDE, lcd_advanced_pause_extrude_more);
       END_MENU();
     }
