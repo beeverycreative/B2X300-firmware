@@ -1761,38 +1761,56 @@ void kill_screen(const char* lcd_msg) {
 
     // Back action
     menu_action_back();
-    menu_action_back();
 
     // Forces screen update
     beevc_force_screen_update();
   }
 
+  void beevc_cold_pull_back(){
+    // Ensures correct operation on back and return
+    screen_history_depth--;
+    cold_pull_status = cold_pull_extruder;
+    beevc_selection_finished();
+  }
+
   void beevc_cold_pull_extruder1(){
+    // Ensures correct operation on back and return
+    screen_history_depth--;
     active_extruder = 0;
     beevc_selection_finished();
   }
 
   void beevc_cold_pull_extruder2(){
+    // Ensures correct operation on back and return
+    screen_history_depth--;
     active_extruder = 1;
     beevc_selection_finished();
   }
 
   void beevc_cold_pull_pla(){
+    // Ensures correct operation on back and return
+    screen_history_depth--;
     thermalManager.setTargetHotend(210, active_extruder);
     beevc_selection_finished();
   }
 
   void beevc_cold_pull_petg(){
+    // Ensures correct operation on back and return
+    screen_history_depth--;
     thermalManager.setTargetHotend(230, active_extruder);
     beevc_selection_finished();
   }
 
   void beevc_cold_pull_abs(){
+    // Ensures correct operation on back and return
+    screen_history_depth--;
     thermalManager.setTargetHotend(240, active_extruder);
     beevc_selection_finished();
   }
 
   void beevc_cold_pull_pc(){
+    // Ensures correct operation on back and return
+    screen_history_depth--;
     thermalManager.setTargetHotend(260, active_extruder);
     beevc_selection_finished();
   }
@@ -1894,11 +1912,6 @@ void kill_screen(const char* lcd_msg) {
     END_SCREEN();
   }
 
-  void beevc_cold_pull_back(){
-    cold_pull_status = cold_pull_extruder;
-    beevc_selection_finished();
-  }
-
   void beevc_cold_pull_options(){
     START_MENU();
     // Show title
@@ -1955,7 +1968,10 @@ void kill_screen(const char* lcd_msg) {
       beevc_wait_selection();
 
       // Checks if back has been selected if so exits
-      if(!beevc_screen_constant_update) return;
+      if(!beevc_screen_constant_update){
+        menu_action_back();
+        return;
+      }
 
       // Go to material choice
       beevc_cold_pull_question(cold_pull_material);
