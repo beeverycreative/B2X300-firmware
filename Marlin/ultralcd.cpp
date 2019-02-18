@@ -920,10 +920,10 @@ uint16_t max_display_update_time = 0;
   }
 
   void beevc_force_screen_update(){
-    unsigned long next_update = millis() + 1000;
     lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
-    while(millis()< next_update)
-      idle(true);
+    // Two idle to ensure the redraw is completed.
+    idle(true);
+    idle(true);
   }
 #endif
 
