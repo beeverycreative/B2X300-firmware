@@ -768,6 +768,7 @@ uint16_t max_display_update_time = 0;
  #ifdef BEEVC_B2X300
 
   #define ACTIVE_FILAMENT_SENSOR_WAITING (((READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING) && (active_extruder == 1)) || ((READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING)  && (active_extruder == 0))) 
+  #define ACTIVE_FILAMENT_SENSOR_TRIGERED !(((READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING) && (active_extruder == 1)) || ((READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING)  && (active_extruder == 0))) 
 
   #ifdef SERIAL_DEBUG
     #define SERIAL_DEBUG_MESSAGE(str)             SERIAL_PROTOCOLLN(str)
@@ -777,12 +778,59 @@ uint16_t max_display_update_time = 0;
     #define SERIAL_DEBUG_MESSAGE_VALUE(str, val)
   #endif
 
-   void beevc_buzz(){
+  static void beevc_move_axis(AxisEnum axis,float move_mm, float feed_mms){
+    // Sets the motion ammount and executes movement at requested speed
+    current_position[axis] += move_mm;
+    planner.buffer_line_kinematic(current_position, feed_mms, active_extruder);
+  }
+
+  static void beevc_move_axis_blocking(AxisEnum axis,float move_mm, float feed_mms){
+    // Plans the motion
+    beevc_move_axis(axis, move_mm, feed_mms);
+
+    // Waits for movement to finish
+    while(planner.movesplanned() > 0) idle();
+  }
+
+  static void beevc_unload_pull_filament(){
+    // Unloads filament
+    beevc_move_axis_blocking(E_AXIS,-(FILAMENT_CHANGE_UNLOAD_LENGTH),FILAMENT_CHANGE_UNLOAD_FEEDRATE);     
+  }
+
+  static void beevc_unload_filament(){
+    // Extrudes a small ammount to fluidify the tip of the filament
+    beevc_move_axis_blocking(E_AXIS,15,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+    
+    // Unloads filament
+    beevc_unload_pull_filament();
+  }
+
+  static void beevc_load_filament(){
+    // Extrudes a small ammount to fluidify the tip of the filament
+    beevc_move_axis_blocking(E_AXIS,15,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+
+    //Checks if Bowden to apply the correct 2 phase load process
+    #ifdef BEEVC_Bowden
+      //Bowden
+      // Load filament slowly into PTFE tube
+      beevc_move_axis_blocking(E_AXIS,50,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+    #endif // BEEVC_Bowden
+    
+    // Load filament fast
+      beevc_move_axis_blocking(E_AXIS,FILAMENT_CHANGE_LOAD_LENGTH,FILAMENT_CHANGE_LOAD_FEEDRATE);
+  }
+
+  static void beevc_extrude_filament(){
+    // Extrude filament to get into hotend
+    beevc_move_axis_blocking(E_AXIS,ADVANCED_PAUSE_EXTRUDE_LENGTH,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+  }
+
+  static void beevc_buzz(){
      lcd_buzz(100, 659);
      lcd_buzz(100, 698);
    }
 
-   void beevc_wait_click() {
+  static void beevc_wait_click() {
      wait_for_user = true;    // LCD click or M108 will clear this
      while(wait_for_user){
        // Avoid returning to status screen
@@ -792,6 +840,43 @@ uint16_t max_display_update_time = 0;
        idle(true);
      }
    }
+
+  static void beevc_selection_finished(){
+    beevc_selecting = false;
+  }
+
+  static void beevc_wait_selection(){
+    beevc_selecting = true;  // Selecting
+    while(beevc_selecting){
+      // Avoid returning to status screen
+      defer_return_to_status = true;
+
+      // Manage idle time
+      idle(true);
+    }
+  }
+
+  static void beevc_wait_heating(){
+    while (thermalManager.degHotend(active_extruder) < (thermalManager.degTargetHotend(active_extruder)-5)){
+      // Avoid returning to status screen
+      defer_return_to_status = true;
+
+      // Manage idle time
+      idle(true);
+    }
+    beevc_buzz();         
+  }
+
+  static void beevc_wait_cooling(){
+    while (thermalManager.degHotend(active_extruder) > (thermalManager.degTargetHotend(active_extruder)+5)){
+      // Avoid returning to status screen
+      defer_return_to_status = true;
+
+      // Manage idle time
+      idle(true);
+    }
+    beevc_buzz();         
+  }
 
    void beevc_wait(uint16_t milliseconds, bool display_timeout = false) {
      wait_for_user = true;    // LCD click or M108 will clear this
