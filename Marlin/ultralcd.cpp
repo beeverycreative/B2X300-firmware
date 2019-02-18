@@ -264,6 +264,7 @@ uint16_t max_display_update_time = 0;
 	#ifdef BEEVC_B2X300
     uint8_t beevc_screen_header = 0;
     bool beevc_continue = 0;
+    bool beevc_selecting = 0;
     uint32_t next_update =  0;
     float old_hotend_offset = 0;
     bool isX = 0 ;
@@ -286,6 +287,25 @@ uint16_t max_display_update_time = 0;
     pause_option
   };
   uint8_t pause_status = pause_init;
+	///////////////////////////////////////////////////////
+
+  //////////////////   Cold pull   //////////////////////
+  enum cold_pull {
+    cold_pull_init,
+    cold_pull_extruder,
+    cold_pull_material,
+    cold_pull_heating,
+    cold_pull_unload_explain,
+    cold_pull_unload,
+    cold_pull_load_explain,
+    cold_pull_load,
+    cold_pull_cooldown,
+    cold_pull_clean_hotend,
+    cold_pull_pull,
+    cold_pull_during,
+    cold_pull_finish
+  };
+  uint8_t cold_pull_status = cold_pull_init;
 	///////////////////////////////////////////////////////
 
   ////////////   Filament Change   //////////////
@@ -765,9 +785,10 @@ uint16_t max_display_update_time = 0;
  *
  */
 
- #ifdef BEEVC_B2X300
+#ifdef BEEVC_B2X300
 
   #define ACTIVE_FILAMENT_SENSOR_WAITING (((READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING) && (active_extruder == 1)) || ((READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING)  && (active_extruder == 0))) 
+  #define ACTIVE_FILAMENT_SENSOR_TRIGERED !(((READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING) && (active_extruder == 1)) || ((READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING)  && (active_extruder == 0))) 
 
   #ifdef SERIAL_DEBUG
     #define SERIAL_DEBUG_MESSAGE(str)             SERIAL_PROTOCOLLN(str)
@@ -777,50 +798,134 @@ uint16_t max_display_update_time = 0;
     #define SERIAL_DEBUG_MESSAGE_VALUE(str, val)
   #endif
 
-   void beevc_buzz(){
-     lcd_buzz(100, 659);
-     lcd_buzz(100, 698);
-   }
+  static void beevc_move_axis(AxisEnum axis,float move_mm, float feed_mms){
+    // Sets the motion ammount and executes movement at requested speed
+    current_position[axis] += move_mm;
+    planner.buffer_line_kinematic(current_position, feed_mms, active_extruder);
+  }
 
-   void beevc_wait_click() {
-     wait_for_user = true;    // LCD click or M108 will clear this
-     while(wait_for_user){
-       // Avoid returning to status screen
-       defer_return_to_status = true;
+  static void beevc_move_axis_blocking(AxisEnum axis,float move_mm, float feed_mms){
+    // Plans the motion
+    beevc_move_axis(axis, move_mm, feed_mms);
 
-       // Manage idle time
-       idle(true);
-     }
-   }
+    // Waits for movement to finish
+    while(planner.movesplanned() > 0) idle();
+  }
 
-   void beevc_wait(uint16_t milliseconds, bool display_timeout = false) {
-     wait_for_user = true;    // LCD click or M108 will clear this
-     uint32_t temptime= millis() + milliseconds;
-     while((temptime > millis()) && wait_for_user){
-       // Avoid returning to status screen
-       defer_return_to_status = true;
+  static void beevc_unload_pull_filament(){
+    // Unloads filament
+    beevc_move_axis_blocking(E_AXIS,-(FILAMENT_CHANGE_UNLOAD_LENGTH),FILAMENT_CHANGE_UNLOAD_FEEDRATE);     
+  }
 
-       // Display remaining time if requested
-       if(display_timeout){
-        beevc_screen_constant_update = true;
-        u8g.setPrintPos(0, 36);
-        u8g.print("in ");
-        u8g.print((int)((temptime-millis())/1000));
-        u8g.print(" seconds");
-       }
-       
-       // Manage idle time
-       idle(true);
-     }
-   }
+  static void beevc_unload_filament(){
+    // Extrudes a small ammount to fluidify the tip of the filament
+    beevc_move_axis_blocking(E_AXIS,15,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+    
+    // Unloads filament
+    beevc_unload_pull_filament();
+  }
 
-   void beevc_force_screen_update(){
-     unsigned long next_update = millis() + 1000;
-     lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
-     while(millis()< next_update)
-       idle(true);
-   }
- #endif
+  static void beevc_load_filament(){
+    // Extrudes a small ammount to fluidify the tip of the filament
+    beevc_move_axis_blocking(E_AXIS,15,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+
+    //Checks if Bowden to apply the correct 2 phase load process
+    #ifdef BEEVC_Bowden
+      //Bowden
+      // Load filament slowly into PTFE tube
+      beevc_move_axis_blocking(E_AXIS,50,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+    #endif // BEEVC_Bowden
+    
+    // Load filament fast
+      beevc_move_axis_blocking(E_AXIS,FILAMENT_CHANGE_LOAD_LENGTH,FILAMENT_CHANGE_LOAD_FEEDRATE);
+  }
+
+  static void beevc_extrude_filament(){
+    // Extrude filament to get into hotend
+    beevc_move_axis_blocking(E_AXIS,ADVANCED_PAUSE_EXTRUDE_LENGTH,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+  }
+
+  static void beevc_buzz(){
+    lcd_buzz(100, 659);
+    lcd_buzz(100, 698);
+  }
+
+  static void beevc_wait_click() {
+    wait_for_user = true;    // LCD click or M108 will clear this
+    while(wait_for_user){
+      // Avoid returning to status screen
+      defer_return_to_status = true;
+
+      // Manage idle time
+      idle(true);
+    }
+  }
+
+  static void beevc_selection_finished(){
+    beevc_selecting = false;
+  }
+
+  static void beevc_wait_selection(){
+    beevc_selecting = true;  // Selecting
+    while(beevc_selecting){
+      // Avoid returning to status screen
+      defer_return_to_status = true;
+
+      // Manage idle time
+      idle(true);
+    }
+  }
+
+  static void beevc_wait_heating(){
+    while (thermalManager.degHotend(active_extruder) < (thermalManager.degTargetHotend(active_extruder)-5)){
+      // Avoid returning to status screen
+      defer_return_to_status = true;
+
+      // Manage idle time
+      idle(true);
+    }
+    beevc_buzz();         
+  }
+
+  static void beevc_wait_cooling(){
+    while (thermalManager.degHotend(active_extruder) > (thermalManager.degTargetHotend(active_extruder)+5)){
+      // Avoid returning to status screen
+      defer_return_to_status = true;
+
+      // Manage idle time
+      idle(true);
+    }
+    beevc_buzz();         
+  }
+
+  void beevc_wait(uint16_t milliseconds, bool display_timeout = false) {
+    wait_for_user = true;    // LCD click or M108 will clear this
+    uint32_t temptime= millis() + milliseconds;
+    while((temptime > millis()) && wait_for_user){
+      // Avoid returning to status screen
+      defer_return_to_status = true;
+
+      // Display remaining time if requested
+      if(display_timeout){
+      beevc_screen_constant_update = true;
+      u8g.setPrintPos(0, 36);
+      u8g.print("in ");
+      u8g.print((int)((temptime-millis())/1000));
+      u8g.print(" seconds");
+      }
+      
+      // Manage idle time
+      idle(true);
+    }
+  }
+
+  void beevc_force_screen_update(){
+    lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+    // Two idle to ensure the redraw is completed.
+    idle(true);
+    idle(true);
+  }
+#endif
 
  #define LCD_PRINT_EXT_TEMP() \
     STATIC_ITEM(_UxGT(" ")); \
@@ -1644,6 +1749,356 @@ void kill_screen(const char* lcd_msg) {
   /**
    * BEEVC
    *
+   * Cold pull
+   *
+   */
+  void beevc_cold_pull_exit(){
+    // Allows returning to status
+    defer_return_to_status = false;
+    beevc_screen_constant_update = false;
+
+    beevc_selection_finished();
+
+    // Back action
+    menu_action_back();
+
+    // Forces screen update
+    beevc_force_screen_update();
+  }
+
+  void beevc_cold_pull_back(){
+    // Ensures correct operation on back and return
+    screen_history_depth--;
+    cold_pull_status = cold_pull_extruder;
+    beevc_selection_finished();
+  }
+
+  void beevc_cold_pull_extruder1(){
+    // Ensures correct operation on back and return
+    screen_history_depth--;
+    active_extruder = 0;
+    beevc_selection_finished();
+  }
+
+  void beevc_cold_pull_extruder2(){
+    // Ensures correct operation on back and return
+    screen_history_depth--;
+    active_extruder = 1;
+    beevc_selection_finished();
+  }
+
+  void beevc_cold_pull_pla(){
+    // Ensures correct operation on back and return
+    screen_history_depth--;
+    thermalManager.setTargetHotend(210, active_extruder);
+    beevc_selection_finished();
+  }
+
+  void beevc_cold_pull_petg(){
+    // Ensures correct operation on back and return
+    screen_history_depth--;
+    thermalManager.setTargetHotend(230, active_extruder);
+    beevc_selection_finished();
+  }
+
+  void beevc_cold_pull_abs(){
+    // Ensures correct operation on back and return
+    screen_history_depth--;
+    thermalManager.setTargetHotend(240, active_extruder);
+    beevc_selection_finished();
+  }
+
+  void beevc_cold_pull_pc(){
+    // Ensures correct operation on back and return
+    screen_history_depth--;
+    thermalManager.setTargetHotend(260, active_extruder);
+    beevc_selection_finished();
+  }
+
+  void beevc_cold_pull_screens(){
+    START_SCREEN();
+    // Show title
+    STATIC_ITEM("Cold pull",true,true);
+
+    switch(cold_pull_status){
+      case cold_pull_init:  
+        STATIC_ITEM("Welcome to cold pull");
+        STATIC_ITEM("wizard!");
+        STATIC_ITEM(" ");
+        STATIC_ITEM("(scroll to read more)");
+        STATIC_ITEM("This process will ");
+        STATIC_ITEM("help you clean the");
+        STATIC_ITEM("nozzles of your");
+        STATIC_ITEM("B2X300, when changing");
+        STATIC_ITEM("between filaments or");
+        STATIC_ITEM("if there are any");
+        STATIC_ITEM("extrusion problems");
+        STATIC_ITEM(" ");
+        STATIC_ITEM("Click to continue.");
+        break;
+      case cold_pull_heating:  
+        LCD_PRINT_EXT_TEMP();
+        STATIC_ITEM("Status:heating nozzle");
+        STATIC_ITEM(" ");
+        STATIC_ITEM("Please wait.");
+        break;
+      case cold_pull_unload_explain:  
+        STATIC_ITEM("Filament detected on");
+        STATIC_ITEM("filament sensor");
+        STATIC_ITEM("unload is necessary!");
+        STATIC_ITEM("(scroll to read more)");
+        STATIC_ITEM("Cold pull results");
+        STATIC_ITEM("in a enlarged tip");
+        STATIC_ITEM("of the filament that");
+        STATIC_ITEM("may get stuck inside");
+        STATIC_ITEM("the filament sensor.");
+        STATIC_ITEM(" ");
+        STATIC_ITEM("Click to continue.");
+        break;
+      case cold_pull_unload:  
+        LCD_PRINT_EXT_TEMP_STABLE();
+        STATIC_ITEM("Status: unloading");
+        STATIC_ITEM(" ");
+        STATIC_ITEM("Please wait.");
+        break;
+      case cold_pull_load_explain:
+        STATIC_ITEM("Status:  heating done");
+        STATIC_ITEM("Insert filament ");
+        STATIC_ITEM("without using sensor.");
+        STATIC_ITEM("Click to load.");    
+        break;
+      case cold_pull_load:
+        LCD_PRINT_EXT_TEMP_STABLE();
+        STATIC_ITEM("Status: loading");
+        STATIC_ITEM(" ");
+        STATIC_ITEM("Please wait.");
+        break;
+      case cold_pull_cooldown: 
+        LCD_PRINT_EXT_TEMP();
+        STATIC_ITEM("Status: preparing");
+        STATIC_ITEM(" ");
+        STATIC_ITEM("Please wait."); 
+        break;
+      case cold_pull_clean_hotend:
+        STATIC_ITEM("Please, pull away");
+        STATIC_ITEM("any leftover filament");
+        STATIC_ITEM("from the nozzle. ");
+        STATIC_ITEM("Click to continue.");
+        break;
+      case cold_pull_pull:
+        STATIC_ITEM("Please, apply a even");
+        STATIC_ITEM("pull force on the");
+        STATIC_ITEM("filament. ");
+        STATIC_ITEM("Click to continue.");  
+        break;
+      case cold_pull_during:  
+        LCD_PRINT_EXT_TEMP_STABLE();
+        STATIC_ITEM("Status:  cold pulling");
+        STATIC_ITEM(" ");
+        STATIC_ITEM("Please pull filament.");
+        break;
+      case cold_pull_finish:  
+        STATIC_ITEM("Cold pull finished!");
+        STATIC_ITEM("If there is residue");
+        STATIC_ITEM("on the tip of the ");
+        STATIC_ITEM("(scroll to read more)");
+        STATIC_ITEM("extracted filament ");
+        STATIC_ITEM("please repeat the");
+        STATIC_ITEM("process until clean.");
+        STATIC_ITEM(" ");
+        STATIC_ITEM("Click to exit.");
+        break;
+    }
+    END_SCREEN();
+  }
+
+  void beevc_cold_pull_options(){
+    START_MENU();
+    // Show title
+    STATIC_ITEM("Cold pull",true,true);
+
+    switch(cold_pull_status){
+      case cold_pull_extruder:  
+        // Go back to previous menu
+        MENU_ITEM(submenu, _UxGT("Back"), beevc_cold_pull_exit);
+        MENU_ITEM(submenu, _UxGT("Extruder 1"), beevc_cold_pull_extruder1);
+        MENU_ITEM(submenu, _UxGT("Extruder 2"), beevc_cold_pull_extruder2);
+        break;
+      case cold_pull_material:
+        MENU_ITEM(submenu, _UxGT("Back"), beevc_cold_pull_back);
+        MENU_ITEM(submenu, _UxGT("PLA   210\x09\x43"), beevc_cold_pull_pla); 
+        MENU_ITEM(submenu, _UxGT("PETG  230\x09\x43"), beevc_cold_pull_petg);
+        MENU_ITEM(submenu, _UxGT("ABS   240\x09\x43"), beevc_cold_pull_abs);
+        MENU_ITEM(submenu, _UxGT("PC    260\x09\x43"), beevc_cold_pull_pc);
+        break;
+    }
+
+    END_MENU();
+  }
+
+  static void beevc_cold_pull_show(cold_pull screen){
+    cold_pull_status = screen;
+    lcd_goto_screen(beevc_cold_pull_screens);
+  }
+
+  static void beevc_cold_pull_question(cold_pull screen){
+    cold_pull_status = screen;
+    lcd_goto_screen(beevc_cold_pull_options);
+  }
+
+  void beevc_cold_pull(){
+    // Disable timeout to status
+    defer_return_to_status = true;
+
+    // Enables constant screen update
+    beevc_screen_constant_update = true;
+
+    // Show initial screen
+    beevc_cold_pull_show(cold_pull_init);
+
+    // Waits for click to allow user to read
+    beevc_wait_click();
+
+    // Loop to allow return to here
+    do {
+      // Go to extruder choice
+      beevc_cold_pull_question(cold_pull_extruder);
+
+      // Waits until a selection is made
+      beevc_wait_selection();
+
+      // Checks if back has been selected if so exits
+      if(!beevc_screen_constant_update){
+        menu_action_back();
+        return;
+      }
+
+      // Go to material choice
+      beevc_cold_pull_question(cold_pull_material);
+
+      // Waits until a selection is made
+      beevc_wait_selection();
+    } while(cold_pull_status == cold_pull_extruder);
+
+    // Go to heating screen
+    beevc_cold_pull_show(cold_pull_heating);
+
+    // Wait for heating to finish
+    beevc_wait_heating();
+
+    // Verifies if the status of the filament sensor
+    if(ACTIVE_FILAMENT_SENSOR_TRIGERED){
+      // If there is filament inside the sensor
+      // Show screen where filament unload is explained
+      beevc_cold_pull_show(cold_pull_unload_explain);
+
+      // Waits 20s or for click to allow user time to read
+      beevc_wait(20000);
+
+      // Show unloading screen
+      beevc_cold_pull_show(cold_pull_unload);
+
+      // Unloads the filament
+      beevc_unload_filament();
+    }
+
+    // Shows the loading explanation screen
+    beevc_cold_pull_show(cold_pull_load_explain);
+
+    // Waits for click to allow user time to read
+    beevc_wait_click();
+
+    // Shows the loading screen
+    beevc_cold_pull_show(cold_pull_load);
+
+    // Loads filament
+    beevc_load_filament();
+    beevc_extrude_filament();
+
+    // Sets cooldown temperature
+    switch (thermalManager.degTargetHotend(active_extruder)){
+      case 210:  // PLA
+        thermalManager.setTargetHotend(85, active_extruder);
+      break;
+      case 230:  // PETG
+        thermalManager.setTargetHotend(100, active_extruder);
+      break;
+      case 240:  // ABS
+        thermalManager.setTargetHotend(105, active_extruder);
+      break;
+      case 260:  // PC
+        thermalManager.setTargetHotend(120, active_extruder);
+      break;
+    }
+
+    // Enables blower at full power
+    fanSpeeds[0] = 255;
+
+    // Shows the cooling screen
+    beevc_cold_pull_show(cold_pull_cooldown);
+
+    // Disables minimum extrusion temperature
+    thermalManager.extrude_min_temp = 0;
+
+    // Extrudes 65mm of plastic very slowly while cooling to keep chamber pressure
+    beevc_move_axis_blocking(E_AXIS,65,1);
+
+    // Waits for cooldown
+    beevc_wait_cooling();
+
+    // Disable blower
+    fanSpeeds[0] = 0;
+
+    // Shows clean hotend screen
+    beevc_cold_pull_show(cold_pull_clean_hotend);
+
+    // Waits for click
+    beevc_wait_click();
+
+    // Buzz to call for attention
+    beevc_buzz();
+
+    // Shows pull
+    beevc_cold_pull_show(cold_pull_pull);
+
+    // Waits for click
+    beevc_wait_click();
+
+    // Show cold pull screen
+    beevc_cold_pull_show(cold_pull_during);
+
+    // Increase max move speed for the extruder
+    planner.max_feedrate_mm_s[E_AXIS+active_extruder] = 120;
+
+    // Pulls filament out
+    beevc_move_axis_blocking(E_AXIS,-100,120);
+    beevc_unload_pull_filament();
+
+    // Resets max move speed for the extruder
+    planner.max_feedrate_mm_s[E_AXIS+active_extruder] = 60;
+
+    // Resets minimum extrusion temperature
+    thermalManager.extrude_min_temp = EXTRUDE_MINTEMP;
+
+    // Shows finished screen
+    beevc_cold_pull_show(cold_pull_finish);
+
+    // Waits for click
+    beevc_wait_click();
+
+    //Goes back to menu
+    beevc_cold_pull_exit();
+
+    // Checks if back has been selected if so exits
+      if(!beevc_screen_constant_update) return;
+  }
+
+
+  ////////// Cold pull /////////////
+
+  /**
+   * BEEVC
+   *
    * "Recover" screen
    *
    */
@@ -1847,7 +2302,7 @@ void kill_screen(const char* lcd_msg) {
     	  #endif
 
       // Cold pull
-        //MENU_ITEM(submenu, _UxGT("Cold pull"), _lcd_menu_z_offset);
+        MENU_ITEM(submenu, _UxGT("Cold pull"), beevc_cold_pull);
 
       // Calibrate Dual nozzle Z offset
         MENU_ITEM(submenu, _UxGT("Nozzle Z-offset test"), lcd_nozzle_z_offset_start);
@@ -2295,7 +2750,6 @@ void kill_screen(const char* lcd_msg) {
 
       LCD_PRINT_EXT_TEMP_STABLE();
       STATIC_ITEM(_UxGT("Status:  heating done"));
-      //STATIC_ITEM(_UxGT(" "));
       STATIC_ITEM(_UxGT("Click or insert "));
       STATIC_ITEM(_UxGT("filament to continue."));
       END_SCREEN();
@@ -2401,20 +2855,6 @@ void kill_screen(const char* lcd_msg) {
       } 
       END_SCREEN();
     }
-
-    void beevc_move_axis(AxisEnum axis,float move_mm, float feed_mms){
-      // Sets the motion ammount and executes movement at requested speed
-      current_position[axis] += move_mm;
-      planner.buffer_line_kinematic(current_position, feed_mms, active_extruder);
-    }
-
-    void beevc_move_axis_blocking(AxisEnum axis,float move_mm, float feed_mms){
-      // Plans the motion
-      beevc_move_axis(axis, move_mm, feed_mms);
-
-      // Waits for movement to finish
-      while(planner.movesplanned() > 0) idle();
-    }
   
     void lcd_filament_change_move_e() {
         defer_return_to_status = true;
@@ -2447,13 +2887,10 @@ void kill_screen(const char* lcd_msg) {
       // Ensures the screen has changed before movement
       beevc_force_screen_update();
 
-      // Extrudes a small ammount to fluidify the tip of the filament
-      beevc_move_axis_blocking(E_AXIS,15,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
-
       // Unload
       if(!load) {
         // Unload filament
-        beevc_move_axis_blocking(E_AXIS,-(FILAMENT_CHANGE_UNLOAD_LENGTH),FILAMENT_CHANGE_UNLOAD_FEEDRATE);
+        beevc_unload_filament();
       }
 
       // Load
@@ -2462,25 +2899,9 @@ void kill_screen(const char* lcd_msg) {
         // Ensures the screen is updated even when unloading first
         lcd_goto_screen(lcd_filament_change_loading);
 
-        // //Checks if Bowden to apply the correct 3 phase load process
-        // //Direct drive
-        // #ifndef BEEVC_Bowden
-        //   // Load filament
-        //   destination[E_AXIS] += FILAMENT_CHANGE_LOAD_LENGTH;
-        //   RUNPLAN(FILAMENT_CHANGE_LOAD_FEEDRATE);
-        //   stepper.synchronize();
-
-        // #else
-
-        //Bowden
-        // Load filament slowly into PTFE tube
-        beevc_move_axis_blocking(E_AXIS,50,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
-
-        // Load filament quickly into PTFE tube
-        beevc_move_axis_blocking(E_AXIS,FILAMENT_CHANGE_LOAD_LENGTH,FILAMENT_CHANGE_LOAD_FEEDRATE);
-
-        // #endif
-
+        // Load filament
+        beevc_load_filament();
+      
         // Extrude filament
         do {
           // Show loading
@@ -2490,7 +2911,7 @@ void kill_screen(const char* lcd_msg) {
           beevc_force_screen_update();
 
           // Extrude filament to get into hotend
-          beevc_move_axis_blocking(E_AXIS,ADVANCED_PAUSE_EXTRUDE_LENGTH,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+          beevc_extrude_filament();
 
           // Show "Extrude More" / "Resume" menu and wait for reply
           KEEPALIVE_STATE(PAUSED_FOR_USER);
