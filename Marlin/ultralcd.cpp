@@ -2380,7 +2380,6 @@ void kill_screen(const char* lcd_msg) {
 
       LCD_PRINT_EXT_TEMP_STABLE();
       STATIC_ITEM(_UxGT("Status:  heating done"));
-      //STATIC_ITEM(_UxGT(" "));
       STATIC_ITEM(_UxGT("Click or insert "));
       STATIC_ITEM(_UxGT("filament to continue."));
       END_SCREEN();
@@ -2487,20 +2486,6 @@ void kill_screen(const char* lcd_msg) {
       END_SCREEN();
     }
 
-    void beevc_move_axis(AxisEnum axis,float move_mm, float feed_mms){
-      // Sets the motion ammount and executes movement at requested speed
-      current_position[axis] += move_mm;
-      planner.buffer_line_kinematic(current_position, feed_mms, active_extruder);
-    }
-
-    void beevc_move_axis_blocking(AxisEnum axis,float move_mm, float feed_mms){
-      // Plans the motion
-      beevc_move_axis(axis, move_mm, feed_mms);
-
-      // Waits for movement to finish
-      while(planner.movesplanned() > 0) idle();
-    }
-  
     void lcd_filament_change_move_e() {
         defer_return_to_status = true;
         beevc_screen_constant_update = true;
@@ -2532,13 +2517,10 @@ void kill_screen(const char* lcd_msg) {
       // Ensures the screen has changed before movement
       beevc_force_screen_update();
 
-      // Extrudes a small ammount to fluidify the tip of the filament
-      beevc_move_axis_blocking(E_AXIS,15,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
-
       // Unload
       if(!load) {
         // Unload filament
-        beevc_move_axis_blocking(E_AXIS,-(FILAMENT_CHANGE_UNLOAD_LENGTH),FILAMENT_CHANGE_UNLOAD_FEEDRATE);
+        beevc_unload_filament();
       }
 
       // Load
@@ -2547,24 +2529,8 @@ void kill_screen(const char* lcd_msg) {
         // Ensures the screen is updated even when unloading first
         lcd_goto_screen(lcd_filament_change_loading);
 
-        // //Checks if Bowden to apply the correct 3 phase load process
-        // //Direct drive
-        // #ifndef BEEVC_Bowden
-        //   // Load filament
-        //   destination[E_AXIS] += FILAMENT_CHANGE_LOAD_LENGTH;
-        //   RUNPLAN(FILAMENT_CHANGE_LOAD_FEEDRATE);
-        //   stepper.synchronize();
-
-        // #else
-
-        //Bowden
-        // Load filament slowly into PTFE tube
-        beevc_move_axis_blocking(E_AXIS,50,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
-
-        // Load filament quickly into PTFE tube
-        beevc_move_axis_blocking(E_AXIS,FILAMENT_CHANGE_LOAD_LENGTH,FILAMENT_CHANGE_LOAD_FEEDRATE);
-
-        // #endif
+        // Load filament
+        beevc_load_filament();
 
         // Extrude filament
         do {
@@ -2575,7 +2541,7 @@ void kill_screen(const char* lcd_msg) {
           beevc_force_screen_update();
 
           // Extrude filament to get into hotend
-          beevc_move_axis_blocking(E_AXIS,ADVANCED_PAUSE_EXTRUDE_LENGTH,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+          beevc_extrude_filament();
 
           // Show "Extrude More" / "Resume" menu and wait for reply
           KEEPALIVE_STATE(PAUSED_FOR_USER);
