@@ -2768,21 +2768,8 @@ void kill_screen(const char* lcd_msg) {
     }
 
     void lcd_filament_change_unloading(){
-      STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
-
-      LCD_PRINT_EXT_TEMP_STABLE();
-      STATIC_ITEM(_UxGT("Status: unloading"));
-      STATIC_ITEM(_UxGT(" "));
-      STATIC_ITEM(_UxGT("Please wait."));
-      END_SCREEN();
-    }
-
-    void lcd_filament_change_moving(){
-      // Ensure the correct extruder is set
-      if (active_extruder != filament_change_extruder)
-        active_extruder = filament_change_extruder;
-
       START_SCREEN();
+
       STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
 
       LCD_PRINT_EXT_TEMP_STABLE();
@@ -2868,20 +2855,6 @@ void kill_screen(const char* lcd_msg) {
         STATIC_ITEM("Click to exit.");
       } 
       END_SCREEN();
-    }
-  
-    void beevc_move_axis(AxisEnum axis,float move_mm, float feed_mms){
-      // Sets the motion ammount and executes movement at requested speed
-      current_position[axis] += move_mm;
-      planner.buffer_line_kinematic(current_position, feed_mms, active_extruder);
-    }
-
-    void beevc_move_axis_blocking(AxisEnum axis,float move_mm, float feed_mms){
-      // Plans the motion
-      beevc_move_axis(axis, move_mm, feed_mms);
-
-      // Waits for movement to finish
-      while(planner.movesplanned() > 0) idle();
     }
   
     void lcd_filament_change_move_e() {

@@ -12676,17 +12676,8 @@ inline void gcode_M999() {
       else{
         if(thermalManager.degTargetHotend(1) <30 || thermalManager.degTargetHotend(1) > 100 ) break;
         else idle();
-      // Lifts Z
-      float temp = - (current_position[Z_AXIS] + leveling_z_ammount);
-      eeprom_index = 0;
-      EEPROM_write(eeprom_index, (uint8_t*)&temp, sizeof(current_position[Z_AXIS]));
-      SERIAL_PROTOCOLLNPAIR_F("Z value after lift : ", temp);
-    }
-    // Homing XY
-    lcd_setstatus("Homing XY...");
       }
     }
-      homeduration = 11;
       
     //Lifts Z some mm and homes X Y not moving the Z axis
     if(z_lift){
@@ -12699,10 +12690,6 @@ inline void gcode_M999() {
       EEPROM_write(eeprom_index, (uint8_t*)&temp, sizeof(current_position[Z_AXIS]));
       SERIAL_PROTOCOLLNPAIR_F("Z value after lift : ", temp);
     }
-    
-    // Homing XY
-    lcd_setstatus("Homing XY...");
-    
 
     lcd_setstatus("Homing XY...");
     #ifdef BEEVC_B2X300
