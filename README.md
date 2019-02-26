@@ -7,6 +7,29 @@ For support, please visit https://beeverycreative.com/forum
 
 ## Changelog
 
+#### `B2X300-20190227`
+- Introduced function to allow screen with menu and static text
+- Corrected Blower test screen on Self-Test Wizard
+- Implemented Powerloss Screens on recovery
+- Reworked Change filament(during print) and Filament runout screens
+- Set nozzle height replaced unecessary home with XY movement
+- Improved nozzle height value display and storage (using round)
+- Restore print bugfix (reduced Z lift, saves Z movement)
+- Corrected Y sensorless homing on restore
+- Improved Serial debug messages on probing and correction on M48
+- Improvements to restore print mesh recovery and Z lift
+- Load now starts with filament insertion
+- Improvements to change filament
+- Reworked sensorless homing processes
+- Implemented cold pull wizard
+- Various bugfixes and improvements
+
+**NEW FEATURES**: 
+- Powerloss recovery now displays recovery info on screen to guide the user through the process
+- "Auto load" now starts the load process with filament insertion, if no filament was present before.
+- Cold pull wizard to allow easier nozzle cleaning
+
+
 #### `B2X300-20190123`
 - Change filament reworked
 - Corrected PID to match latest bed and current settings
