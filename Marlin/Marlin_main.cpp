@@ -12748,6 +12748,9 @@ inline void gcode_M999() {
       tool_change(1);
     }
 
+    // Ensures current position is the same as the one in planner to avoid eroneous Z or extruder movements
+    sync_plan_position();
+
     #ifdef BEEVC_Restore_LiftRetract
 
       // Reference for the pins used
