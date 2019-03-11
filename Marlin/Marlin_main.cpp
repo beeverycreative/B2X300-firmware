@@ -12516,12 +12516,6 @@ inline void gcode_M999() {
 				SERIAL_ECHOLNPGM(" ");
 		#endif
 
-    // Activated bed leveling mesh now that powerloss X Y Z position is known to allow the mesh to be set on the correct place
-    float leveling_z_ammount = current_position[Z_AXIS];
-    set_bed_leveling_enabled(true);
-    leveling_z_ammount -= current_position[Z_AXIS];
-    SERIAL_PROTOCOLLNPAIR_F("Z change on leveling : ", leveling_z_ammount);
-
     //Loads active extruder & extruder mode & acceleration
 		EEPROM_read(eeprom_index, (uint8_t*)&active_extruder, sizeof(active_extruder));
 		eeprom_busy_wait();
@@ -12685,7 +12679,7 @@ inline void gcode_M999() {
       SYNC_PLAN_POSITION_KINEMATIC(); // Makes current position the planner position G92
       do_blocking_move_to_z((current_position[Z_AXIS]+z_lift_mm), 4);
       // Reverts stored Z flag and remove Z_leveling to avoid repeating lift
-      float temp = - (current_position[Z_AXIS] + leveling_z_ammount);
+      float temp = - current_position[Z_AXIS] ;
       eeprom_index = 0;
       EEPROM_write(eeprom_index, (uint8_t*)&temp, sizeof(current_position[Z_AXIS]));
       SERIAL_PROTOCOLLNPAIR_F("Z value after lift : ", temp);
@@ -12738,9 +12732,20 @@ inline void gcode_M999() {
     lcd_setstatus("Priming extruder...");
     do_pause_e_move(5,5);
 
-    // Moves the printhead to the printed part and lowers Z
+    // Moves the printhead to the printed part xy
     lcd_setstatus("Recovering print...");
 		do_blocking_move_to_xy(xPosition,yPosition,40);
+
+    // Activated bed leveling mesh now that powerloss X Y Z position is known to allow the mesh to be set on the correct place
+    // Force bilinear_z_offset to re-calculate next time
+    const float reset[XYZ] = { -9999.999, -9999.999, 0 };
+    (void)bilinear_z_offset(reset);
+
+    // Enable leveling compensation in the planner
+    planner.leveling_active = true;
+    SYNC_PLAN_POSITION_KINEMATIC();
+    
+    // Lowers Z
     do_blocking_move_to_z((current_position[2]-z_lift_mm), 4);
     if(active_extruder == 1){
       active_extruder = 0;
@@ -16853,6 +16858,15 @@ void setup() {
 			stepper.quick_stop();
 			disable_all_steppers();
       clear_command_queue();
+
+      // Get current position from steppers after inturrupting, prints before and after
+      #ifdef SERIAL_DEBUG
+        report_current_position();
+      #endif
+      planner.sync_from_steppers();
+      #ifdef SERIAL_DEBUG
+        report_current_position();
+      #endif
 
       // Corrects the dual extruder offset to avoid incorrect recovery
       #ifdef SERIAL_DEBUG
