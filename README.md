@@ -7,7 +7,7 @@ For support, please visit https://beeverycreative.com/forum
 
 ## Changelog
 
-#### `B2X300-20190227`
+#### `B2X300-20190311`
 - Introduced function to allow screen with menu and static text
 - Corrected Blower test screen on Self-Test Wizard
 - Implemented Powerloss Screens on recovery
@@ -15,6 +15,8 @@ For support, please visit https://beeverycreative.com/forum
 - Set nozzle height replaced unecessary home with XY movement
 - Improved nozzle height value display and storage (using round)
 - Restore print bugfix (reduced Z lift, saves Z movement)
+- Restore print bugfix, z mesh is now correctly restored
+- Improved level bed procedure behavior
 - Corrected Y sensorless homing on restore
 - Improved Serial debug messages on probing and correction on M48
 - Improvements to restore print mesh recovery and Z lift
