@@ -5142,8 +5142,11 @@ void home_all_axes() { gcode_G28(true); }
     #endif // BEEVC_TMC2130READSG
 
     // Stores old acceleration and sets the correct acceleration for leveling/ homing
-    float old_acceleration = planner.travel_acceleration;
+    float old_travel_acceleration = planner.travel_acceleration;
+    float old_z_acceleraion = planner.max_acceleration_mm_per_s2[Z_AXIS];
     planner.travel_acceleration = 750;
+    planner.max_acceleration_mm_per_s2[Z_AXIS] = 200;
+    planner.reset_acceleration_rates();
 
 	  //DR-Stores the extruder and changes to E0
     uint8_t extruderNumber = active_extruder;
@@ -5377,6 +5380,21 @@ void home_all_axes() { gcode_G28(true); }
                    front_out = front_out_f || front_probe_bed_position > back_probe_bed_position - (MIN_PROBE_EDGE),
                    back_out_b = back_probe_bed_position > MAX_PROBE_Y,
                    back_out = back_out_b || back_probe_bed_position < front_probe_bed_position + MIN_PROBE_EDGE;
+
+        // // Debug out of bounds
+        // SERIAL_PROTOCOLLNPAIR("left_probe_bed_position:", left_probe_bed_position);
+        // SERIAL_PROTOCOLLNPAIR("right_probe_bed_position:", right_probe_bed_position);
+        // SERIAL_PROTOCOLLNPAIR("front_probe_bed_position:", front_probe_bed_position);
+        // SERIAL_PROTOCOLLNPAIR("back_probe_bed_position:", back_probe_bed_position);
+        // SERIAL_PROTOCOLLNPAIR("left_out_l:", left_out_l);
+        // SERIAL_PROTOCOLLNPAIR("left_out:", left_out);
+        // SERIAL_PROTOCOLLNPAIR("right_out_r:", right_out_r);
+        // SERIAL_PROTOCOLLNPAIR("right_out:", right_out);
+        // SERIAL_PROTOCOLLNPAIR("front_out_f:", front_out_f);
+        // SERIAL_PROTOCOLLNPAIR("front_out:", front_out);
+        // SERIAL_PROTOCOLLNPAIR("back_out_b:", back_out_b);
+        // SERIAL_PROTOCOLLNPAIR("back_out:", back_out);
+        // //
 
         if (left_out || right_out || front_out || back_out) {
           if (left_out) {
@@ -5983,29 +6001,31 @@ void home_all_axes() { gcode_G28(true); }
     if (planner.leveling_active)
       SYNC_PLAN_POSITION_KINEMATIC();
 
-	// DR-Restores to the previous extruder
-	tool_change(extruderNumber);
+    // DR-Restores to the previous extruder
+    tool_change(extruderNumber);
 
-  // Restores old acceleration settings
-  planner.travel_acceleration = old_acceleration;
+    // Restores old acceleration settings
+    planner.max_acceleration_mm_per_s2[Z_AXIS] = old_z_acceleraion;
+    planner.travel_acceleration = old_travel_acceleration;
+    planner.reset_acceleration_rates();
 
-  // Stores new mesh on EEPROM
-  (void)settings.save();
+    // Stores new mesh on EEPROM
+    (void)settings.save();
 
-  #ifdef BEEVC_TMC2130READSG
+    #ifdef BEEVC_TMC2130READSG
 
-    #ifndef BEEVC_TMC2130STEPLOSS
-      // Stops further stallGuard2 status reading if step loss detection is inactive
-      thermalManager.sg2_to_read  = false;
-    #else
-      thermalManager.sg2_to_read  = true;
-      thermalManager.sg2_timeout = millis() + 2000;
-    #endif
+      #ifndef BEEVC_TMC2130STEPLOSS
+        // Stops further stallGuard2 status reading if step loss detection is inactive
+        thermalManager.sg2_to_read  = false;
+      #else
+        thermalManager.sg2_to_read  = true;
+        thermalManager.sg2_timeout = millis() + 2000;
+      #endif
 
-    // Resets flags after homing
-    thermalManager.sg2_stop = false;
-    thermalManager.sg2_homing = false;
-  #endif // BEEVC_TMC2130READSG
+      // Resets flags after homing
+      thermalManager.sg2_stop = false;
+      thermalManager.sg2_homing = false;
+    #endif // BEEVC_TMC2130READSG
 
   }
 

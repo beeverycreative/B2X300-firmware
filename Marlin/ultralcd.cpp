@@ -1199,8 +1199,10 @@ uint16_t max_display_update_time = 0;
     // Force screen update
     beevc_force_screen_update();
 
+    // Clears parser data to avoid unexpected variables entering the home/leveling gcodes
+    parser.reset();
+
     // Homes and autoleves axes
-    gcode_G28(1);
     gcode_G29();
 
     // Next screen
@@ -1443,8 +1445,10 @@ uint16_t max_display_update_time = 0;
    // Waits for click or timeout
    beevc_wait(1000);
 
+   // Clears parser data to avoid unexpected variables entering the home/leveling gcodes
+   parser.reset();
+
    // Homes and autoleves axes
-   gcode_G28(1);
    gcode_G29();
 
    // Show moving screen
@@ -3057,14 +3061,19 @@ void kill_screen(const char* lcd_msg) {
       }
       else{
         lcd_goto_screen(lcd_filament_change_move_e);
-        KEEPALIVE_STATE(PAUSED_FOR_USER);
+        KEEPALIVE_STATE(IN_HANDLER);
         wait_for_user = true;    // LCD click or M108 will clear this
         while (wait_for_user ) idle(true);
-        KEEPALIVE_STATE(IN_HANDLER);
       }
 
       //Ensures the motion has finished
       while(planner.movesplanned() > 0 ) idle();
+
+      //Sets the host keepalive to NOT_BUSY
+      KEEPALIVE_STATE(NOT_BUSY);
+
+      // Enables return to status on standby
+      defer_return_to_status = false;
 
       // Goes back to the action selection
       lcd_goto_screen(lcd_filament_change_choose_action);
@@ -6353,8 +6362,10 @@ void beevc_machine_setup_set_offset(){
   // Waits for click or timeout
   beevc_wait(1000);
 
+  // Clears parser data to avoid unexpected variables entering the home/leveling gcodes
+  parser.reset();
+
   // Homes and autoleves axes
-  gcode_G28(1);
   gcode_G29();
 
   // Show moving screen
