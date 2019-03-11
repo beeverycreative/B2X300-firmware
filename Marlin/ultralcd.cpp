@@ -191,6 +191,8 @@ uint16_t max_display_update_time = 0;
   void beevc_machine_motion_offset_menu();
   void beevc_machine_temperature_menu();
   void beevc_about_menu();
+  void beevc_recover_screen();
+  void beevc_recover_now_screen();
 
   // void lcd_main_menu();
   // void lcd_tune_menu();
@@ -262,12 +264,48 @@ uint16_t max_display_update_time = 0;
 	#ifdef BEEVC_B2X300
     uint8_t beevc_screen_header = 0;
     bool beevc_continue = 0;
+    bool beevc_selecting = 0;
     uint32_t next_update =  0;
     float old_hotend_offset = 0;
     bool isX = 0 ;
     bool beevc_screen_constant_update = false;
     long beevc_screen_constant_update_time = 0;
 	#endif
+	///////////////////////////////////////////////////////
+
+  ////////////   Pause/Filament runout   //////////////
+	bool pause_filament_runout = false;
+  enum pause {
+    pause_init,
+    pause_unload,
+    pause_wait,
+    pause_heatup,
+    pause_insert,
+    pause_load,
+    pause_extrude,
+    pause_resume,
+    pause_option
+  };
+  uint8_t pause_status = pause_init;
+	///////////////////////////////////////////////////////
+
+  //////////////////   Cold pull   //////////////////////
+  enum cold_pull {
+    cold_pull_init,
+    cold_pull_extruder,
+    cold_pull_material,
+    cold_pull_heating,
+    cold_pull_unload_explain,
+    cold_pull_unload,
+    cold_pull_load_explain,
+    cold_pull_load,
+    cold_pull_cooldown,
+    cold_pull_clean_hotend,
+    cold_pull_pull,
+    cold_pull_during,
+    cold_pull_finish
+  };
+  uint8_t cold_pull_status = cold_pull_init;
 	///////////////////////////////////////////////////////
 
   ////////////   Filament Change   //////////////
@@ -430,6 +468,11 @@ uint16_t max_display_update_time = 0;
 
   #define MENU_ITEM(TYPE, LABEL, ...) do { \
       _skipStatic = false; \
+      _MENU_ITEM_PART_1(TYPE, ## __VA_ARGS__); \
+      _MENU_ITEM_PART_2(TYPE, LABEL, ## __VA_ARGS__); \
+    }while(0)
+
+  #define MENU_ITEM_MIX(TYPE, LABEL, ...) do { \
       _MENU_ITEM_PART_1(TYPE, ## __VA_ARGS__); \
       _MENU_ITEM_PART_2(TYPE, LABEL, ## __VA_ARGS__); \
     }while(0)
@@ -742,43 +785,147 @@ uint16_t max_display_update_time = 0;
  *
  */
 
- #ifdef BEEVC_B2X300
+#ifdef BEEVC_B2X300
 
-   void beevc_buzz(){
-     lcd_buzz(100, 659);
-     lcd_buzz(100, 698);
-   }
+  #define ACTIVE_FILAMENT_SENSOR_WAITING (((READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING) && (active_extruder == 1)) || ((READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING)  && (active_extruder == 0))) 
+  #define ACTIVE_FILAMENT_SENSOR_TRIGERED !(((READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING) && (active_extruder == 1)) || ((READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING)  && (active_extruder == 0))) 
 
-   void beevc_wait_click() {
-     wait_for_user = true;    // LCD click or M108 will clear this
-     while(wait_for_user){
-       // Avoid returning to status screen
-       defer_return_to_status = true;
+  #ifdef SERIAL_DEBUG
+    #define SERIAL_DEBUG_MESSAGE(str)             SERIAL_PROTOCOLLN(str)
+    #define SERIAL_DEBUG_MESSAGE_VALUE(str, val)  SERIAL_PROTOCOLLNPAIR(str, val)
+  #else
+    #define SERIAL_DEBUG_MESSAGE(str) 
+    #define SERIAL_DEBUG_MESSAGE_VALUE(str, val)
+  #endif
 
-       // Manage idle time
-       idle(true);
-     }
-   }
+  static void beevc_move_axis(AxisEnum axis,float move_mm, float feed_mms){
+    // Sets the motion ammount and executes movement at requested speed
+    current_position[axis] += move_mm;
+    planner.buffer_line_kinematic(current_position, feed_mms, active_extruder);
+  }
 
-   void beevc_wait(uint16_t milliseconds) {
-     wait_for_user = true;    // LCD click or M108 will clear this
-     uint32_t temptime= millis() + milliseconds;
-     while((temptime > millis()) && wait_for_user){
-       // Avoid returning to status screen
-       defer_return_to_status = true;
+  static void beevc_move_axis_blocking(AxisEnum axis,float move_mm, float feed_mms){
+    // Plans the motion
+    beevc_move_axis(axis, move_mm, feed_mms);
 
-       // Manage idle time
-       idle(true);
-     }
-   }
+    // Waits for movement to finish
+    while(planner.movesplanned() > 0) idle();
+  }
 
-   void beevc_force_screen_update(){
-     unsigned long next_update = millis() + 1000;
-     lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
-     while(millis()< next_update)
-       idle(true);
-   }
- #endif
+  static void beevc_unload_pull_filament(){
+    // Unloads filament
+    beevc_move_axis_blocking(E_AXIS,-(FILAMENT_CHANGE_UNLOAD_LENGTH),FILAMENT_CHANGE_UNLOAD_FEEDRATE);     
+  }
+
+  static void beevc_unload_filament(){
+    // Extrudes a small ammount to fluidify the tip of the filament
+    beevc_move_axis_blocking(E_AXIS,15,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+    
+    // Unloads filament
+    beevc_unload_pull_filament();
+  }
+
+  static void beevc_load_filament(){
+    // Extrudes a small ammount to fluidify the tip of the filament
+    beevc_move_axis_blocking(E_AXIS,15,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+
+    //Checks if Bowden to apply the correct 2 phase load process
+    #ifdef BEEVC_Bowden
+      //Bowden
+      // Load filament slowly into PTFE tube
+      beevc_move_axis_blocking(E_AXIS,50,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+    #endif // BEEVC_Bowden
+    
+    // Load filament fast
+      beevc_move_axis_blocking(E_AXIS,FILAMENT_CHANGE_LOAD_LENGTH,FILAMENT_CHANGE_LOAD_FEEDRATE);
+  }
+
+  static void beevc_extrude_filament(){
+    // Extrude filament to get into hotend
+    beevc_move_axis_blocking(E_AXIS,ADVANCED_PAUSE_EXTRUDE_LENGTH,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+  }
+
+  static void beevc_buzz(){
+    lcd_buzz(100, 659);
+    lcd_buzz(100, 698);
+  }
+
+  static void beevc_wait_click() {
+    wait_for_user = true;    // LCD click or M108 will clear this
+    while(wait_for_user){
+      // Avoid returning to status screen
+      defer_return_to_status = true;
+
+      // Manage idle time
+      idle(true);
+    }
+  }
+
+  static void beevc_selection_finished(){
+    beevc_selecting = false;
+  }
+
+  static void beevc_wait_selection(){
+    beevc_selecting = true;  // Selecting
+    while(beevc_selecting){
+      // Avoid returning to status screen
+      defer_return_to_status = true;
+
+      // Manage idle time
+      idle(true);
+    }
+  }
+
+  static void beevc_wait_heating(){
+    while (thermalManager.degHotend(active_extruder) < (thermalManager.degTargetHotend(active_extruder)-5)){
+      // Avoid returning to status screen
+      defer_return_to_status = true;
+
+      // Manage idle time
+      idle(true);
+    }
+    beevc_buzz();         
+  }
+
+  static void beevc_wait_cooling(){
+    while (thermalManager.degHotend(active_extruder) > (thermalManager.degTargetHotend(active_extruder)+5)){
+      // Avoid returning to status screen
+      defer_return_to_status = true;
+
+      // Manage idle time
+      idle(true);
+    }
+    beevc_buzz();         
+  }
+
+  void beevc_wait(uint16_t milliseconds, bool display_timeout = false) {
+    wait_for_user = true;    // LCD click or M108 will clear this
+    uint32_t temptime= millis() + milliseconds;
+    while((temptime > millis()) && wait_for_user){
+      // Avoid returning to status screen
+      defer_return_to_status = true;
+
+      // Display remaining time if requested
+      if(display_timeout){
+      beevc_screen_constant_update = true;
+      u8g.setPrintPos(0, 36);
+      u8g.print("in ");
+      u8g.print((int)((temptime-millis())/1000));
+      u8g.print(" seconds");
+      }
+      
+      // Manage idle time
+      idle(true);
+    }
+  }
+
+  void beevc_force_screen_update(){
+    lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+    // Two idle to ensure the redraw is completed.
+    idle(true);
+    idle(true);
+  }
+#endif
 
  #define LCD_PRINT_EXT_TEMP() \
     STATIC_ITEM(_UxGT(" ")); \
@@ -786,10 +933,9 @@ uint16_t max_display_update_time = 0;
     u8g.print("Extruder ");\
     u8g.print(active_extruder+1);\
     u8g.print(": ");\
-    if(round(thermalManager.degHotend(active_extruder)) <100) u8g.print(" ");\
-    u8g.print(round(thermalManager.degHotend(active_extruder)));\
+    u8g.print(itostr3((thermalManager.degHotend(active_extruder))));\
     u8g.print("/");\
-    u8g.print(round(thermalManager.degTargetHotend(active_extruder)));\
+    u8g.print(itostr3(thermalManager.degTargetHotend(active_extruder)));\
     lcd_printPGM(PSTR(LCD_STR_DEGREE));\
     u8g.print("C")
 
@@ -1053,8 +1199,10 @@ uint16_t max_display_update_time = 0;
     // Force screen update
     beevc_force_screen_update();
 
+    // Clears parser data to avoid unexpected variables entering the home/leveling gcodes
+    parser.reset();
+
     // Homes and autoleves axes
-    gcode_G28(1);
     gcode_G29();
 
     // Next screen
@@ -1244,7 +1392,7 @@ uint16_t max_display_update_time = 0;
  void beevc_set_offset_calibrate(){
    if (lcd_clicked)
      {
-       zprobe_zoffset = (current_position[Z_AXIS] + zprobe_zoffset);
+       zprobe_zoffset = (float)(round((current_position[Z_AXIS] + zprobe_zoffset)*100))/100;
        lcd_completion_feedback(settings.save());
        z_offset_finished = true;
 
@@ -1279,7 +1427,7 @@ uint16_t max_display_update_time = 0;
      START_SCREEN();
      STATIC_ITEM(_UxGT("Set nozzle height"), true, true);
 
-     lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr42sign((current_position[Z_AXIS] + zprobe_zoffset)));
+     lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr42sign((float)(round((current_position[Z_AXIS] + zprobe_zoffset)*100))/100));
      lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
      lcd_implementation_drawmenu_static(4,PSTR("Click to save.       "));
 
@@ -1297,19 +1445,20 @@ uint16_t max_display_update_time = 0;
    // Waits for click or timeout
    beevc_wait(1000);
 
+   // Clears parser data to avoid unexpected variables entering the home/leveling gcodes
+   parser.reset();
+
    // Homes and autoleves axes
-   gcode_G28(1);
    gcode_G29();
 
    // Show moving screen
    lcd_goto_screen(beevc_set_offset_moving);
 
    // Moves the carriage and bed to the offset adjust position
-   axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
-   gcode_G28(1);
+   do_blocking_move_to_xy(((X_BED_SIZE) / 2),((Y_BED_SIZE) / 2), 120);
 
    // Lowers Z axis
-   current_position[Z_AXIS] -= 8;
+   current_position[Z_AXIS] = (float)(round((current_position[Z_AXIS]-8)*10))/10;
    manual_move_to_current(Z_AXIS,0);
 
    // Waits a few seconds to allow movement to finish
@@ -1360,8 +1509,12 @@ void lcd_status_screen() {
   // If there is a print to restore and the bed temperature target (previously set when loading the flag)
   // is less than 5 degree away from current bed temperature or 0, starts the recovery on it's own
   if (toRecoverNow){
-    toRecoverNow = false;
-    recover_print();
+    beevc_recover_now_screen();
+  }
+
+  // If there is a print to restore and the bed temperature is more than 5 degree aways from set temp shows recover screen
+  if (toRecover){
+    beevc_recover_screen();
   }
 
   // Ensures the LCD is alive, re-initializing it every 10s
@@ -1600,6 +1753,471 @@ void kill_screen(const char* lcd_msg) {
   /**
    * BEEVC
    *
+   * Cold pull
+   *
+   */
+  void beevc_cold_pull_exit(){
+    // Allows returning to status
+    defer_return_to_status = false;
+    beevc_screen_constant_update = false;
+
+    beevc_selection_finished();
+
+    // Back action
+    menu_action_back();
+
+    // Forces screen update
+    beevc_force_screen_update();
+  }
+
+  void beevc_cold_pull_back(){
+    // Ensures correct operation on back and return
+    screen_history_depth--;
+    cold_pull_status = cold_pull_extruder;
+    beevc_selection_finished();
+  }
+
+  void beevc_cold_pull_extruder1(){
+    // Ensures correct operation on back and return
+    screen_history_depth--;
+    active_extruder = 0;
+    beevc_selection_finished();
+  }
+
+  void beevc_cold_pull_extruder2(){
+    // Ensures correct operation on back and return
+    screen_history_depth--;
+    active_extruder = 1;
+    beevc_selection_finished();
+  }
+
+  void beevc_cold_pull_pla(){
+    // Ensures correct operation on back and return
+    screen_history_depth--;
+    thermalManager.setTargetHotend(210, active_extruder);
+    beevc_selection_finished();
+  }
+
+  void beevc_cold_pull_petg(){
+    // Ensures correct operation on back and return
+    screen_history_depth--;
+    thermalManager.setTargetHotend(230, active_extruder);
+    beevc_selection_finished();
+  }
+
+  void beevc_cold_pull_abs(){
+    // Ensures correct operation on back and return
+    screen_history_depth--;
+    thermalManager.setTargetHotend(240, active_extruder);
+    beevc_selection_finished();
+  }
+
+  void beevc_cold_pull_pc(){
+    // Ensures correct operation on back and return
+    screen_history_depth--;
+    thermalManager.setTargetHotend(260, active_extruder);
+    beevc_selection_finished();
+  }
+
+  void beevc_cold_pull_screens(){
+    START_SCREEN();
+    // Show title
+    STATIC_ITEM("Cold pull",true,true);
+
+    switch(cold_pull_status){
+      case cold_pull_init:  
+        STATIC_ITEM("Welcome to cold pull");
+        STATIC_ITEM("wizard!");
+        STATIC_ITEM(" ");
+        STATIC_ITEM("(scroll to read more)");
+        STATIC_ITEM("This process will ");
+        STATIC_ITEM("help you clean the");
+        STATIC_ITEM("nozzles of your");
+        STATIC_ITEM("B2X300, when changing");
+        STATIC_ITEM("between filaments or");
+        STATIC_ITEM("if there are any");
+        STATIC_ITEM("extrusion problems");
+        STATIC_ITEM(" ");
+        STATIC_ITEM("Click to continue.");
+        break;
+      case cold_pull_heating:  
+        LCD_PRINT_EXT_TEMP();
+        STATIC_ITEM("Status:heating nozzle");
+        STATIC_ITEM(" ");
+        STATIC_ITEM("Please wait.");
+        break;
+      case cold_pull_unload_explain:  
+        STATIC_ITEM("Filament detected on");
+        STATIC_ITEM("filament sensor");
+        STATIC_ITEM("unload is necessary!");
+        STATIC_ITEM("(scroll to read more)");
+        STATIC_ITEM("Cold pull results");
+        STATIC_ITEM("in a enlarged tip");
+        STATIC_ITEM("of the filament that");
+        STATIC_ITEM("may get stuck inside");
+        STATIC_ITEM("the filament sensor.");
+        STATIC_ITEM(" ");
+        STATIC_ITEM("Click to continue.");
+        break;
+      case cold_pull_unload:  
+        LCD_PRINT_EXT_TEMP_STABLE();
+        STATIC_ITEM("Status: unloading");
+        STATIC_ITEM(" ");
+        STATIC_ITEM("Please wait.");
+        break;
+      case cold_pull_load_explain:
+        STATIC_ITEM("Status:  heating done");
+        STATIC_ITEM("Insert filament ");
+        STATIC_ITEM("without using sensor.");
+        STATIC_ITEM("Click to load.");    
+        break;
+      case cold_pull_load:
+        LCD_PRINT_EXT_TEMP_STABLE();
+        STATIC_ITEM("Status: loading");
+        STATIC_ITEM(" ");
+        STATIC_ITEM("Please wait.");
+        break;
+      case cold_pull_cooldown: 
+        LCD_PRINT_EXT_TEMP();
+        STATIC_ITEM("Status: preparing");
+        STATIC_ITEM(" ");
+        STATIC_ITEM("Please wait."); 
+        break;
+      case cold_pull_clean_hotend:
+        STATIC_ITEM("Please, pull away");
+        STATIC_ITEM("any leftover filament");
+        STATIC_ITEM("from the nozzle. ");
+        STATIC_ITEM("Click to continue.");
+        break;
+      case cold_pull_pull:
+        STATIC_ITEM("Please, apply a even");
+        STATIC_ITEM("pull force on the");
+        STATIC_ITEM("filament. ");
+        STATIC_ITEM("Click to continue.");  
+        break;
+      case cold_pull_during:  
+        LCD_PRINT_EXT_TEMP_STABLE();
+        STATIC_ITEM("Status:  cold pulling");
+        STATIC_ITEM(" ");
+        STATIC_ITEM("Please pull filament.");
+        break;
+      case cold_pull_finish:  
+        STATIC_ITEM("Cold pull finished!");
+        STATIC_ITEM("If there is residue");
+        STATIC_ITEM("on the tip of the ");
+        STATIC_ITEM("(scroll to read more)");
+        STATIC_ITEM("extracted filament ");
+        STATIC_ITEM("please repeat the");
+        STATIC_ITEM("process until clean.");
+        STATIC_ITEM(" ");
+        STATIC_ITEM("Click to exit.");
+        break;
+    }
+    END_SCREEN();
+  }
+
+  void beevc_cold_pull_options(){
+    START_MENU();
+    // Show title
+    STATIC_ITEM("Cold pull",true,true);
+
+    switch(cold_pull_status){
+      case cold_pull_extruder:  
+        // Go back to previous menu
+        MENU_ITEM(submenu, _UxGT("Back"), beevc_cold_pull_exit);
+        MENU_ITEM(submenu, _UxGT("Extruder 1"), beevc_cold_pull_extruder1);
+        MENU_ITEM(submenu, _UxGT("Extruder 2"), beevc_cold_pull_extruder2);
+        break;
+      case cold_pull_material:
+        MENU_ITEM(submenu, _UxGT("Back"), beevc_cold_pull_back);
+        MENU_ITEM(submenu, _UxGT("PLA   210\x09\x43"), beevc_cold_pull_pla); 
+        MENU_ITEM(submenu, _UxGT("PETG  230\x09\x43"), beevc_cold_pull_petg);
+        MENU_ITEM(submenu, _UxGT("ABS   240\x09\x43"), beevc_cold_pull_abs);
+        MENU_ITEM(submenu, _UxGT("PC    260\x09\x43"), beevc_cold_pull_pc);
+        break;
+    }
+
+    END_MENU();
+  }
+
+  static void beevc_cold_pull_show(cold_pull screen){
+    cold_pull_status = screen;
+    lcd_goto_screen(beevc_cold_pull_screens);
+  }
+
+  static void beevc_cold_pull_question(cold_pull screen){
+    cold_pull_status = screen;
+    lcd_goto_screen(beevc_cold_pull_options);
+  }
+
+  void beevc_cold_pull(){
+    // Disable timeout to status
+    defer_return_to_status = true;
+
+    // Enables constant screen update
+    beevc_screen_constant_update = true;
+
+    // Show initial screen
+    beevc_cold_pull_show(cold_pull_init);
+
+    // Waits for click to allow user to read
+    beevc_wait_click();
+
+    // Loop to allow return to here
+    do {
+      // Go to extruder choice
+      beevc_cold_pull_question(cold_pull_extruder);
+
+      // Waits until a selection is made
+      beevc_wait_selection();
+
+      // Checks if back has been selected if so exits
+      if(!beevc_screen_constant_update){
+        menu_action_back();
+        return;
+      }
+
+      // Go to material choice
+      beevc_cold_pull_question(cold_pull_material);
+
+      // Waits until a selection is made
+      beevc_wait_selection();
+    } while(cold_pull_status == cold_pull_extruder);
+
+    // Go to heating screen
+    beevc_cold_pull_show(cold_pull_heating);
+
+    // Wait for heating to finish
+    beevc_wait_heating();
+
+    // Verifies if the status of the filament sensor
+    if(ACTIVE_FILAMENT_SENSOR_TRIGERED){
+      // If there is filament inside the sensor
+      // Show screen where filament unload is explained
+      beevc_cold_pull_show(cold_pull_unload_explain);
+
+      // Waits 20s or for click to allow user time to read
+      beevc_wait(20000);
+
+      // Show unloading screen
+      beevc_cold_pull_show(cold_pull_unload);
+
+      // Unloads the filament
+      beevc_unload_filament();
+    }
+
+    // Shows the loading explanation screen
+    beevc_cold_pull_show(cold_pull_load_explain);
+
+    // Waits for click to allow user time to read
+    beevc_wait_click();
+
+    // Shows the loading screen
+    beevc_cold_pull_show(cold_pull_load);
+
+    // Loads filament
+    beevc_load_filament();
+    beevc_extrude_filament();
+
+    // Sets cooldown temperature
+    switch (thermalManager.degTargetHotend(active_extruder)){
+      case 210:  // PLA
+        thermalManager.setTargetHotend(85, active_extruder);
+      break;
+      case 230:  // PETG
+        thermalManager.setTargetHotend(100, active_extruder);
+      break;
+      case 240:  // ABS
+        thermalManager.setTargetHotend(105, active_extruder);
+      break;
+      case 260:  // PC
+        thermalManager.setTargetHotend(120, active_extruder);
+      break;
+    }
+
+    // Enables blower at full power
+    fanSpeeds[0] = 255;
+
+    // Shows the cooling screen
+    beevc_cold_pull_show(cold_pull_cooldown);
+
+    // Disables minimum extrusion temperature
+    thermalManager.extrude_min_temp = 0;
+
+    // Extrudes 65mm of plastic very slowly while cooling to keep chamber pressure
+    beevc_move_axis_blocking(E_AXIS,65,1);
+
+    // Waits for cooldown
+    beevc_wait_cooling();
+
+    // Disable blower
+    fanSpeeds[0] = 0;
+
+    // Shows clean hotend screen
+    beevc_cold_pull_show(cold_pull_clean_hotend);
+
+    // Waits for click
+    beevc_wait_click();
+
+    // Buzz to call for attention
+    beevc_buzz();
+
+    // Shows pull
+    beevc_cold_pull_show(cold_pull_pull);
+
+    // Waits for click
+    beevc_wait_click();
+
+    // Show cold pull screen
+    beevc_cold_pull_show(cold_pull_during);
+
+    // Increase max move speed for the extruder
+    planner.max_feedrate_mm_s[E_AXIS+active_extruder] = 120;
+
+    // Pulls filament out
+    beevc_move_axis_blocking(E_AXIS,-100,120);
+    beevc_unload_pull_filament();
+
+    // Resets max move speed for the extruder
+    planner.max_feedrate_mm_s[E_AXIS+active_extruder] = 60;
+
+    // Resets minimum extrusion temperature
+    thermalManager.extrude_min_temp = EXTRUDE_MINTEMP;
+
+    // Shows finished screen
+    beevc_cold_pull_show(cold_pull_finish);
+
+    // Waits for click
+    beevc_wait_click();
+
+    //Goes back to menu
+    beevc_cold_pull_exit();
+
+    // Checks if back has been selected if so exits
+      if(!beevc_screen_constant_update) return;
+  }
+
+
+  ////////// Cold pull /////////////
+
+  /**
+   * BEEVC
+   *
+   * "Recover" screen
+   *
+   */
+  void beevc_recover_screen_yes(){
+    // Enables return to status on timeout
+    defer_return_to_status = false;
+
+    // Return to status
+    lcd_return_to_status();
+    beevc_force_screen_update();
+
+    // Enqueues restore print command
+    enqueue_and_echo_commands_P(PSTR("M710"));
+    toRecover = false;
+
+    // Allows return to status
+    beevc_continue = true ;
+  }
+  void beevc_recover_screen_no(){
+    // Enables return to status on timeout
+    defer_return_to_status = false;
+
+    // Clears lcd text
+    lcd_setstatus("B2X300 ready.");
+
+    // Disables heating
+    thermalManager.disable_all_heaters();
+
+    // Return to status
+    lcd_return_to_status();
+    beevc_force_screen_update();
+
+    // Clears recover flag
+    enqueue_and_echo_commands_P(PSTR("M712"));
+    toRecover = false;
+
+    // Allows return to status
+    beevc_continue = true ;
+  }
+
+  void beevc_recover_screen_display(){
+    START_MENU();
+    STATIC_ITEM(_UxGT("Powerloss detected"), true, true);
+    STATIC_ITEM(_UxGT("Recover print?"));
+    MENU_ITEM_MIX(submenu, _UxGT(" - Yes"), beevc_recover_screen_yes);
+    MENU_ITEM_MIX(submenu, _UxGT(" - No"), beevc_recover_screen_no);
+    END_SCREEN();
+  }
+
+  void beevc_recover_screen() {
+    // Unset recovery flag
+    toRecoverNow = false;
+    toRecover = false;
+
+    // Disabes return to status on timeout
+    defer_return_to_status = true;
+
+    // Buzz
+    beevc_buzz();
+
+    // Set so a loop can be executed while selecting
+    beevc_continue = 0;
+
+    // Shows screen
+    lcd_goto_screen(beevc_recover_screen_display);
+
+    // Waits for choice
+    while(!beevc_continue){
+      idle(true);
+    }
+  }
+
+  void beevc_recover_now_screen_display(){
+    START_SCREEN();
+    STATIC_ITEM(_UxGT("Powerloss detected"), true, true);
+    STATIC_ITEM(_UxGT("Auto-recovering print"));
+    STATIC_ITEM(_UxGT(" "));
+    STATIC_ITEM(_UxGT(" "));
+    STATIC_ITEM(_UxGT("Click to cancel."));
+    END_SCREEN();
+  }
+
+  void beevc_recover_now_screen() {
+    // Unset recovery flag
+    toRecoverNow = false;
+    toRecover = false;
+
+    // Disabes return to status on timeout
+    defer_return_to_status = true;
+
+    // Buzz
+    beevc_buzz();
+
+    // Shows screen
+    lcd_goto_screen(beevc_recover_now_screen_display);
+
+    // Waits for 10 seconds or click
+    beevc_wait(10000,true);
+
+    beevc_screen_constant_update = false;
+
+    // Waits for choice
+    if(wait_for_user) {
+      // Did not click so restores print
+      beevc_recover_screen_yes();
+    }
+    else {
+      // Clicked so restore is canceled
+      beevc_recover_screen_no();
+    }
+  }
+
+  /**
+   * BEEVC
+   *
    * "Main" menu
    *
    */
@@ -1607,12 +2225,6 @@ void kill_screen(const char* lcd_msg) {
   void beevc_main_menu() {
     START_MENU();
     MENU_BACK(MSG_WATCH);
-
-  	// This shows an option to recover the print from the menu
-  	#ifdef BEEVC_Restore
-  		if (toRecover)
-  			MENU_ITEM(function, _UxGT("Restore print"), recover_print);
-  	#endif
 
     // Only shows when not printing and still
     if(!(planner.movesplanned() || IS_SD_PRINTING || IS_SD_FILE_OPEN)){
@@ -1694,7 +2306,7 @@ void kill_screen(const char* lcd_msg) {
     	  #endif
 
       // Cold pull
-        //MENU_ITEM(submenu, _UxGT("Cold pull"), _lcd_menu_z_offset);
+        MENU_ITEM(submenu, _UxGT("Cold pull"), beevc_cold_pull);
 
       // Calibrate Dual nozzle Z offset
        // MENU_ITEM(submenu, _UxGT("Nozzle Z-offset test"), lcd_nozzle_z_offset_start);
@@ -1838,7 +2450,7 @@ void kill_screen(const char* lcd_msg) {
         if (planner.leveling_active)
           thermalManager.babystep_axis(Z_AXIS, babystep_increment);
 
-        zprobe_zoffset = new_zoffset;
+        zprobe_zoffset = (float)(round(new_zoffset*100))/100;
         lcdDrawUpdate = LCDVIEW_CALL_REDRAW_NEXT;
       }
     }
@@ -1846,7 +2458,7 @@ void kill_screen(const char* lcd_msg) {
       START_SCREEN();
       STATIC_ITEM(_UxGT("Live nozzle height"), true, true);
 
-      lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr43sign(zprobe_zoffset));
+      lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr42sign(zprobe_zoffset));
       lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
       lcd_implementation_drawmenu_static(4,PSTR("Click to save.       "));
 
@@ -1994,125 +2606,125 @@ void kill_screen(const char* lcd_msg) {
 
   #if ENABLED(ADVANCED_PAUSE_FEATURE)
 
-  // Sensorless homing
+    // Sensorless homing
 
-  void lcd_sensorless_homing_calibration_x()
-    {
+    void lcd_sensorless_homing_calibration_x()
+      {
+        START_SCREEN();
+        STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
+
+        STATIC_ITEM(_UxGT("Sensorless-homing: X"));
+        STATIC_ITEM(_UxGT("Noise and impacts are"));
+        STATIC_ITEM(_UxGT("expected."));
+
+        if(sensorless_homing_progress == 0) {
+          STATIC_ITEM(_UxGT("Working"));
+        }
+        else if (sensorless_homing_progress == 1){
+          STATIC_ITEM(_UxGT("Working."));
+        }
+        else if (sensorless_homing_progress == 2){
+          STATIC_ITEM(_UxGT("Working.."));
+        }
+        else if (sensorless_homing_progress >= 3){
+          STATIC_ITEM(_UxGT("Working..."));
+        }
+
+        END_SCREEN();
+      }
+    void lcd_sensorless_homing_calibration_y()
+      {
+        START_SCREEN();
+        STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
+
+        STATIC_ITEM(_UxGT("Sensorless-homing: Y"));
+        STATIC_ITEM(_UxGT("Noise and impacts are"));
+        STATIC_ITEM(_UxGT("expected."));
+
+        if(sensorless_homing_progress == 0) {
+          STATIC_ITEM(_UxGT("Working"));
+        }
+        else if (sensorless_homing_progress == 1){
+          STATIC_ITEM(_UxGT("Working."));
+        }
+        else if (sensorless_homing_progress == 2){
+          STATIC_ITEM(_UxGT("Working.."));
+        }
+        else if (sensorless_homing_progress >= 3){
+          STATIC_ITEM(_UxGT("Working..."));
+        }
+
+        END_SCREEN();
+      }
+    void lcd_sensorless_homing_calibration_x_done()
+      {
+        START_SCREEN();
+        STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
+        STATIC_ITEM(_UxGT("Sensorless-homing: X"));
+        STATIC_ITEM(_UxGT("Status: OK!"));
+        STATIC_ITEM(_UxGT(" "));
+        STATIC_ITEM(_UxGT("Please wait."));
+        END_SCREEN();
+      }
+    void lcd_sensorless_homing_calibration_y_done()
+      {
+        START_SCREEN();
+        STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
+        STATIC_ITEM(_UxGT("Sensorless-homing: Y"));
+        STATIC_ITEM(_UxGT("Status: OK!"));
+        STATIC_ITEM(_UxGT(" "));
+        STATIC_ITEM(_UxGT("Please wait."));
+        END_SCREEN();
+      }
+    void lcd_sensorless_homing_calibration_homing()
+      {
+        START_SCREEN();
+        STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
+        STATIC_ITEM(_UxGT("Sensorless-homing: XY"));
+        STATIC_ITEM(_UxGT("Status: homing X+Y"));
+        STATIC_ITEM(_UxGT(" "));
+        STATIC_ITEM(_UxGT("Please wait."));
+        END_SCREEN();
+      }
+
+    ////////////////////////////////////////////////////////////////////////
+    //					Filament Change Feature							//
+    ////////////////////////////////////////////////////////////////////////
+
+    void lcd_filament_change_hotendStatus() {
       START_SCREEN();
-      STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
+        STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
+        
+      #ifndef DOGLCD
+        STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_1 "  ", true, false);
+        #ifdef MSG_FILAMENT_CHANGE_HEATING_2
+          STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_2 "  ", true, false);
+          #define _FC_LINES_C 3
+        #else
+          #define _FC_LINES_C 2
+        #endif
+        lcd.setCursor(2, 3);
+        lcd.print("Nozzle: ");
 
-      STATIC_ITEM(_UxGT("Sensorless-homing: X"));
-      STATIC_ITEM(_UxGT("Noise and impacts are"));
-      STATIC_ITEM(_UxGT("expected."));
+        if(round(thermalManager.degHotend(active_extruder)) <100)
+        lcd.print(" ");
 
-      if(sensorless_homing_progress == 0) {
-        STATIC_ITEM(_UxGT("Working"));
-      }
-      else if (sensorless_homing_progress == 1){
-        STATIC_ITEM(_UxGT("Working."));
-      }
-      else if (sensorless_homing_progress == 2){
-        STATIC_ITEM(_UxGT("Working.."));
-      }
-      else if (sensorless_homing_progress >= 3){
-        STATIC_ITEM(_UxGT("Working..."));
-      }
-
-      END_SCREEN();
-    }
-  void lcd_sensorless_homing_calibration_y()
-    {
-      START_SCREEN();
-      STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
-
-      STATIC_ITEM(_UxGT("Sensorless-homing: Y"));
-      STATIC_ITEM(_UxGT("Noise and impacts are"));
-      STATIC_ITEM(_UxGT("expected."));
-
-      if(sensorless_homing_progress == 0) {
-        STATIC_ITEM(_UxGT("Working"));
-      }
-      else if (sensorless_homing_progress == 1){
-        STATIC_ITEM(_UxGT("Working."));
-      }
-      else if (sensorless_homing_progress == 2){
-        STATIC_ITEM(_UxGT("Working.."));
-      }
-      else if (sensorless_homing_progress >= 3){
-        STATIC_ITEM(_UxGT("Working..."));
-      }
-
-      END_SCREEN();
-    }
-  void lcd_sensorless_homing_calibration_x_done()
-    {
-      START_SCREEN();
-      STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
-      STATIC_ITEM(_UxGT("Sensorless-homing: X"));
-      STATIC_ITEM(_UxGT("Status: OK!"));
-      STATIC_ITEM(_UxGT(" "));
-      STATIC_ITEM(_UxGT("Please wait."));
-      END_SCREEN();
-    }
-  void lcd_sensorless_homing_calibration_y_done()
-    {
-      START_SCREEN();
-      STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
-      STATIC_ITEM(_UxGT("Sensorless-homing: Y"));
-      STATIC_ITEM(_UxGT("Status: OK!"));
-      STATIC_ITEM(_UxGT(" "));
-      STATIC_ITEM(_UxGT("Please wait."));
-      END_SCREEN();
-    }
-  void lcd_sensorless_homing_calibration_homing()
-    {
-      START_SCREEN();
-      STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
-      STATIC_ITEM(_UxGT("Sensorless-homing: XY"));
-      STATIC_ITEM(_UxGT("Status: homing X+Y"));
-      STATIC_ITEM(_UxGT(" "));
-      STATIC_ITEM(_UxGT("Please wait."));
-      END_SCREEN();
-    }
-
-  ////////////////////////////////////////////////////////////////////////
-  //					Filament Change Feature							//
-  ////////////////////////////////////////////////////////////////////////
-
-	void lcd_filament_change_hotendStatus() {
-		START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
-      
-	  #ifndef DOGLCD
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_1 "  ", true, false);
-      #ifdef MSG_FILAMENT_CHANGE_HEATING_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_2 "  ", true, false);
-        #define _FC_LINES_C 3
+        lcd.print(round(thermalManager.degHotend(active_extruder)));
+        lcd.print("/");
+        lcd.print(round(thermalManager.degTargetHotend(active_extruder)));
       #else
-        #define _FC_LINES_C 2
+
+        LCD_PRINT_EXT_TEMP();
+        STATIC_ITEM(_UxGT("Status:heating nozzle"));
+        STATIC_ITEM(_UxGT(" "));
+        STATIC_ITEM(_UxGT("Please wait."));
+        
       #endif
-			lcd.setCursor(2, 3);
-			lcd.print("Nozzle: ");
 
-			if(round(thermalManager.degHotend(active_extruder)) <100)
-			lcd.print(" ");
+        END_SCREEN();
+    }
 
-			lcd.print(round(thermalManager.degHotend(active_extruder)));
-			lcd.print("/");
-			lcd.print(round(thermalManager.degTargetHotend(active_extruder)));
-	  #else
-
-		  LCD_PRINT_EXT_TEMP();
-      STATIC_ITEM(_UxGT("Status:heating nozzle"));
-      STATIC_ITEM(_UxGT(" "));
-      STATIC_ITEM(_UxGT("Please wait."));
-      
-	  #endif
-
-      END_SCREEN();
-	}
-
-	void lcd_filament_change_resume_print() {
+    void lcd_filament_change_resume_print() {
       advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_RESUME_PRINT;
     }
 
@@ -2120,13 +2732,11 @@ void kill_screen(const char* lcd_msg) {
       advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE;
     }
 
-	void lcd_filament_change_load() {
+    void lcd_filament_change_load() {
       advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_LOAD;
     }
 
-
-	void lcd_filament_change_press()
-    {
+    void lcd_filament_change_press(){
       START_SCREEN();
       STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
 
@@ -2137,21 +2747,33 @@ void kill_screen(const char* lcd_msg) {
       END_SCREEN();
     }
 
-    void lcd_filament_change_loading()
-    {
+    void lcd_filament_change_press_insert(){
       START_SCREEN();
       STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
 
       LCD_PRINT_EXT_TEMP_STABLE();
+      STATIC_ITEM(_UxGT("Status:  heating done"));
+      STATIC_ITEM(_UxGT("Click or insert "));
+      STATIC_ITEM(_UxGT("filament to continue."));
+      END_SCREEN();
+    }
+
+
+    void lcd_filament_change_loading(){
+      START_SCREEN();
+      STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
+
+      LCD_PRINT_EXT_TEMP_STABLE();
+      STATIC_ITEM(_UxGT("Status: loading"));
       STATIC_ITEM(_UxGT("Status: loading"));
       STATIC_ITEM(_UxGT(" "));
       STATIC_ITEM(_UxGT("Please wait."));
       END_SCREEN();
     }
 
-    void lcd_filament_change_unloading()
-    {
+    void lcd_filament_change_unloading(){
       START_SCREEN();
+
       STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
 
       LCD_PRINT_EXT_TEMP_STABLE();
@@ -2161,8 +2783,7 @@ void kill_screen(const char* lcd_msg) {
       END_SCREEN();
     }
 
-	void lcd_filament_change_moving()
-    {
+    void lcd_filament_change_moving(){
       // Ensure the correct extruder is set
       if (active_extruder != filament_change_extruder)
         active_extruder = filament_change_extruder;
@@ -2183,7 +2804,7 @@ void kill_screen(const char* lcd_msg) {
       END_SCREEN();
     }
 
-	void lcd_filament_change_option_menu() {
+    void lcd_filament_change_option_menu() {
       START_MENU();
       #if LCD_HEIGHT > 2
         STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
@@ -2193,24 +2814,24 @@ void kill_screen(const char* lcd_msg) {
       END_MENU();
     }
 
-	void lcd_filament_change_unload_option_menu() {
+    void lcd_filament_change_unload_option_menu() {
       START_MENU();
       #if LCD_HEIGHT > 2
         STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
       #endif
-	    MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_LOAD, lcd_filament_change_load);
+      MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_LOAD, lcd_filament_change_load);
       MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_RESUME, lcd_filament_change_resume_print);
       END_MENU();
     }
 
-	void lcd_filament_change_unload_menu() {
+    void lcd_filament_change_unload_menu() {
       START_MENU();
       #if LCD_HEIGHT > 2
         STATIC_ITEM(MSG_FILAMENTCHANGE, true, true);
       #endif
 
       MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_RESUME, lcd_filament_change_resume_print);
-	    MENU_ITEM(function, _UxGT("Load filament"), lcd_filament_change_extrude_more);
+      MENU_ITEM(function, _UxGT("Load filament"), lcd_filament_change_extrude_more);
       END_MENU();
     }
 
@@ -2239,382 +2860,390 @@ void kill_screen(const char* lcd_msg) {
       } 
       END_SCREEN();
     }
-
-    void beevc_move_axis(AxisEnum axis,float move_mm, float feed_mms){
-      // Sets the motion ammount and executes movement at requested speed
-      current_position[axis] += move_mm;
-      planner.buffer_line_kinematic(current_position, feed_mms, active_extruder);
-    }
-
-    void beevc_move_axis_blocking(AxisEnum axis,float move_mm, float feed_mms){
-      // Plans the motion
-      beevc_move_axis(axis, move_mm, feed_mms);
-
-      // Waits for movement to finish
-      while(planner.movesplanned() > 0) idle();
-    }
- 
-   void lcd_filament_change_move_e() {
-      defer_return_to_status = true;
-      beevc_screen_constant_update = true;
-      ENCODER_DIRECTION_NORMAL();
-      if (encoderPosition && (!processing_manual_move)) {
-        float diff = float((int32_t)encoderPosition) * 10;
-        NOMORE(diff,5);
-        NOLESS(diff,-5);
-
-        current_position[E_AXIS] += diff;
-        manual_move_to_current(E_AXIS, active_extruder);
-        lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
-        encoderPosition = 0;
-      }
-      if (lcdDrawUpdate) lcd_filament_change_move_e_screen();
-   }
-
   
-  void beevc_load_unload( bool load){
+    void lcd_filament_change_move_e() {
+        defer_return_to_status = true;
+        beevc_screen_constant_update = true;
+        ENCODER_DIRECTION_NORMAL();
+        if (encoderPosition && (!processing_manual_move)) {
+          float diff = float((int32_t)encoderPosition) * 10;
+          NOMORE(diff,5);
+          NOLESS(diff,-5);
 
-    // Forces constant screen updates
-    beevc_screen_constant_update = true; 
-
-    // Show moving screen
-    if(load)
-      lcd_goto_screen(lcd_filament_change_loading);
-    else
-      lcd_goto_screen(lcd_filament_change_unloading);
-
-    // Ensures the screen has changed before movement
-    beevc_force_screen_update();
-
-    // Extrudes a small ammount to fluidify the tip of the filament
-    beevc_move_axis_blocking(E_AXIS,15,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
-
-    // Unload
-    if(!load) {
-      // Unload filament
-      beevc_move_axis_blocking(E_AXIS,-(FILAMENT_CHANGE_UNLOAD_LENGTH),FILAMENT_CHANGE_UNLOAD_FEEDRATE);
+          current_position[E_AXIS] += diff;
+          manual_move_to_current(E_AXIS, active_extruder);
+          lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+          encoderPosition = 0;
+        }
+        if (lcdDrawUpdate) lcd_filament_change_move_e_screen();
     }
 
-    // Load
-    if (load)
-    {
-      // Ensures the screen is updated even when unloading first
-      lcd_goto_screen(lcd_filament_change_loading);
+    
+    void beevc_load_unload( bool load){
+      // Forces constant screen updates
+      beevc_screen_constant_update = true; 
 
-      // //Checks if Bowden to apply the correct 3 phase load process
-      // //Direct drive
-      // #ifndef BEEVC_Bowden
-      //   // Load filament
-      //   destination[E_AXIS] += FILAMENT_CHANGE_LOAD_LENGTH;
-      //   RUNPLAN(FILAMENT_CHANGE_LOAD_FEEDRATE);
-      //   stepper.synchronize();
+      // Show moving screen
+      if(load)
+        lcd_goto_screen(lcd_filament_change_loading);
+      else
+        lcd_goto_screen(lcd_filament_change_unloading);
 
-      // #else
+      // Ensures the screen has changed before movement
+      beevc_force_screen_update();
 
-      //Bowden
-      // Load filament slowly into PTFE tube
-      beevc_move_axis_blocking(E_AXIS,50,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+      // Unload
+      if(!load) {
+        // Unload filament
+        beevc_unload_filament();
+      if(!load) {
+        // Unload filament
+        beevc_move_axis_blocking(E_AXIS,-(FILAMENT_CHANGE_UNLOAD_LENGTH),FILAMENT_CHANGE_UNLOAD_FEEDRATE);
+      }
 
-      // Load filament quickly into PTFE tube
-      beevc_move_axis_blocking(E_AXIS,FILAMENT_CHANGE_LOAD_LENGTH,FILAMENT_CHANGE_LOAD_FEEDRATE);
-
-      // #endif
-
-      // Extrude filament
-      do {
+      // Load
+      if (load)
+      {
+        // Ensures the screen is updated even when unloading first
         lcd_goto_screen(lcd_filament_change_loading);
 
-        // Extrude filament to get into hotend
-        beevc_move_axis_blocking(E_AXIS,ADVANCED_PAUSE_EXTRUDE_LENGTH,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+        // Load filament
+        beevc_load_filament();
+        // #ifndef BEEVC_Bowden
+        //   // Load filament
+        //   destination[E_AXIS] += FILAMENT_CHANGE_LOAD_LENGTH;
+        //   RUNPLAN(FILAMENT_CHANGE_LOAD_FEEDRATE);
+        //   stepper.synchronize();
+      
+        // Extrude filament
+        do {
+          // Show loading
+          lcd_goto_screen(lcd_filament_change_loading);
 
-        // Show "Extrude More" / "Resume" menu and wait for reply
-        KEEPALIVE_STATE(PAUSED_FOR_USER);
-        wait_for_user = false;
-        lcd_advanced_pause_show_message(FILAMENT_CHANGE_MESSAGE_OPTION);
-        while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
-        KEEPALIVE_STATE(IN_HANDLER);
+          // Forces screen refresh
+          beevc_force_screen_update();
 
-        // Keep looping if "Extrude More" was selected
-      } while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE);
+          // Extrude filament to get into hotend
+          beevc_extrude_filament();
+
+          // Show "Extrude More" / "Resume" menu and wait for reply
+          KEEPALIVE_STATE(PAUSED_FOR_USER);
+          wait_for_user = false;
+          lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_OPTION);
+          while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
+          KEEPALIVE_STATE(IN_HANDLER);
+
+          // Keep looping if "Extrude More" was selected
+        } while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE);
+          KEEPALIVE_STATE(PAUSED_FOR_USER);
+          wait_for_user = false;
+          lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_OPTION);
+          while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
+          KEEPALIVE_STATE(IN_HANDLER);
+
+          // Keep looping if "Extrude More" was selected
+        } while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE);
+      }
+
+      KEEPALIVE_STATE(IN_HANDLER);
     }
 
-    KEEPALIVE_STATE(IN_HANDLER);
-  }
+    static void lcd_filament_change_unload_load (uint16_t changetemp, bool manual_extrude, bool unload_load){
+      #ifdef FILAMENT_RUNOUT_DUAL
+        // Store the filament sensor state
+        bool filament_sensor_waiting = manual_extrude ?0:ACTIVE_FILAMENT_SENSOR_WAITING;
+      #endif //FILAMENT_RUNOUT_DUAL
 
-static void lcd_filament_change_unload_load (uint16_t changetemp, bool manual_extrude, bool unload_load)
-{
-  // Ensure the correct extruder is set
-  if (active_extruder != filament_change_extruder)
-    active_extruder = filament_change_extruder;
+      SERIAL_DEBUG_MESSAGE_VALUE("Filament sensor state: ",ACTIVE_FILAMENT_SENSOR_WAITING);
 
-  // Clears extruder value
-  current_position[E_AXIS] = 0;
-  planner.set_e_position_mm(current_position[E_AXIS]);
+      // Ensure the correct extruder is set
+      if (active_extruder != filament_change_extruder)
+        active_extruder = filament_change_extruder;
 
-  // Starts heating
-	HOTEND_LOOP() thermalManager.setTargetHotend(changetemp, filament_change_extruder);
+      // Clears extruder value
+      current_position[E_AXIS] = 0;
+      planner.set_e_position_mm(current_position[E_AXIS]);
 
-  //Disables the timeout to status screen
-  defer_return_to_status = true;
+      // Starts heating
+      HOTEND_LOOP() thermalManager.setTargetHotend(changetemp, filament_change_extruder);
 
-	// Show "wait for heating"
-  lcd_goto_screen(lcd_filament_change_hotendStatus);
+      //Disables the timeout to status screen
+      defer_return_to_status = true;
 
-  // Prepares the temporary variables
-  unsigned long next_update = millis() + 200;
-  bool update = true;
+      // Show "wait for heating"
+      lcd_goto_screen(lcd_filament_change_hotendStatus);
 
-  //This helps to speed up the temperature stabilization process without changing the PID
-  //changetemp -= 10;
+      // Prepares the temporary variables
+      unsigned long next_update = millis() + 200;
+      bool update = true;
 
-    while (update)
-    {
-       if (next_update < millis())
-       {
-    	   update = false;
-    	   idle(true);
-    	   HOTEND_LOOP()
-         {
-           #ifdef BEEVC_B2X300
+      #ifndef BEEVC_B2X300
+        //This helps hBp speed up the temperature stabilization process without changing the PID
+        //changetemp -= 10;
+      #endif
+
+      while (update){
+        if (next_update < millis()){
+          update = false;
+          idle(true);
+          HOTEND_LOOP() {
+            #ifdef BEEVC_B2X300
               if (thermalManager.degHotend(filament_change_extruder) < (changetemp-5))
-           #else
+            #else
               if (abs(thermalManager.degHotend(active_extruder) - changetemp) > 10)
-           #endif
-           {
-             update = true;
-             break;
-           }
-    	   }
-         // updates the lcd in each cycle
-    	   lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
-    	   // sets next screen update
-         next_update = millis() + 200;
+            #endif
+            {
+              update = true;
+              break;
+            }
+          }
+          // updates the lcd in each cycle
+          lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+          // sets next screen update
+          next_update = millis() + 200;
+        }
+      }
+
+      //Shows "Press to continue" and beeps while waiting if not unloading
+      if (unload_load){
+        // Chooses the correct screen if there is a filament sensor
+        #ifdef FILAMENT_RUNOUT_DUAL
+          // If the sensor is ready to read filament insertion show press or insert screen
+          if (filament_sensor_waiting)
+            lcd_goto_screen(lcd_filament_change_press_insert);
+          // Otherwise show normal screen
+          else 
+            lcd_goto_screen(lcd_filament_change_press);
+        #else
+          lcd_goto_screen(lcd_filament_change_press);
+        #endif  //FILAMENT_RUNOUT_DUAL
+
+        KEEPALIVE_STATE(PAUSED_FOR_USER);
+        wait_for_user = true;    // LCD click or M108 will clear this
+        next_update = millis();
+        while (wait_for_user ) {
+          if(next_update < millis()) {
+              #if HAS_BUZZER
+                buzzer.tone(100, 2000);
+              #endif
+              next_update = millis() + 1000;
+          }
+
+          #ifdef FILAMENT_RUNOUT_DUAL
+            //Detects if the filament sensor is activated
+            //Only works if filament sensor started out empty
+            if(filament_sensor_waiting){
+              if(!ACTIVE_FILAMENT_SENSOR_WAITING){
+                SERIAL_DEBUG_MESSAGE_VALUE("Filament sensor triggered state: ",ACTIVE_FILAMENT_SENSOR_WAITING);
+                
+
+                // short beep and wait, total of 2s
+                buzzer.tone(200, 2000);
+                beevc_wait(2000);
+
+                break;
+              }
+            }
+          #endif //FILAMENT_RUNOUT_DUAL
+
+          idle(true);
+        }
+      }
+
+      KEEPALIVE_STATE(IN_HANDLER);
+
+      if(! manual_extrude){
+        // Buzz to inform start of load/unload
+        buzzer.tone(1000, 2000);
+
+        // Load/unload
+        beevc_load_unload(unload_load);
+      }
+      else{
+        lcd_goto_screen(lcd_filament_change_move_e);
+        KEEPALIVE_STATE(IN_HANDLER);
+        wait_for_user = true;    // LCD click or M108 will clear this
+        while (wait_for_user ) idle(true);
+      }
+
+      //Ensures the motion has finished
+      while(planner.movesplanned() > 0 ) idle();
+
+      //Sets the host keepalive to NOT_BUSY
+      KEEPALIVE_STATE(NOT_BUSY);
+
+      // Enables return to status on standby
+      defer_return_to_status = false;
+
+      // Goes back to the action selection
+      lcd_goto_screen(lcd_filament_change_choose_action);
+    }
+
+    static void lcd_filament_change_finish_movement () {
+      lcd_filament_change_moving();
+      beevc_screen_constant_update = true;
+
+      // Checks if necessary movements have been made or if unloading
+      if (((current_position[Z_AXIS] == 50) && axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS]) || !filament_change_load){
+        //beevc_screen_constant_update = false;
+        lcd_filament_change_unload_load (filament_change_temp,filament_change_manual, filament_change_load);
+      }
+    }
+
+    static void lcd_filament_change_home_move () {
+      // only moves if loading or manually extruding
+      if (filament_change_load){
+        // if not homed homes axis and lifts Z
+        if (!(axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS])){
+          // Forces a home on all the axes
+          axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
+          // Home
+          enqueue_and_echo_commands_P(PSTR("G28"));
+          enqueue_and_echo_commands_P(PSTR("G1 Z50 F3000"));
         }
 
-    }
-
-	//Shows "Press to continue" and beeps while waiting if not unloading
-  if (unload_load){
-    lcd_goto_screen(lcd_filament_change_press);
-    KEEPALIVE_STATE(PAUSED_FOR_USER);
-    wait_for_user = true;    // LCD click or M108 will clear this
-    next_update = millis();
-    while (wait_for_user ) {
-      if(next_update < millis()) {
-          #if HAS_BUZZER
-            buzzer.tone(100, 2000);
-          #endif
-
-          // Deactivated for now
-          // Detects if the filament sensor is activated
-          // #ifdef FILAMENT_RUNOUT_DUAL
-          //   if (extruder)
-          //     // E0
-          //     {
-          //       if (!(READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING))
-          //         break;
-          //     }
-          //   else
-          //     // E1
-          //     {
-          //       if (!(READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING))
-          //         break;
-          //     }
-          // #endif //FILAMENT_RUNOUT_DUAL
-          next_update = millis() + 1000;
+        // if homed only moves to load position
+        else if (!((current_position[X_AXIS] == 146) && (current_position[Y_AXIS] == 59) && (current_position[Z_AXIS] == 50)) && filament_change_load) {
+          enqueue_and_echo_commands_P(PSTR("G1 X146 Y59 Z50 F8000"));
+        }
       }
-      idle(true);
-    }
-  }
-  else buzzer.tone(1000, 2000);
 
-  KEEPALIVE_STATE(IN_HANDLER);
+      lcd_goto_screen(lcd_filament_change_finish_movement);
 
-  if(! manual_extrude){
-    // Load/unload
-    beevc_load_unload(unload_load);
-  }
-  else{
-    lcd_goto_screen(lcd_filament_change_move_e);
-    KEEPALIVE_STATE(PAUSED_FOR_USER);
-    wait_for_user = true;    // LCD click or M108 will clear this
-    while (wait_for_user ) idle(true);
-    KEEPALIVE_STATE(IN_HANDLER);
-  }
-
-  //Ensures the motion has finished
-  while(planner.movesplanned() > 0 ) idle();
-
-  // Goes back to the action selection
-  lcd_goto_screen(lcd_filament_change_choose_action);
-}
-
-static void lcd_filament_change_finish_movement () {
-  lcd_filament_change_moving();
-  beevc_screen_constant_update = true;
-
-  // Checks if necessary movements have been made or if unloading
-  if (((current_position[Z_AXIS] == 50) && axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS]) || !filament_change_load){
-    //beevc_screen_constant_update = false;
-    lcd_filament_change_unload_load (filament_change_temp,filament_change_manual, filament_change_load);
-  }
-    
-}
-
-static void lcd_filament_change_home_move () {
-  // only moves if loading or manually extruding
-  if (filament_change_load){
-    // if not homed homes axis and lifts Z
-    if (!(axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS])){
-      // Forces a home on all the axes
-      axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
-      // Home
-      enqueue_and_echo_commands_P(PSTR("G28"));
-      enqueue_and_echo_commands_P(PSTR("G1 Z50 F3000"));
+      beevc_force_screen_update();
     }
 
-    // if homed only moves to load position
-    else if (!((current_position[X_AXIS] == 146) && (current_position[Y_AXIS] == 59) && (current_position[Z_AXIS] == 50)) && filament_change_load) {
-      enqueue_and_echo_commands_P(PSTR("G1 X146 Y59 Z50 F8000"));
+
+    static void lcd_filament_change_action_unload () {
+      filament_change_load = false ;
+      filament_change_manual = false ;
+      lcd_goto_screen(lcd_filament_change_home_move);
     }
-  }
 
-  lcd_goto_screen(lcd_filament_change_finish_movement);
+    static void lcd_filament_change_action_load () {
+      filament_change_load = true ;
+      filament_change_manual = false ;
+      lcd_goto_screen(lcd_filament_change_home_move);
+    }
 
-  beevc_force_screen_update();
-}
+    static void lcd_filament_change_action_move () {
+      filament_change_load = true ;
+      filament_change_manual = true ;
+      
+      lcd_goto_screen(lcd_filament_change_home_move);
+    }
 
+    static void lcd_filament_change_choose_action () {
+      START_MENU();
+      MENU_BACK(MSG_BACK);
+      MENU_ITEM(function, _UxGT("Auto Load"), lcd_filament_change_action_load);
+      MENU_ITEM(function, _UxGT("Auto Unload"), lcd_filament_change_action_unload);
+      MENU_ITEM(function, _UxGT("Manual Extrusion"), lcd_filament_change_action_move);
+      MENU_ITEM(function, "Exit", lcd_return_to_status);
+      END_MENU();
+    }
 
-static void lcd_filament_change_action_unload () {
-  filament_change_load = false ;
-  filament_change_manual = false ;
-  lcd_goto_screen(lcd_filament_change_home_move);
-}
+    static void lcd_filament_change_pla ()
+    {
+      filament_change_temp = 210;
+      thermalManager.setTargetHotend(filament_change_temp, filament_change_extruder);
+      lcd_goto_screen(lcd_filament_change_choose_action);
+    }
 
-static void lcd_filament_change_action_load () {
-  filament_change_load = true ;
-  filament_change_manual = false ;
-  lcd_goto_screen(lcd_filament_change_home_move);
-}
+    static void lcd_filament_change_petg ()
+    {
+      filament_change_temp = 230;
+      thermalManager.setTargetHotend(filament_change_temp, filament_change_extruder);
+      lcd_goto_screen(lcd_filament_change_choose_action);
+    }
 
-static void lcd_filament_change_action_move () {
-  filament_change_load = true ;
-  filament_change_manual = true ;
-  
-  lcd_goto_screen(lcd_filament_change_home_move);
-}
+    static void lcd_filament_change_abs ()
+    {
+      filament_change_temp = 240;
+      thermalManager.setTargetHotend(filament_change_temp, filament_change_extruder);
+      lcd_goto_screen(lcd_filament_change_choose_action);
+    }
 
-static void lcd_filament_change_choose_action () {
-  START_MENU();
-  MENU_BACK(MSG_BACK);
-  MENU_ITEM(function, _UxGT("Auto Load"), lcd_filament_change_action_load);
-  MENU_ITEM(function, _UxGT("Auto Unload"), lcd_filament_change_action_unload);
-  MENU_ITEM(function, _UxGT("Manual Extrusion"), lcd_filament_change_action_move);
-  END_MENU();
-}
+    static void lcd_filament_change_pc ()
+    {
+      filament_change_temp = 260;
+      thermalManager.setTargetHotend(filament_change_temp, filament_change_extruder);
+      lcd_goto_screen(lcd_filament_change_choose_action);
+    }
 
-static void lcd_filament_change_pla ()
-{
-  filament_change_temp = 210;
-  thermalManager.setTargetHotend(filament_change_temp, filament_change_extruder);
-  lcd_goto_screen(lcd_filament_change_choose_action);
-}
+    static void lcd_filament_change_choose_temp() {
+      START_MENU();
 
-static void lcd_filament_change_petg ()
-{
-  filament_change_temp = 230;
-  thermalManager.setTargetHotend(filament_change_temp, filament_change_extruder);
-  lcd_goto_screen(lcd_filament_change_choose_action);
-}
+      // Go back to previous menu
+      MENU_BACK(MSG_BACK);
 
-static void lcd_filament_change_abs ()
-{
-  filament_change_temp = 240;
-  thermalManager.setTargetHotend(filament_change_temp, filament_change_extruder);
-  lcd_goto_screen(lcd_filament_change_choose_action);
-}
+      // \x09 is degree sign \x43 is 'C'
+      MENU_ITEM(submenu, _UxGT("PLA   210\x09\x43"), lcd_filament_change_pla); 
+      MENU_ITEM(submenu, _UxGT("PETG  230\x09\x43"), lcd_filament_change_petg);
+      MENU_ITEM(submenu, _UxGT("ABS   240\x09\x43"), lcd_filament_change_abs);
+      MENU_ITEM(submenu, _UxGT("PC    260\x09\x43"), lcd_filament_change_pc);
 
-static void lcd_filament_change_pc ()
-{
-  filament_change_temp = 260;
-  thermalManager.setTargetHotend(filament_change_temp, filament_change_extruder);
-  lcd_goto_screen(lcd_filament_change_choose_action);
-}
+      END_MENU();
+    }
 
-static void lcd_filament_change_choose_temp() {
-  START_MENU();
+    static void lcd_filament_change_extruder_0()
+    {
+      filament_change_extruder = 0;
+      active_extruder = 0;
 
-  // Go back to previous menu
-  MENU_BACK(MSG_BACK);
+      lcd_goto_screen(lcd_filament_change_choose_temp);
 
-  // \x09 is degree sign \x43 is 'C'
-  MENU_ITEM(submenu, _UxGT("PLA   210\x09\x43"), lcd_filament_change_pla); 
-  MENU_ITEM(submenu, _UxGT("PETG  230\x09\x43"), lcd_filament_change_petg);
-  MENU_ITEM(submenu, _UxGT("ABS   240\x09\x43"), lcd_filament_change_abs);
-  MENU_ITEM(submenu, _UxGT("PC    260\x09\x43"), lcd_filament_change_pc);
+      // Force screen update
+      beevc_force_screen_update();
+    }
 
-  END_MENU();
-}
+    static void lcd_filament_change_extruder_1()
+    {
+      filament_change_extruder = 1;
+      active_extruder = 1;
 
-static void lcd_filament_change_extruder_0()
-{
-  filament_change_extruder = 0;
-  active_extruder = 0;
+      lcd_goto_screen(lcd_filament_change_choose_temp);
 
-  lcd_goto_screen(lcd_filament_change_choose_temp);
+      // Force screen update
+      beevc_force_screen_update();
+    }
 
-  // Force screen update
-  beevc_force_screen_update();
-}
+    static void lcd_filament_change_exit(){
+      // Allows returning to status
+      defer_return_to_status = false;
+      beevc_screen_constant_update = false;
 
-static void lcd_filament_change_extruder_1()
-{
-  filament_change_extruder = 1;
-  active_extruder = 1;
-
-  lcd_goto_screen(lcd_filament_change_choose_temp);
-
-  // Force screen update
-  beevc_force_screen_update();
-}
-
-static void lcd_filament_change_exit(){
-  // Allows returning to status
-  defer_return_to_status = false;
-  beevc_screen_constant_update = false;
-
-  // Back action
-  menu_action_back();
-  menu_action_back();
-}
+      // Back action
+      menu_action_back();
+      menu_action_back();
+    }
 
 
-static void lcd_filament_change()
-{
-  START_MENU();
+    static void lcd_filament_change()
+    {
+      START_MENU();
 
-  // Go back to previous menu
-  MENU_ITEM(submenu, _UxGT("Back"), lcd_filament_change_exit);
+      // Go back to previous menu
+      MENU_ITEM(submenu, _UxGT("Back"), lcd_filament_change_exit);
 
-  MENU_ITEM(submenu, _UxGT("Extruder 1"), lcd_filament_change_extruder_0);
-  MENU_ITEM(submenu, _UxGT("Extruder 2"), lcd_filament_change_extruder_1);
+      MENU_ITEM(submenu, _UxGT("Extruder 1"), lcd_filament_change_extruder_0);
+      MENU_ITEM(submenu, _UxGT("Extruder 2"), lcd_filament_change_extruder_1);
 
-  END_MENU();
-}
+      END_MENU();
+    }
 
-static void lcd_filament_change_start()
-{
-  defer_return_to_status = true;
-  beevc_screen_constant_update = true;
+    static void lcd_filament_change_start()
+    {
+      defer_return_to_status = true;
+      beevc_screen_constant_update = true;
 
-  lcd_goto_screen(lcd_filament_change);
+      lcd_goto_screen(lcd_filament_change);
 
-  // Force screen update
-  beevc_force_screen_update();
-}
+      // Force screen update
+      beevc_force_screen_update();
+    }
 
-void lcd_enqueue_filament_change() {
-
+    void lcd_enqueue_filament_change() {
       #if ENABLED(PREVENT_COLD_EXTRUSION)
         if (!DEBUGGING(DRYRUN) && !thermalManager.allow_cold_extrude &&
             thermalManager.degTargetHotend(active_extruder) < thermalManager.extrude_min_temp) {
@@ -5112,34 +5741,6 @@ void lcd_enqueue_filament_change() {
   #endif
   ///////////////////////////////////////////////////////
 
-  void beevc_machine_setup_buzz(){
-    lcd_buzz(100, 659);
-    lcd_buzz(100, 698);
-  }
-
-  void beevc_machine_setup_wait_click() {
-    wait_for_user = true;    // LCD click or M108 will clear this
-    while(wait_for_user){
-      // Avoid returning to status screen
-      defer_return_to_status = true;
-
-      // Manage idle time
-      idle(true);
-    }
-  }
-
-  void beevc_machine_setup_wait(uint16_t milliseconds) {
-    wait_for_user = true;    // LCD click or M108 will clear this
-    uint32_t temptime= millis() + milliseconds;
-    while((temptime > millis()) && wait_for_user){
-      // Avoid returning to status screen
-      defer_return_to_status = true;
-
-      // Manage idle time
-      idle(true);
-    }
-  }
-
   #define MACHINE_SETUP_TITLE \
     START_SCREEN();\
     STATIC_ITEM(_UxGT("Self-test wizard"), true, true)
@@ -5478,9 +6079,9 @@ void beevc_machine_setup_screen_error_blower() {
 void beevc_machine_setup_screen_blower_test() {
   MACHINE_SETUP_TITLE_CHOICE;
   STATIC_ITEM(_UxGT("Is the blower active?"));
-  MENU_ITEM(submenu, _UxGT(" - Yes"), beevc_machine_setup_screen_blower_test_ok);
-  MENU_ITEM(submenu, _UxGT(" - No"), beevc_machine_setup_screen_error_blower);
-  MACHINE_SETUP_END_CHOICE;
+  MENU_ITEM_MIX(submenu, _UxGT(" - Yes"), beevc_machine_setup_screen_blower_test_ok);
+  MENU_ITEM_MIX(submenu, _UxGT(" - No"), beevc_machine_setup_screen_error_blower);
+  END_SCREEN();
 }
 
 void beevc_machine_setup_screen_trinamic_start() {
@@ -5723,13 +6324,13 @@ void beevc_machine_setup_screen_set_offset_calibrate(){
 }
 
 void beevc_machine_setup_sensorless_homing (){
-  beevc_machine_setup_buzz();
+  beevc_buzz();
 
   // Show info screen
   lcd_goto_screen(beevc_machine_setup_screen_sensorless_homing);
 
   // Waits for click or timeout
-  beevc_machine_setup_wait(1000);
+  beevc_wait(1000);
 
   // Starts variables to force calibration
   calibrating_sensorless_homing_x = true;
@@ -5742,10 +6343,10 @@ void beevc_machine_setup_sensorless_homing (){
   lcd_goto_screen(beevc_machine_setup_screen_sensorless_homing_complete);
 
   //Beep
-  beevc_machine_setup_buzz();
+  beevc_buzz();
 
   //Wait for 5sec or click
-  beevc_machine_setup_wait(5000);
+  beevc_wait(5000);
 }
 
 void beevc_machine_setup_measure_xy(){
@@ -5759,22 +6360,23 @@ void beevc_machine_setup_set_offset(){
   lcd_goto_screen(beevc_machine_setup_screen_set_offset_homing);
 
   // Waits for click or timeout
-  beevc_machine_setup_wait(1000);
+  beevc_wait(1000);
+
+  // Clears parser data to avoid unexpected variables entering the home/leveling gcodes
+  parser.reset();
 
   // Homes and autoleves axes
-  gcode_G28(1);
   gcode_G29();
 
   // Show moving screen
   lcd_goto_screen(beevc_machine_setup_screen_set_offset_moving);
 
   // Moves the carriage and bed to the offset adjust position
-  axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
-  gcode_G28(1);
+  do_blocking_move_to_xy(((X_BED_SIZE) / 2),((Y_BED_SIZE) / 2), 120);
 
   // Lowers Z axis
-  current_position[Z_AXIS] -= 8;
-  manual_move_to_current(Z_AXIS);
+  current_position[Z_AXIS] = (float)(round((current_position[Z_AXIS]-8)*10))/10;
+  manual_move_to_current(Z_AXIS,0);
 
   // Waits a few seconds to allow movement to finish
   uint32_t temp_time = millis() + 3200;
@@ -5785,7 +6387,7 @@ void beevc_machine_setup_set_offset(){
 
   // Shows the help screen
   lcd_goto_screen(beevc_machine_setup_screen_set_offset_explain);
-  beevc_machine_setup_wait(20000);
+  beevc_wait(20000);
 
   // Shows the leveling screen
   lcd_goto_screen(beevc_machine_setup_screen_set_offset_calibrate);
@@ -5796,10 +6398,10 @@ void beevc_machine_setup_set_offset(){
   }
 
   //Beep
-  beevc_machine_setup_buzz();
+  beevc_buzz();
 
   //Wait for 5sec or click
-  beevc_machine_setup_wait(5000);
+  beevc_wait(5000);
 }
 
 void beevc_machine_setup_test_hotend (uint8_t extruder){
@@ -5875,13 +6477,16 @@ void beevc_machine_setup_test_hotend (uint8_t extruder){
 
 
   //Beep
-  beevc_machine_setup_buzz();
+  beevc_buzz();
 
   //Display Hotbed ok screen
   lcd_goto_screen(beevc_machine_setup_screen_hotend_ok);
 
   //Wait for 5sec or click
-  beevc_machine_setup_wait(5000);
+  beevc_wait(5000);
+
+  //Disable E heating
+  thermalManager.setTargetHotend(0, active_extruder);
 
   //Disable E heating
   thermalManager.setTargetHotend(0, active_extruder);
@@ -5924,19 +6529,19 @@ void beevc_machine_setup_test_hotbed (){
   thermalManager.setTargetBed(0);
 
   //Beep
-  beevc_machine_setup_buzz();
+  beevc_buzz();
 
   //Display Hotbed ok screen
   lcd_goto_screen(beevc_machine_setup_screen_hotbed_ok);
 
   //Wait for 5sec or click
-  beevc_machine_setup_wait(5000);
+  beevc_wait(5000);
 }
 
 void beevc_machine_setup_test_blower (){
     lcd_goto_screen(beevc_machine_setup_screen_blower_start);
 
-    beevc_machine_setup_wait(5000);
+    beevc_wait(5000);
     fanSpeeds[0] = 255;
     beevc_continue = 0;
 
@@ -5949,10 +6554,10 @@ void beevc_machine_setup_test_blower (){
     fanSpeeds[0] = 0;
 
     //Beep
-    beevc_machine_setup_buzz();
+    beevc_buzz();
 
     //Wait for 5sec or click
-    beevc_machine_setup_wait(5000);
+    beevc_wait(5000);
 }
 
 void beevc_machine_setup_test_trinamic (){
@@ -5960,7 +6565,7 @@ void beevc_machine_setup_test_trinamic (){
     lcd_goto_screen(beevc_machine_setup_screen_trinamic_start);
 
     // Waits for 5s or click
-    beevc_machine_setup_wait(5000);
+    beevc_wait(5000);
 
     // Re-initializes variable
     trinamic_ok = 0;
@@ -6039,13 +6644,13 @@ void beevc_machine_setup_test_trinamic (){
     }
 
     //Beep
-    beevc_machine_setup_buzz();
+    beevc_buzz();
 
     // Display ok screen
     lcd_goto_screen(beevc_machine_setup_screen_trinamic_ok);
 
     //Wait for 5sec or click
-    beevc_machine_setup_wait(5000);
+    beevc_wait(5000);
 }
 
 void beevc_machine_setup_test_powerloss (){
@@ -6053,7 +6658,7 @@ void beevc_machine_setup_test_powerloss (){
     lcd_goto_screen(beevc_machine_setup_screen_powerloss_start);
 
     // Waits for 5s or click
-    beevc_machine_setup_wait(5000);
+    beevc_wait(5000);
 
     // Tests if the powerloss pin is ofline as it should be
     if (digitalRead(11) != 0){
@@ -6064,13 +6669,13 @@ void beevc_machine_setup_test_powerloss (){
     }
 
     //Beep
-    beevc_machine_setup_buzz();
+    beevc_buzz();
 
     // Display ok screen
     lcd_goto_screen(beevc_machine_setup_screen_powerloss_ok);
 
     //Wait for 5sec or click
-    beevc_machine_setup_wait(5000);
+    beevc_wait(5000);
 }
 
   /**
@@ -6088,7 +6693,7 @@ void beevc_machine_setup_test_powerloss (){
     // Shows EEPROM updated screen
     if(toCalibrate == 1) {
       lcd_goto_screen(beevc_machine_setup_EEPROM_updated);
-      beevc_machine_setup_wait_click();
+      beevc_wait_click();
     }
 
     // Start screen
@@ -6096,13 +6701,13 @@ void beevc_machine_setup_test_powerloss (){
     lcd_goto_screen(beevc_machine_setup_screen_start);
 
     // Wait for click
-    beevc_machine_setup_wait_click();
+    beevc_wait_click();
 
     // Verify Hotend connections
     lcd_goto_screen(beevc_machine_setup_screen_hotend_start);
 
     // Wait for while to allow the user to read the message
-    beevc_machine_setup_wait(5000);
+    beevc_wait(5000);
 
     // Verify E1 connection
       // Test E1
@@ -6150,7 +6755,7 @@ void beevc_machine_setup_test_powerloss (){
     lcd_goto_screen(beevc_machine_setup_screen_complete);
 
     // Waits for click
-    beevc_machine_setup_wait_click();
+    beevc_wait_click();
 
     // Return to status screen
     lcd_return_to_status();
@@ -7512,247 +8117,125 @@ void beevc_machine_setup_test_powerloss (){
       END_MENU();
     }
 
-    void lcd_advanced_pause_resume_print() {
-      advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_RESUME_PRINT;
-    }
-
-    void lcd_advanced_pause_extrude_more() {
-      advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE;
-    }
+    void lcd_advanced_pause_resume_print() {advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_RESUME_PRINT;}
+    void lcd_advanced_pause_extrude_more() {advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE;}
 
     void lcd_advanced_pause_option_menu() {
       START_MENU();
-      #if LCD_HEIGHT > 2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_OPTION_HEADER, true, false);
-      #endif
-      MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_RESUME, lcd_advanced_pause_resume_print);
+      if(pause_filament_runout) {STATIC_ITEM("Filament runout", true, true);}
+      else                      {STATIC_ITEM("Change filament", true, true);}
+      MENU_ITEM(function, "Back                \x04", lcd_advanced_pause_resume_print);
       MENU_ITEM(function, MSG_FILAMENT_CHANGE_OPTION_EXTRUDE, lcd_advanced_pause_extrude_more);
       END_MENU();
     }
 
-    void lcd_advanced_pause_init_message() {
+    void lcd_advanced_pause_screens() {
       START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_INIT_1);
-      #ifdef MSG_FILAMENT_CHANGE_INIT_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_INIT_2);
-        #define __FC_LINES_A 3
-      #else
-        #define __FC_LINES_A 2
-      #endif
-      #ifdef MSG_FILAMENT_CHANGE_INIT_3
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_INIT_3);
-        #define _FC_LINES_A (__FC_LINES_A + 1)
-      #else
-        #define _FC_LINES_A __FC_LINES_A
-      #endif
-      #if LCD_HEIGHT > _FC_LINES_A + 1
-        STATIC_ITEM(" ");
-      #endif
-      HOTEND_STATUS_ITEM();
+      if(pause_filament_runout) {STATIC_ITEM("Filament runout", true, true);}
+      else                      {STATIC_ITEM("Change filament", true, true);}
+      LCD_PRINT_EXT_TEMP();
+
+      switch (pause_status){
+        case pause_init:
+          STATIC_ITEM("Status: moving");               
+          STATIC_ITEM(" ");
+          STATIC_ITEM("Please wait.");
+          break;
+        case pause_unload:
+          STATIC_ITEM("Status: unloading");               
+          STATIC_ITEM(" ");
+          STATIC_ITEM("Please wait.");
+          break;
+        case pause_wait:
+          STATIC_ITEM("Status: heating");               
+          STATIC_ITEM(" ");
+          STATIC_ITEM("Please wait.");
+          break;
+        case pause_heatup:
+          STATIC_ITEM("Status: standby");               
+          STATIC_ITEM(" ");
+          STATIC_ITEM("Click to reheat.");
+          break;
+        case pause_insert:
+          STATIC_ITEM("Status: waiting");               
+          STATIC_ITEM("Please, load filament");
+          STATIC_ITEM("and click to continue");
+          break;
+        case pause_load:
+          STATIC_ITEM("Status: loading");               
+          STATIC_ITEM(" ");
+          STATIC_ITEM("Please wait.");
+          break;
+        case pause_extrude:
+          STATIC_ITEM("Status: extruding");               
+          STATIC_ITEM(" ");
+          STATIC_ITEM("Please wait.");
+          break;
+        case pause_resume:
+          STATIC_ITEM("Status: resuming");               
+          STATIC_ITEM(" ");
+          STATIC_ITEM("Please wait.");
+          break;
+      }
       END_SCREEN();
     }
 
-    void lcd_advanced_pause_unload_message() {
-      START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_UNLOAD_1);
-      #ifdef MSG_FILAMENT_CHANGE_UNLOAD_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_UNLOAD_2);
-        #define __FC_LINES_B 3
-      #else
-        #define __FC_LINES_B 2
-      #endif
-      #ifdef MSG_FILAMENT_CHANGE_UNLOAD_3
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_UNLOAD_3);
-        #define _FC_LINES_B (__FC_LINES_B + 1)
-      #else
-        #define _FC_LINES_B __FC_LINES_B
-      #endif
-      #if LCD_HEIGHT > _FC_LINES_B + 1
-        STATIC_ITEM(" ");
-      #endif
-      HOTEND_STATUS_ITEM();
-      END_SCREEN();
-    }
-
-    void lcd_advanced_pause_wait_for_nozzles_to_heat() {
-      START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_1);
-      #ifdef MSG_FILAMENT_CHANGE_HEATING_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_HEATING_2);
-        #define _FC_LINES_C 3
-      #else
-        #define _FC_LINES_C 2
-      #endif
-      #if LCD_HEIGHT > _FC_LINES_C + 1
-        STATIC_ITEM(" ");
-      #endif
-      HOTEND_STATUS_ITEM();
-      END_SCREEN();
-    }
-
-    void lcd_advanced_pause_heat_nozzle() {
-      START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEAT_1);
-      #ifdef MSG_FILAMENT_CHANGE_INSERT_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_HEAT_2);
-        #define _FC_LINES_D 3
-      #else
-        #define _FC_LINES_D 2
-      #endif
-      #if LCD_HEIGHT > _FC_LINES_D + 1
-        STATIC_ITEM(" ");
-      #endif
-      HOTEND_STATUS_ITEM();
-      END_SCREEN();
-    }
-
-    void lcd_advanced_pause_insert_message() {
-      START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_INSERT_1);
-      #ifdef MSG_FILAMENT_CHANGE_INSERT_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_INSERT_2);
-        #define __FC_LINES_E 3
-      #else
-        #define __FC_LINES_E 2
-      #endif
-      #ifdef MSG_FILAMENT_CHANGE_INSERT_3
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_INSERT_3);
-        #define _FC_LINES_E (__FC_LINES_E + 1)
-      #else
-        #define _FC_LINES_E __FC_LINES_E
-      #endif
-      #if LCD_HEIGHT > _FC_LINES_E + 1
-        STATIC_ITEM(" ");
-      #endif
-      HOTEND_STATUS_ITEM();
-      END_SCREEN();
-    }
-
-    void lcd_advanced_pause_load_message() {
-      START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_LOAD_1);
-      #ifdef MSG_FILAMENT_CHANGE_LOAD_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_LOAD_2);
-        #define __FC_LINES_F 3
-      #else
-        #define __FC_LINES_F 2
-      #endif
-      #ifdef MSG_FILAMENT_CHANGE_LOAD_3
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_LOAD_3);
-        #define _FC_LINES_F (__FC_LINES_F + 1)
-      #else
-        #define _FC_LINES_F __FC_LINES_F
-      #endif
-      #if LCD_HEIGHT > _FC_LINES_F + 1
-        STATIC_ITEM(" ");
-      #endif
-      HOTEND_STATUS_ITEM();
-      END_SCREEN();
-    }
-
-    void lcd_advanced_pause_extrude_message() {
-      START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_EXTRUDE_1);
-      #ifdef MSG_FILAMENT_CHANGE_EXTRUDE_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_EXTRUDE_2);
-        #define __FC_LINES_G 3
-      #else
-        #define __FC_LINES_G 2
-      #endif
-      #ifdef MSG_FILAMENT_CHANGE_EXTRUDE_3
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_EXTRUDE_3);
-        #define _FC_LINES_G (__FC_LINES_G + 1)
-      #else
-        #define _FC_LINES_G __FC_LINES_G
-      #endif
-      #if LCD_HEIGHT > _FC_LINES_G + 1
-        STATIC_ITEM(" ");
-      #endif
-      HOTEND_STATUS_ITEM();
-      END_SCREEN();
-    }
-
-    void lcd_advanced_pause_resume_message() {
-      START_SCREEN();
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_HEADER, true, true);
-      STATIC_ITEM(MSG_FILAMENT_CHANGE_RESUME_1);
-      #ifdef MSG_FILAMENT_CHANGE_RESUME_2
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_RESUME_2);
-      #endif
-      #ifdef MSG_FILAMENT_CHANGE_RESUME_3
-        STATIC_ITEM(MSG_FILAMENT_CHANGE_RESUME_3);
-      #endif
-      END_SCREEN();
-    }
+    #define ADVANCED_PAUSE_SETUP \
+      defer_return_to_status = true; \
+      beevc_screen_constant_update = true
 
     void lcd_advanced_pause_show_message(const AdvancedPauseMessage message) {
       switch (message) {
         case ADVANCED_PAUSE_MESSAGE_INIT:
-          defer_return_to_status = true;
-          lcd_goto_screen(lcd_advanced_pause_init_message);
+          ADVANCED_PAUSE_SETUP;
+          pause_status = pause_init;
+          lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_UNLOAD:
-          defer_return_to_status = true;
-          lcd_goto_screen(lcd_advanced_pause_unload_message);
+          ADVANCED_PAUSE_SETUP;
+          pause_status = pause_unload;
+          lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_INSERT:
-          defer_return_to_status = true;
-          lcd_goto_screen(lcd_advanced_pause_insert_message);
+          ADVANCED_PAUSE_SETUP;
+          pause_status = pause_insert;
+          lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_LOAD:
-          defer_return_to_status = true;
-          lcd_goto_screen(lcd_advanced_pause_load_message);
+          ADVANCED_PAUSE_SETUP;
+          pause_status = pause_load;
+          lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_EXTRUDE:
-          defer_return_to_status = true;
-          lcd_goto_screen(lcd_advanced_pause_extrude_message);
+          ADVANCED_PAUSE_SETUP;
+          pause_status = pause_extrude;
+          lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_CLICK_TO_HEAT_NOZZLE:
-          defer_return_to_status = true;
-          lcd_goto_screen(lcd_advanced_pause_heat_nozzle);
+          ADVANCED_PAUSE_SETUP;
+          pause_status = pause_heatup;
+          lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_WAIT_FOR_NOZZLES_TO_HEAT:
-          defer_return_to_status = true;
-          lcd_goto_screen(lcd_advanced_pause_wait_for_nozzles_to_heat);
+          ADVANCED_PAUSE_SETUP;
+          pause_status = pause_wait;
+          lcd_goto_screen(lcd_advanced_pause_screens);
+          break;
+        case ADVANCED_PAUSE_MESSAGE_RESUME:
+          ADVANCED_PAUSE_SETUP;
+          pause_status = pause_resume;
+          lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_OPTION:
-          defer_return_to_status = true;
+          ADVANCED_PAUSE_SETUP;
           advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
           lcd_goto_screen(lcd_advanced_pause_option_menu);
           break;
-        case ADVANCED_PAUSE_MESSAGE_RESUME:
-          defer_return_to_status = true;
-          lcd_goto_screen(lcd_advanced_pause_resume_message);
-          break;
-        case ADVANCED_PAUSE_MESSAGE_STATUS:
-          lcd_return_to_status();
-          break;
 
-		 // DR - 09/11/17 - Filament change move
-		case FILAMENT_CHANGE_MESSAGE_MOVING:
-		  defer_return_to_status = true;
-          lcd_goto_screen(lcd_filament_change_moving);
-          break;
-    case FILAMENT_CHANGE_PRESS:
-      defer_return_to_status = true;
-          lcd_goto_screen(lcd_filament_change_press);
-          break;
-		case FILAMENT_CHANGE_MESSAGE_OPTION:
-		  defer_return_to_status = true;
-          advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
-          lcd_goto_screen(lcd_filament_change_option_menu);
-          break;
-		 case FILAMENT_CHANGE_UNLOAD_OPTION:
-		  defer_return_to_status = true;
-          advanced_pause_menu_response = ADVANCED_PAUSE_RESPONSE_WAIT_FOR;
-          lcd_goto_screen(lcd_filament_change_unload_option_menu);
+        case ADVANCED_PAUSE_MESSAGE_STATUS:
+          beevc_screen_constant_update = false;
+          lcd_return_to_status();
+          beevc_force_screen_update();
           break;
 
     // BEEVC - Sensorless homing auto calibration
