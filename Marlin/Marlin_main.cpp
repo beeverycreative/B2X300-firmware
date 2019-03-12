@@ -850,6 +850,356 @@ void report_current_position_detail();
 
 ///////////////////////////////////////////////////////
 
+////////////   SENSORLESS HOMING    //////////////
+#ifdef BEEVC_TMC2130READSG
+  #define SENSORLESSHOMEAXIS(LETTER) sensorless_homeaxis(LETTER##_AXIS)
+  #define SENSORLESSHOMEAXISXY()                                    \
+    sensorless_homeaxis(X_AXIS);                                    \
+    sensorless_homeaxis(Y_AXIS)
+
+  #define STALLGUARDTRIGGERENDSTOPS(axis, enable)                   \
+    if (axis == X_AXIS)   thermalManager.sg2_x_limit_hit = !enable; \
+    else                  thermalManager.sg2_y_limit_hit = !enable
+
+
+  static void sensorless_homeaxis_prepare_stepper(const AxisEnum axis, bool *stealthchop_restore, uint16_t *old_current){
+    // Stores required stepper in variable
+    TMC2130Stepper st = ( axis == X_AXIS? stepperX : stepperY);
+
+    *old_current = st.getCurrent();
+    
+    st.rms_current(BEEVC_HOMEXCURRENT,HOLD_MULTIPLIER,R_SENSE);
+
+    // Disables stallGuard2 filter for maximum time precision
+    #ifdef BEEVC_TMC2130SGFILTER
+      st.sg_filter(true);
+    #else
+      st.sg_filter(false);
+    #endif // BEEVC_TMC2130SGFILTER
+
+    if (st.stealthChop()){
+      st.coolstep_min_speed(1024UL * 1024UL - 1UL);
+      st.stealthChop(0);
+      *stealthchop_restore = true;
+    }
+
+    st.push();
+
+    // Sets homing and stallGuard2 reading flag
+    thermalManager.sg2_homing   = true;
+    thermalManager.sg2_to_read  = true;
+
+    // Sets the read speed to maximum to allow endstop detection
+    thermalManager.sg2_polling_wait_cycles = 0;
+
+    // if X
+    if (axis == X_AXIS)   thermalManager.sg2_x_limit_hit = 0;
+    else                  thermalManager.sg2_y_limit_hit = 0;
+  }
+
+  static void sensorless_homeaxis_restore_stepper(const AxisEnum axis, bool *stealthchop_restore, uint16_t *old_current){
+    // Resets flags after homing
+    thermalManager.sg2_homing = false;
+    thermalManager.sg2_polling_wait_cycles = 255; // decreases the polling frequency to the lowest possible
+    
+    #ifndef BEEVC_TMC2130STEPLOSS
+      // Stops further stallGuard2 status reading if step loss detection is inactive
+      thermalManager.sg2_to_read  = false;
+    #else
+      thermalManager.sg2_to_read  = true;
+      thermalManager.sg2_timeout = millis() + 2000;
+    #endif
+    
+    // Stores required stepper in variable
+    TMC2130Stepper st = ( axis == X_AXIS? stepperX : stepperY);
+
+    st.rms_current(*old_current,HOLD_MULTIPLIER,R_SENSE);
+
+    // Restores stealthChop if it was active
+    if (*stealthchop_restore){
+      st.coolstep_min_speed(0);
+      st.stealthChop(1);
+    }
+
+    // Enable stallGuard2 filter for a consistent reading
+    st.sg_filter(true);
+
+    st.push();
+  }
+
+  static void sensorless_homeaxis_measure_duration (const AxisEnum axis, uint16_t *homeduration){
+    // Allows stallGuard reading from triggering endstop
+    STALLGUARDTRIGGERENDSTOPS(axis,true);
+
+    // Equivalent to homeaxis(axis) but leaner
+      // Resets planner axis position to zero
+      planner.set_position_mm(axis,0);
+      // Sets movement to 1.5 times the axis size and moves there
+      current_position[axis] = 1.5 * max_length(axis) * home_dir(axis);
+
+    // Starts counting time
+    *homeduration = millis();
+
+      planner.buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], homing_feedrate(axis), active_extruder);
+      // Loop untill collision or timeout
+      stepper.synchronize();
+
+    // Stops counting time
+    *homeduration = millis()- *homeduration;
+
+    // Set the axis to its home position
+    current_position[axis] = base_home_pos(axis);
+    axis_known_position[axis] = axis_homed[axis] = true;
+    planner.set_position_mm(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
+    set_destination_from_current();
+
+    // Stops stallGuard reading from triggering endstop
+    STALLGUARDTRIGGERENDSTOPS(axis,false);
+  }
+
+  static void sensorless_homeaxis_move_away(const AxisEnum axis){
+    // Stops stallGuard reading from triggering endstop
+    STALLGUARDTRIGGERENDSTOPS(axis,false);
+
+    // Moves axis sligtly away from wall to allow new measurement
+    // If moving X
+      if (axis == X_AXIS)
+      #ifdef BEEVC_TMC2130HOMEXREVERSE
+        // Homes X to the right
+        do_blocking_move_to_xy((current_position[X_AXIS] >= (X_MIN_POS + abs(X_MIN_POS)) ? current_position[X_AXIS]-abs(X_MIN_POS) : current_position[X_AXIS]),current_position[Y_AXIS],25);
+      #else
+        // Homes X to the left
+        do_blocking_move_to_xy((current_position[X_AXIS] < (X_MAX_POS - abs(Y_MIN_POS)) ? current_position[X_AXIS]+abs(Y_MIN_POS) : current_position[X_AXIS]),current_position[Y_AXIS],25);
+      #endif //BEEVC_TMC2130HOMEXREVERSE
+
+    // If moving Y
+      else
+        do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] >= (Y_MIN_POS + abs(Y_MIN_POS)) ? current_position[Y_AXIS]-abs(Y_MIN_POS) : current_position[Y_AXIS]),25);
+  }
+
+  static void sensorless_homeaxis_loop(const AxisEnum axis){
+    // Forces a movement away from homing direction on first loop
+    uint16_t homeduration  = 11;
+
+    while (homeduration < 250) {
+      // Only acts if the duration is bigger than 10 to avoid loop on frame hit
+      if(homeduration > 10)
+        sensorless_homeaxis_move_away(axis);
+      
+      // Measures the time to impact from the begining of the movement
+      sensorless_homeaxis_measure_duration(axis, &homeduration);
+
+      #ifdef SERIAL_DEBUG
+        if (axis == X_AXIS)   SERIAL_ECHOLNPAIR("X axis homing duration:  ", homeduration);
+        else                  SERIAL_ECHOLNPAIR("Y axis homing duration:  ", homeduration);
+      #endif
+    }
+
+    // Stops stallGuard reading from triggering endstop
+    STALLGUARDTRIGGERENDSTOPS(axis,false);
+  }
+
+  static void sensorless_homeaxis(const AxisEnum axis){
+    // Stores old acceleration and sets the correct acceleration for homing
+    float old_acceleration = planner.travel_acceleration;
+    planner.travel_acceleration = 750;
+
+    // Storage variables
+    uint16_t current_store = 0;
+    bool stealthchop_restore = false;
+
+    #ifdef SERIAL_DEBUG
+      SERIAL_PROTOCOLLN("Preparing stepper");
+    #endif
+
+    // Prepare stepper and store necessary data
+    sensorless_homeaxis_prepare_stepper(axis,&stealthchop_restore,&current_store);
+    
+    #ifdef SERIAL_DEBUG
+      SERIAL_PROTOCOLLN("Homing loop");
+    #endif
+
+    // Does the loop to measure wall position
+    sensorless_homeaxis_loop(axis);
+
+    #ifdef SERIAL_DEBUG
+      SERIAL_PROTOCOLLN("Restoring stepper");
+    #endif
+
+    // Restores stepper driver to former state
+    sensorless_homeaxis_restore_stepper(axis,&stealthchop_restore,&current_store);
+
+    // Restores acceleration settings
+    planner.travel_acceleration = old_acceleration;
+
+    #ifdef SERIAL_DEBUG
+      SERIAL_PROTOCOLLN("Finished homing");
+      //SERIAL_PROTOCOLLNPAIR("current_restore:       ", current_store);
+      //SERIAL_PROTOCOLLNPAIR("stealthchop_restore:   ", stealthchop_restore);
+    #endif
+  }
+
+  static void sensoless_homeaxis_calibration_prepare_stepper(const AxisEnum axis){
+    //Reset default calibration values
+    if(axis == X_AXIS)
+      thermalManager.sg2_homing_x_calibration = 5;
+    else
+      thermalManager.sg2_homing_y_calibration = 20; 
+  }
+
+  static void sensorless_homeaxis_raise_sensitivity (const AxisEnum axis, uint8_t *calibration_value){
+    // Decreasing SGT increases the sensitivity of stallGuard
+
+    // Stores required stepper in variable
+    TMC2130Stepper st = ( axis == X_AXIS? stepperX : stepperY);
+
+    if(*calibration_value <= 95)
+      // Tries raising the calibration value
+      *calibration_value += 5;
+    else
+      // If it can't change the StallGuard treshold
+      if (st.sgt() > 0){
+        st.sgt(st.sgt()-1);
+        // Reset calibration midvalue
+        *calibration_value = 50;
+      }   
+  }
+
+  static void sensorless_homeaxis_lower_sensitivity (const AxisEnum axis, uint8_t *calibration_value){
+    // Increasing SGT decreases the sensitivity of stallGuard
+
+    // Stores required stepper in variable
+    TMC2130Stepper st = ( axis == X_AXIS? stepperX : stepperY);
+
+    if(*calibration_value >= 5)
+      // Tries raising the calibration value
+      *calibration_value -= 5;
+    else
+      // If it can't change the StallGuard treshold
+      if (st.sgt() < 10){
+        st.sgt(st.sgt()+1);
+        // Reset calibration midvalue
+        *calibration_value = 50;
+      }   
+  }
+
+  static void sensorless_homeaxis_calibration_loop(const AxisEnum axis){
+    bool to_calibrate = true;
+    uint16_t home_duration_sum = 0;
+    uint16_t home_duration = 0;
+    const uint16_t home_duration_expected = 300;
+    const uint16_t home_duration_limit = 318;
+    const uint16_t home_duration_adjust_threshold = home_duration_expected -50;
+    uint8_t *calibration_value = (axis == X_AXIS ? &thermalManager.sg2_homing_x_calibration: &thermalManager.sg2_homing_y_calibration);
+    uint8_t count = 0;
+
+    //Loop while testing new values until a good calibration value is found for axis
+    while(to_calibrate) {
+      // Homes 5 times in a row to get a good average
+      for (int k = 0; k< 5; k++) {
+        // Moves away to allow detection
+        sensorless_homeaxis_move_away(axis);
+
+        // Measures duration till contact
+        sensorless_homeaxis_measure_duration(axis,&home_duration);
+
+        // Speeds up finding the correct value
+        if (home_duration < home_duration_adjust_threshold)
+          if(*calibration_value >= 5)
+            *calibration_value -= 5;
+        
+        // Makes sure the result never leads to false positives
+        if (home_duration < home_duration_expected)
+          home_duration = 0;
+        else
+          home_duration_sum += home_duration;
+
+        // Advance the progress on screen
+        if(++sensorless_homing_progress > 3)
+          sensorless_homing_progress = 0;
+
+        #ifdef SERIAL_DEBUG
+          SERIAL_ECHOLNPAIR("Homing duration", home_duration);
+        #endif
+
+        // Show and force update of screen
+        if(axis == X_AXIS)
+          // If X axis
+          lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_X);
+        else
+          // If Y axis
+          lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_Y);
+      
+        lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+        idle(true);
+
+      }
+      uint16_t home_duration = (home_duration_sum/5);
+
+      // Verifies if the homing values appear good if so exits, otherwise adjusts calibration
+      if (home_duration > home_duration_limit)
+        // If it takes too long to detect means sensitivity is too low
+        sensorless_homeaxis_raise_sensitivity(axis,calibration_value);
+      else if (home_duration < home_duration_expected)
+        // If it takes less time than expected means false positives, hence sensitivity is too high
+        sensorless_homeaxis_lower_sensitivity(axis,calibration_value);
+      else
+        // Expected value has been reached
+        to_calibrate = false;
+
+      // Avoids excessive looping
+      if (++count > 20)
+        break;
+    }
+
+    // Show done screen
+    for (uint32_t time = millis()+3000; time > millis();){
+      if(axis == X_AXIS)
+        // If X
+        lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_X_DONE);
+      else
+        // If Y
+        lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_Y_DONE);
+
+      lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+      idle(true);
+    }
+
+    #ifdef SERIAL_DEBUG
+      if (axis == X_AXIS)   SERIAL_ECHOLNPAIR("X axis homing duration:  ", home_duration);
+      else                  SERIAL_ECHOLNPAIR("Y axis homing duration:  ", home_duration);
+    #endif
+  }
+
+  static void sensorless_autocalibration (const AxisEnum axis){
+    // Stores old acceleration and sets the correct acceleration for homing
+    float old_acceleration = planner.travel_acceleration;
+    planner.travel_acceleration = 750;
+
+    // Storage variables
+    uint16_t current_store = 0;
+    bool stealthchop_restore = false;
+
+    // Prepare stepper and store necessary data
+    sensorless_homeaxis_prepare_stepper(axis,&stealthchop_restore,&current_store);
+    
+    // Prepare sensorless homing autocalibration
+    sensoless_homeaxis_calibration_prepare_stepper(axis);
+
+    // Do calibration loop to find correct value
+    sensorless_homeaxis_calibration_loop(axis);
+
+    // Restores stepper driver to former state
+    sensorless_homeaxis_restore_stepper(axis,&stealthchop_restore,&current_store);
+
+    // Restores acceleration settings
+    planner.travel_acceleration = old_acceleration;
+  }
+
+#endif
+
+///////////////////////////////////////////////////////
+
 /**
  * sync_plan_position
  *
@@ -4186,59 +4536,18 @@ inline void gcode_G4() {
  */
 inline void gcode_G28(const bool always_home_all, bool onlyZ) {
 
-#ifdef BEEVC_TMC2130READSG
-  uint8_t pre_home_move_mm = abs(Y_MIN_POS);
-  bool restore_stealthchop_x = false, restore_stealthchop_y = false;
-  uint32_t homeduration = 0;
-
-  // Saves XY current and sets homing current
-  uint16_t currentX = stepperX.getCurrent(), currentY = stepperY.getCurrent();
-  stepperX.rms_current(BEEVC_HOMEXCURRENT,HOLD_MULTIPLIER,R_SENSE);
+  #ifdef SERIAL_DEBUG
+      SERIAL_PROTOCOLLN("Entering G28");
+  #endif
   stepperX.push();
-  stepperY.rms_current(BEEVC_HOMEYCURRENT,HOLD_MULTIPLIER,R_SENSE);
   stepperY.push();
-
-  // Disables stallGuard2 filter for maximum time precision
-  #ifdef BEEVC_TMC2130SGFILTER
-    stepperX.sg_filter(true);
-    stepperY.sg_filter(true);
-  #else
-    stepperX.sg_filter(false);
-    stepperY.sg_filter(false);
-  #endif // BEEVC_TMC2130SGFILTER
-
-  // Sets homing and stallGuard2 reading flag
-  thermalManager.sg2_homing   = true;
-  thermalManager.sg2_to_read  = true;
-
-  // Sets spreadCycle if it was not already in use (otherwise stallGuard2 values cant be read)
-    if (stepperX.stealthChop())
-    {
-      stepperX.coolstep_min_speed(1024UL * 1024UL - 1UL);
-      stepperX.stealthChop(0);
-      restore_stealthchop_x = true;
-
-      //safe_delay(400);
-    }
-
-    if (stepperY.stealthChop())
-    {
-      stepperY.coolstep_min_speed(1024UL * 1024UL - 1UL);
-      stepperY.stealthChop(0);
-      restore_stealthchop_y = true;
-
-      //safe_delay(400);
-    }
 
   // Stores old acceleration and sets the correct acceleration for leveling/ homing
   float old_acceleration = planner.travel_acceleration;
   planner.travel_acceleration = 750;
 
-#endif // BEEVC_TMC2130READSG
-
 // Ensures the stepper have been preactivated to avoid eroneous detection
 enable_all_steppers();
-//safe_delay(400);
 
   #if ENABLED(DEBUG_LEVELING_FEATURE)
     if (DEBUGGING(LEVELING)) {
@@ -4340,13 +4649,12 @@ enable_all_steppers();
 
     #endif
 
-    #ifdef BEEVC_TMC2130READSG
-    // Sets the read speed to maximum to allow endstop detection
-    thermalManager.sg2_polling_wait_cycles = 0;
-    #endif // BEEVC_TMC2130READSG
-
     // Home X
     if (home_all || homeX) {
+      #ifdef SERIAL_DEBUG
+      SERIAL_PROTOCOLLN("G28 Homing X");
+      #endif
+
       #if ENABLED(DUAL_X_CARRIAGE)
 
         // Always home the 2nd (right) extruder first
@@ -4369,36 +4677,7 @@ enable_all_steppers();
 
         #ifdef BEEVC_TMC2130READSG
         // Sensorless homing
-          // Enables X sensorless detection
-          thermalManager.sg2_x_limit_hit = 0;
-          homeduration = 0;
-          while (homeduration < 250) {
-            set_destination_from_current();
-
-            // Moves X a little away from limit to avoid eroneous detections
-            #ifdef BEEVC_TMC2130HOMEXREVERSE
-              // Homes X to the right
-              do_blocking_move_to_xy((current_position[X_AXIS] > (X_MIN_POS + pre_home_move_mm) ? current_position[X_AXIS]-pre_home_move_mm : current_position[X_AXIS]),current_position[Y_AXIS],25);
-            #else
-              // Homes X to the left
-              do_blocking_move_to_xy((current_position[X_AXIS] < (X_MAX_POS - pre_home_move_mm) ? current_position[X_AXIS]+pre_home_move_mm : current_position[X_AXIS]),current_position[Y_AXIS],25);
-            #endif //BEEVC_TMC2130HOMEXREVERSE
-
-            // Wait for planner moves to finish!
-            stepper.synchronize();
-
-            homeduration = millis();
-            HOMEAXIS(X);
-            homeduration = millis()- homeduration;
-
-            // Avoids making too much homed calls
-            if(homeduration < 250)
-            safe_delay(100);
-
-            //DEBUG
-            //SERIAL_ECHOLNPAIR("X axis homing duration", homeduration);
-          }
-
+          sensorless_homeaxis(X_AXIS);
           // Sets X as homed
           axis_homed[X_AXIS] = true;
 
@@ -4412,43 +4691,18 @@ enable_all_steppers();
       #if ENABLED(DEBUG_LEVELING_FEATURE)
         if (DEBUGGING(LEVELING)) DEBUG_POS("> homeX", current_position);
       #endif
-
-      #ifdef BEEVC_TMC2130READSG
-      thermalManager.sg2_x_limit_hit = 1;
-      #endif // BEEVC_TMC2130READSG
-
     }
-
 
     #if DISABLED(HOME_Y_BEFORE_X)
       // Home Y
       if (home_all || homeY) {
 
+        #ifdef SERIAL_DEBUG
+        SERIAL_PROTOCOLLN("G28 Homing Y");
+        #endif
+
         #ifdef BEEVC_TMC2130READSG
-        // Sensorless homing
-          // Enables Y sensorless detection
-          thermalManager.sg2_y_limit_hit = 0;
-
-          homeduration = 11;
-          while (homeduration < 250) {
-            // Moves Y a little away from limit to avoid eroneous detections
-            // Only acts if the duration is bigger than 10 to avoid loop on frame hit
-            if(homeduration > 10) do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] >= (Y_MIN_POS + pre_home_move_mm) ? current_position[Y_AXIS]-pre_home_move_mm : current_position[Y_AXIS]),25);
-
-            // Wait for planner moves to finish!
-            stepper.synchronize();
-
-            homeduration = millis();
-            HOMEAXIS(Y);
-            homeduration = millis()- homeduration;
-
-            // Avoids making too much homed calls
-            if(homeduration < 250)
-            safe_delay(100);
-
-            //DEBUG
-            //SERIAL_ECHOLNPAIR("Y axis homing duration", homeduration);
-          }
+          sensorless_homeaxis(Y_AXIS);
 
           // Sets Y as homed
           axis_homed[Y_AXIS] = true;;
@@ -4460,21 +4714,16 @@ enable_all_steppers();
         #if ENABLED(DEBUG_LEVELING_FEATURE)
           if (DEBUGGING(LEVELING)) DEBUG_POS("> homeY", current_position);
         #endif
-
-        #ifdef BEEVC_TMC2130READSG
-        thermalManager.sg2_y_limit_hit = 1;
-        #endif // BEEVC_TMC2130READSG
       }
     #endif
-
-    #ifdef BEEVC_TMC2130READSG
-    thermalManager.sg2_polling_wait_cycles = 255; // Temporarily increases the polling frequency to the lowest possible to avoid problems with homing Z
-    #endif // BEEVC_TMC2130READSG
-
 
     // Home Z last if homing towards the bed
     #if Z_HOME_DIR < 0
       if (home_all || homeZ) {
+        #ifdef SERIAL_DEBUG
+          SERIAL_PROTOCOLLN("G28 Homing Z");
+        #endif
+
         #if ENABLED(Z_SAFE_HOMING)
           home_z_safely();
         #else
@@ -4486,9 +4735,13 @@ enable_all_steppers();
       } // home_all || homeZ
     #endif // Z_HOME_DIR < 0
 
-    SYNC_PLAN_POSITION_KINEMATIC();
+    //SYNC_PLAN_POSITION_KINEMATIC();
 
   #endif // !DELTA (gcode_G28)
+
+  #ifdef SERIAL_DEBUG
+      SERIAL_PROTOCOLLN("G28 Finishing");
+  #endif
 
   endstops.not_homing();
 
@@ -4530,48 +4783,14 @@ enable_all_steppers();
     if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("<<< gcode_G28");
   #endif
 
-  #ifdef BEEVC_TMC2130READSG
-
-    #ifndef BEEVC_TMC2130STEPLOSS
-      // Stops further stallGuard2 status reading if step loss detection is inactive
-      thermalManager.sg2_to_read  = false;
-    #else
-      thermalManager.sg2_to_read  = true;
-      thermalManager.sg2_timeout = millis() + 2000;
-    #endif
-
-    // Restores XY current
-    stepperX.rms_current(currentX,HOLD_MULTIPLIER,R_SENSE);
     stepperX.push();
-    stepperY.rms_current(currentY,HOLD_MULTIPLIER,R_SENSE);
     stepperY.push();
-
-    // Resets flags after homing
-    thermalManager.sg2_stop = false;
-    thermalManager.sg2_homing = false;
-
-    // Enable stallGuard2 filter for a consistent reading
-    stepperX.sg_filter(true);
-    stepperY.sg_filter(true);
-
-    // Restores stealthChop if it was active
-    if (restore_stealthchop_x)
-    {
-      stepperX.coolstep_min_speed(0);
-      stepperX.stealthChop(1);
-    }
-
-    if (restore_stealthchop_y)
-    {
-      stepperY.coolstep_min_speed(0);
-      stepperY.stealthChop(1);
-    }
-
     // Restores old acceleration settings
     planner.travel_acceleration = old_acceleration;
 
-
-  #endif // BEEVC_TMC2130READSG
+  #ifdef SERIAL_DEBUG
+      SERIAL_PROTOCOLLN("Exiting G28");
+  #endif
 
 } // G28
 
@@ -11632,17 +11851,6 @@ inline void gcode_M502() {
     #if (ENABLED(X_IS_TMC2130) && ENABLED(Y_IS_TMC2130))
       if (parser.seen('A') || calibrating_sensorless_homing_x)
       {
-        //Variables
-        bool x_home_to_calibrate = true;
-        bool y_home_to_calibrate = true;
-        uint16_t xy_home_duration_expected = 300;
-        uint16_t x_home_duration_limit = 318;
-        uint16_t y_home_duration_limit = 318;
-        uint32_t xy_home_duration_temp = 0;
-        uint32_t xy_home_duration_sum;
-        calibrating_sensorless_homing_x = true;
-        calibrating_sensorless_homing_y = true;
-
         // Stores old acceleration and sets the correct acceleration for leveling/ homing
         float old_acceleration = planner.travel_acceleration;
         planner.travel_acceleration = 750;
@@ -11650,365 +11858,27 @@ inline void gcode_M502() {
         // Show homing screen
         lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_HOMING);
 
-        // Saves XY current and sets homing current
-        uint16_t currentX = stepperX.getCurrent(), currentY = stepperY.getCurrent();
-        stepperX.rms_current(BEEVC_HOMEXCURRENT,HOLD_MULTIPLIER,R_SENSE);
         stepperX.push();
-        stepperY.rms_current(BEEVC_HOMEYCURRENT,HOLD_MULTIPLIER,R_SENSE);
         stepperY.push();
+        // Raise Z
+        do_blocking_move_to_z(current_position[Z_AXIS]+ Z_CLEARANCE_DEPLOY_PROBE);
 
-        //Reset default values
-        thermalManager.sg2_homing_x_calibration = 5;
-        thermalManager.sg2_homing_y_calibration = 20;
-        axis_homed[X_AXIS] = false;
-        axis_homed[Y_AXIS] = false;
-
-        // Preparations for homing calibration
-        uint8_t pre_home_move_mm = 20;
-        bool restore_stealthchop_x = false, restore_stealthchop_y = false;
-
-        // Disables stallGuard2 filter for maximum time precision
-        #ifdef BEEVC_TMC2130SGFILTER
-          stepperX.sg_filter(true);
-          stepperY.sg_filter(true);
-        #else
-          stepperX.sg_filter(false);
-          stepperY.sg_filter(false);
-        #endif // BEEVC_TMC2130SGFILTER
-
-
-        // Sets homing and stallGuard2 reading flag
-        thermalManager.sg2_homing   = true;
-        thermalManager.sg2_to_read  = true;
-
-        // Sets spreadCycle if it was not already in use (otherwise stallGuard2 values cant be read)
-          if (stepperX.stealthChop())
-          {
-            stepperX.coolstep_min_speed(1024UL * 1024UL - 1UL);
-            stepperX.stealthChop(0);
-            restore_stealthchop_x = true;
-
-            //safe_delay(400);
-          }
-
-          if (stepperY.stealthChop())
-          {
-            stepperY.coolstep_min_speed(1024UL * 1024UL - 1UL);
-            stepperY.stealthChop(0);
-            restore_stealthchop_y = true;
-
-            //safe_delay(400);
-          }
-
-          // Ensures the stepper have been preactivated to avoid eroneous detection
-          enable_all_steppers();
-          //safe_delay(400);
-
-          // Wait for planner moves to finish!
-          stepper.synchronize();
-
-          // Always home with tool 0 active
-          #if HOTENDS > 1
-            const uint8_t old_tool_index = active_extruder;
-            tool_change(0, 0, true);
-          #endif
-
-          // Raise Z
-          destination[Z_AXIS] = Z_CLEARANCE_DEPLOY_PROBE;
-          do_blocking_move_to_z(destination[Z_AXIS]);
-
-          setup_for_endstop_or_probe_move();
-          endstops.enable(true); // Enable endstops for next homing move
-          set_destination_from_current();
-
-          #ifdef BEEVC_TMC2130READSG
-          // Sets the read speed to maximum to allow endstop detection
-          thermalManager.sg2_polling_wait_cycles = 0;
-          #endif // BEEVC_TMC2130READSG
-
-          //Homes XY
-          #ifdef BEEVC_TMC2130HOMEXREVERSE
-            // Homes X to the right
-            do_blocking_move_to_xy(current_position[X_AXIS]-pre_home_move_mm ,current_position[Y_AXIS],80);
-          #else
-            // Homes X to the left
-            do_blocking_move_to_xy(current_position[X_AXIS]+pre_home_move_mm,current_position[Y_AXIS],80);
-          #endif //BEEVC_TMC2130HOMEXREVERSE
-          thermalManager.sg2_x_limit_hit = 0;
-          HOMEAXIS(X);
-          thermalManager.sg2_x_limit_hit = 1;
-          // Homes Y to the front
-          do_blocking_move_to_xy(current_position[X_AXIS],current_position[Y_AXIS]-pre_home_move_mm,80);
-          thermalManager.sg2_y_limit_hit = 0;
-          HOMEAXIS(Y);
-          thermalManager.sg2_y_limit_hit = 1;
-
-          uint8_t count = 0;
+        //Homes XY
+        SENSORLESSHOMEAXISXY();
 
         // Show X calibration screen
         lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_X);
 
-        //Loop while testing new values until a good value is found for X
-        while(x_home_to_calibrate)
-        {
-          xy_home_duration_sum = 0;
-          // Homes 5 times in a row to get a good average
-          for (int k = 0; k< 5; k++)
-          {
-            setup_for_endstop_or_probe_move();
-            endstops.enable(true); // Enable endstops for next homing move
-            set_destination_from_current();
-
-            // Wait for planner moves to finish!
-            stepper.synchronize();
-
-            #ifdef BEEVC_TMC2130HOMEXREVERSE
-              // Homes X to the right
-              do_blocking_move_to_xy(current_position[X_AXIS]-pre_home_move_mm ,current_position[Y_AXIS],80);
-            #else
-              // Homes X to the left
-              do_blocking_move_to_xy(current_position[X_AXIS]+pre_home_move_mm,current_position[Y_AXIS],80);
-            #endif //BEEVC_TMC2130HOMEXREVERSE
-
-            // Wait for planner moves to finish!
-            stepper.synchronize();
-
-            xy_home_duration_temp = 0;
-            while( xy_home_duration_temp < 50 ){
-              //safe_delay(100);
-
-              // Enables reading
-              thermalManager.sg2_x_limit_hit = 0;
-              thermalManager.sg2_to_read = 1;
-              // safe_delay(200);
-              // Homes and measures time taken
-                xy_home_duration_temp = millis();
-              do_homing_move(X_AXIS, (pre_home_move_mm+5)* home_dir(X_AXIS));
-                // Disables reading
-                thermalManager.sg2_to_read = 0;
-              xy_home_duration_temp = millis()- xy_home_duration_temp;
-            }
-
-            //SERIAL_ECHOLNPAIR("X axis homing duration", xy_home_duration_temp);
-
-            // Makes sure the result never leads to false positives
-            if (xy_home_duration_temp < xy_home_duration_expected)
-            xy_home_duration_sum = 0;
-            else
-            xy_home_duration_sum += xy_home_duration_temp;
-
-            // Speeds up finding the correct value
-            if (xy_home_duration_temp < 150){
-              if(thermalManager.sg2_homing_x_calibration >= 10)
-                thermalManager.sg2_homing_x_calibration -= 5;
-            }
-
-            // If values seem too off change SGT
-            if ((thermalManager.sg2_homing_x_calibration == 0) && (xy_home_duration_temp > x_home_duration_limit)){
-              if(stepperX.sgt() < 7) {
-                stepperX.sgt(stepperX.sgt()+1);
-                thermalManager.sg2_homing_x_calibration = 50;
-              }
-            }
-
-
-
-            sensorless_homing_progress++;
-            if(sensorless_homing_progress > 3)
-              sensorless_homing_progress = 0;
-
-            // Show and force update of X calibration screen
-            lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_X);
-            lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
-            idle(true);
-
-         }
-          uint16_t x_home_duration = (xy_home_duration_sum/5);
-
-          // Verifies if the homing values appear good if so exit
-          if (x_home_duration > x_home_duration_limit){
-            if(thermalManager.sg2_homing_x_calibration <= 90)
-            thermalManager.sg2_homing_x_calibration += 5;
-          }
-          else if (x_home_duration < xy_home_duration_expected){
-            if(thermalManager.sg2_homing_x_calibration >= 10)
-            thermalManager.sg2_homing_x_calibration -= 5;
-          }
-          else
-          x_home_to_calibrate = false;
-
-          SERIAL_ECHO(x_home_duration);
-
-          count++;
-          if (count > 20)
-          break;
-        }
-
-        count = 0;
-        sensorless_homing_progress = 0;
-        calibrating_sensorless_homing_x = false;
-
-        // Show X done screen
-        xy_home_duration_temp = millis()+3000;
-        while(millis() < xy_home_duration_temp){
-          lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_X_DONE);
-          lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
-          idle(true);
-        }
+        // Execute autocalibration of sensorless homing on the X axis
+        sensorless_autocalibration(X_AXIS);
 
         // Show Y calibration screen
         lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_Y);
 
-        //Loop while testing new values until a good value is found for Y
-        while(y_home_to_calibrate)
-        {
-          xy_home_duration_sum = 0;
-
-          // Homes 5 times in a row to get a good average
-          for (int k = 0; k< 5; k++)
-          {
-            setup_for_endstop_or_probe_move();
-            endstops.enable(true); // Enable endstops for next homing move
-            set_destination_from_current();
-
-            // Wait for planner moves to finish!
-            stepper.synchronize();
-
-            // Homes Y to the front
-            do_blocking_move_to_xy(current_position[X_AXIS],current_position[Y_AXIS]-pre_home_move_mm,80);
-
-            // Wait for planner moves to finish!
-            stepper.synchronize();
-
-            xy_home_duration_temp = 0;
-            while( xy_home_duration_temp < 50 ){
-              //safe_delay(200);
-
-              // Enables reading
-              thermalManager.sg2_y_limit_hit = 0;
-              thermalManager.sg2_to_read = 1;
-              // safe_delay(200);
-              // Homes and measures time taken
-                xy_home_duration_temp = millis();
-              do_homing_move(Y_AXIS, (pre_home_move_mm+5)* home_dir(Y_AXIS));
-                // Disables reading
-                thermalManager.sg2_to_read = 0;
-              xy_home_duration_temp = millis()- xy_home_duration_temp;
-            }
-
-            //SERIAL_ECHOLNPAIR("Y axis homing duration", xy_home_duration_temp);
-
-            // Makes sure the result never leads to false positives
-            if (xy_home_duration_temp < xy_home_duration_expected)
-            xy_home_duration_sum = 0;
-            else
-            xy_home_duration_sum += xy_home_duration_temp;
-
-            // Speeds up finding the correct value
-            if (xy_home_duration_temp < 150){
-              if(thermalManager.sg2_homing_y_calibration >= 25)
-                thermalManager.sg2_homing_y_calibration -= 5;
-              else
-                if(stepperY.sgt() > 4) {
-                  stepperY.sgt(stepperY.sgt()-1);
-                  thermalManager.sg2_homing_y_calibration = 50;
-                }
-            }
-
-
-            sensorless_homing_progress++;
-            if(sensorless_homing_progress > 3)
-              sensorless_homing_progress = 0;
-
-            // Show and forces update of Y calibration screen
-            lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_Y);
-            lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
-            idle(true);
-
-          }
-          uint16_t y_home_duration = (xy_home_duration_sum/5);
-
-          // Verifies if the homing values appear good if so exit
-          if (y_home_duration > y_home_duration_limit){
-            if(thermalManager.sg2_homing_y_calibration <= 195)
-              thermalManager.sg2_homing_y_calibration += 5;
-          }
-          else if (y_home_duration < xy_home_duration_expected){
-            if(thermalManager.sg2_homing_y_calibration >= 25)
-              thermalManager.sg2_homing_y_calibration -= 5;
-          }
-          else
-          y_home_to_calibrate = false;
-
-          SERIAL_ECHO(y_home_duration);
-
-          count++;
-          if (count > 20)
-          break;
-        }
-
-
-        calibrating_sensorless_homing_y = false;
-
-        // Show Y done screen
-        xy_home_duration_temp = millis()+3000;
-        while(millis() < xy_home_duration_temp){
-          lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_Y_DONE);
-          lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
-          idle(true);
-        }
-
-
-        // Restores stealthChop if it was active
-        if (restore_stealthchop_x)
-        {
-          stepperX.coolstep_min_speed(0);
-          stepperX.stealthChop(1);
-        }
-
-        if (restore_stealthchop_y)
-        {
-          stepperY.coolstep_min_speed(0);
-          stepperY.stealthChop(1);
-        }
-        endstops.not_homing();
-        clean_up_after_endstop_or_probe_move();
-        // Restore the active tool after homing
-        #if HOTENDS > 1
-          #if ENABLED(PARKING_EXTRUDER)
-            #define NO_FETCH false // fetch the previous toolhead
-          #else
-            #define NO_FETCH true
-          #endif
-          tool_change(old_tool_index, 0, NO_FETCH);
-        #endif
-
-
-        #ifdef BEEVC_TMC2130READSG
-
-          #ifndef BEEVC_TMC2130STEPLOSS
-            // Stops further stallGuard2 status reading if step loss detection is inactive
-            thermalManager.sg2_to_read  = false;
-          #else
-            thermalManager.sg2_to_read  = true;
-            thermalManager.sg2_timeout = millis() + 2000;
-          #endif
-
-          thermalManager.sg2_polling_wait_cycles = 255; // Temporarily increases the polling frequency to the lowest possible to avoid problems with homing Z
-          // Resets flags after homing
-          thermalManager.sg2_stop = false;
-          thermalManager.sg2_homing = false;
-        #endif // BEEVC_TMC2130READSG
-
-        // Restores XY current
-        stepperX.rms_current(currentX,HOLD_MULTIPLIER,R_SENSE);
+        // Execute autocalibration of sensorless homing on the Y axis
+        sensorless_autocalibration(Y_AXIS);
         stepperX.push();
-        stepperY.rms_current(currentY,HOLD_MULTIPLIER,R_SENSE);
         stepperY.push();
-
-        // Applies offset to avoid false detections
-        //thermalManager.sg2_homing_x_calibration -= 5;
-        thermalManager.sg2_homing_y_calibration += 10;
 
         // Restores old acceleration settings
         planner.travel_acceleration = old_acceleration;
@@ -12025,7 +11895,7 @@ inline void gcode_M502() {
     SERIAL_ECHOPAIR("\nY axis sensorless homing calibration  :", thermalManager.sg2_homing_y_calibration);
 
     // Show status screen
-      lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_STATUS);
+    lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_STATUS);
   }
   #endif  //BEEVC_TMC2130READSG
 
@@ -12680,8 +12550,8 @@ inline void gcode_M999() {
     axis_relative_modes[E_AXIS] = ((active_extruder & 0b00000100) == 0b00000100);
     // Loads acceleration
     planner.acceleration = (active_extruder >> 4) * 250;
-    planner.travel_acceleration = planner.acceleration * 1.5;
-    active_extruder = active_extruder & 0b00000011;
+	  planner.travel_acceleration = planner.acceleration * 1.5;
+	  active_extruder = active_extruder & 0b00000011;
 
 		#ifdef SERIAL_DEBUG
 				SERIAL_ECHOPAIR("Loaded active extruder: ", active_extruder);
@@ -12822,165 +12692,27 @@ inline void gcode_M999() {
         else idle();
       }
     }
-
+      
     //Lifts Z some mm and homes X Y not moving the Z axis
     if(z_lift){
       // Lifts Z
       SYNC_PLAN_POSITION_KINEMATIC(); // Makes current position the planner position G92
       do_blocking_move_to_z((current_position[Z_AXIS]+z_lift_mm), 4);
-
       // Reverts stored Z flag and remove Z_leveling to avoid repeating lift
       float temp = - current_position[Z_AXIS] ;
       eeprom_index = 0;
       EEPROM_write(eeprom_index, (uint8_t*)&temp, sizeof(current_position[Z_AXIS]));
       SERIAL_PROTOCOLLNPAIR_F("Z value after lift : ", temp);
     }
-    
-    // Homing XY
+
     lcd_setstatus("Homing XY...");
-    #ifdef BEEVC_TMC2130READSG
-      uint8_t pre_home_move_mm = 20;
-      bool restore_stealthchop_x = false, restore_stealthchop_y = false;
-
-      // Saves XY current and sets homing current
-      uint16_t currentX = stepperX.rms_current(), currentY = stepperY.rms_current();
-      stepperX.rms_current(BEEVC_HOMEXCURRENT,HOLD_MULTIPLIER,R_SENSE);
-      stepperY.rms_current(BEEVC_HOMEYCURRENT,HOLD_MULTIPLIER,R_SENSE);
-
-      // Disables stallGuard2 filter for maximum time precision
-      #ifdef BEEVC_TMC2130SGFILTER
-        stepperX.sg_filter(true);
-        stepperY.sg_filter(true);
-      #else
-        stepperX.sg_filter(false);
-        stepperY.sg_filter(false);
-      #endif // BEEVC_TMC2130SGFILTER
-
-
-      // Sets homing and stallGuard2 reading flag
-      thermalManager.sg2_homing   = true;
-      thermalManager.sg2_to_read  = true;
-
-      // Sets spreadCycle if it was not already in use (otherwise stallGuard2 values cant be read)
-        if (stepperX.stealthChop())
-        {
-          stepperX.coolstep_min_speed(1024UL * 1024UL - 1UL);
-          stepperX.stealthChop(0);
-          restore_stealthchop_x = true;
-
-          safe_delay(400);
-        }
-
-        if (stepperY.stealthChop())
-        {
-          stepperY.coolstep_min_speed(1024UL * 1024UL - 1UL);
-          stepperY.stealthChop(0);
-          restore_stealthchop_y = true;
-
-          safe_delay(400);
-        }
-
-      // Sets the read speed to maximum to allow endstop detection
-      thermalManager.sg2_polling_wait_cycles = 0;
-
-      // Sets a temporary variable
-      uint32_t homeduration = 0;
-
-      // X
-      // Home X
-      thermalManager.sg2_x_limit_hit = 0;
-      homeduration = 0;
-      while (homeduration < 250) {
-        set_destination_from_current();
-
-        // Moves X a little away from limit to avoid eroneous detections
-        #ifdef BEEVC_TMC2130HOMEXREVERSE
-          // Homes X to the right
-          do_blocking_move_to_xy((current_position[X_AXIS] > (X_MIN_POS + pre_home_move_mm) ? current_position[X_AXIS]-pre_home_move_mm : current_position[X_AXIS]),current_position[Y_AXIS],25);
-        #else
-          // Homes X to the left
-          do_blocking_move_to_xy((current_position[X_AXIS] < (X_MAX_POS - pre_home_move_mm) ? current_position[X_AXIS]+pre_home_move_mm : current_position[X_AXIS]),current_position[Y_AXIS],25);
-        #endif //BEEVC_TMC2130HOMEXREVERSE
-
-        // Wait for planner moves to finish!
-        stepper.synchronize();
-
-        homeduration = millis();
-        HOMEAXIS(X);
-        homeduration = millis()- homeduration;
-
-        // Avoids making too much homed calls
-        if(homeduration < 250)
-        safe_delay(100);
-
-        //DEBUG
-        //SERIAL_ECHOLNPAIR("X axis homing duration", homeduration);
-      }
-      thermalManager.sg2_x_limit_hit = 1;
-
-      // Y
-      // Home Y
-      thermalManager.sg2_y_limit_hit = 0;
-      homeduration = 11;
-      
-      while (homeduration < 250) {
-        // Moves Y a little away from limit to avoid eroneous detections
-        // Only acts if the duration is bigger than 10 to avoid loop on frame hit
-        if(homeduration > 10) do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] >= (Y_MIN_POS + pre_home_move_mm) ? current_position[Y_AXIS]-pre_home_move_mm : current_position[Y_AXIS]),25);
-
-        // Wait for planner moves to finish!
-        stepper.synchronize();
-
-        homeduration = millis();
-        HOMEAXIS(Y);
-        homeduration = millis()- homeduration;
-
-        // Avoids making too much homed calls
-        if(homeduration < 250)
-        safe_delay(100);
-
-        //DEBUG
-        //SERIAL_ECHOLNPAIR("Y axis homing duration", homeduration);
-      }
-      thermalManager.sg2_y_limit_hit = 1;
-
-      #ifndef BEEVC_TMC2130STEPLOSS
-        // Stops further stallGuard2 status reading if step loss detection is inactive
-        thermalManager.sg2_to_read  = false;
-      #else
-        thermalManager.sg2_to_read  = true;
-        thermalManager.sg2_timeout = millis() + 2000;
-      #endif
-
-      // Resets flags after homing
-      thermalManager.sg2_stop = false;
-      thermalManager.sg2_homing = false;
-
-      // Restores XY current
-      stepperX.rms_current(currentX,HOLD_MULTIPLIER,R_SENSE);
-      stepperY.rms_current(currentY,HOLD_MULTIPLIER,R_SENSE);
-
-      // Enable stallGuard2 filter for a consistent reading
-      stepperX.sg_filter(true);
-      stepperY.sg_filter(true);
-
-      // Restores stealthChop if it was active
-      if (restore_stealthchop_x)
-      {
-        stepperX.coolstep_min_speed(0);
-        stepperX.stealthChop(1);
-      }
-
-      if (restore_stealthchop_y)
-      {
-        stepperY.coolstep_min_speed(0);
-        stepperY.stealthChop(1);
-      }
-
+    #ifdef BEEVC_B2X300
+      SENSORLESSHOMEAXIS(X);
+      SENSORLESSHOMEAXIS(Y);
     #else
       HOMEAXIS(X);
       HOMEAXIS(Y);
-    #endif // BEEVC_TMC2130READSG
+    #endif // BEEVC_B2X300
 
     // Wait for planner moves to finish!
     //stepper.synchronize();
@@ -17247,7 +16979,7 @@ void setup() {
       tempdata |= ((uint8_t) (planner.acceleration/250)) << 4;
 
   		EEPROM_write(eeprom_index, (uint8_t*)&tempdata, sizeof(tempdata));
-  		#ifdef SERIAL_DEBUG
+      #ifdef SERIAL_DEBUG
 			eeprom_busy_wait();
 			SERIAL_ECHO("Saved data: ");
 			SERIAL_ECHO_BIN8(tempdata);
