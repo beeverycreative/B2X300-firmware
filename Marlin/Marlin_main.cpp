@@ -1087,7 +1087,7 @@ void report_current_position_detail();
     bool to_calibrate = true;
     uint16_t home_duration_sum = 0;
     uint16_t home_duration = 0;
-    const uint16_t home_duration_expected = 300;
+    const uint16_t home_duration_expected = 310;
     const uint16_t home_duration_limit = 318;
     const uint16_t home_duration_adjust_threshold = home_duration_expected -50;
     uint8_t *calibration_value = (axis == X_AXIS ? &thermalManager.sg2_homing_x_calibration: &thermalManager.sg2_homing_y_calibration);
@@ -5183,7 +5183,7 @@ void home_all_axes() { gcode_G28(true); }
     // Forces a new G28 without probe stow to improve measuring accuracy
     G28_stow = false;
     // Avoids repetition of XY homing 
-    if(axis_homed[X_AXIS] && axis_homed[Y_AXIS])  gcode_G28(false,true);
+    if(axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_known_position[X_AXIS] && axis_known_position[Y_AXIS])  gcode_G28(false,true);
     else                                          gcode_G28(true);
     
     G28_stow = true;
