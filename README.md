@@ -7,7 +7,8 @@ For support, please visit https://beeverycreative.com/forum
 
 ## Changelog
 
-#### `B2X300-20190311`
+#### `B2X300-20190313`
+- Bugfix sensorless homing and level bed Z probe
 - Introduced function to allow screen with menu and static text
 - Corrected Blower test screen on Self-Test Wizard
 - Implemented Powerloss Screens on recovery
