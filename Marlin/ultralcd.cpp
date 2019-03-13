@@ -920,9 +920,14 @@ uint16_t max_display_update_time = 0;
   }
 
   void beevc_force_screen_update(){
+    // Four idle to ensure the redraw is completed.
     lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
-    // Two idle to ensure the redraw is completed.
     idle(true);
+    lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+    idle(true);
+    lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+    idle(true);
+    lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
     idle(true);
   }
 #endif
@@ -2765,7 +2770,6 @@ void kill_screen(const char* lcd_msg) {
 
       LCD_PRINT_EXT_TEMP_STABLE();
       STATIC_ITEM(_UxGT("Status: loading"));
-      STATIC_ITEM(_UxGT("Status: loading"));
       STATIC_ITEM(_UxGT(" "));
       STATIC_ITEM(_UxGT("Please wait."));
       END_SCREEN();
@@ -2896,9 +2900,6 @@ void kill_screen(const char* lcd_msg) {
       if(!load) {
         // Unload filament
         beevc_unload_filament();
-      if(!load) {
-        // Unload filament
-        beevc_move_axis_blocking(E_AXIS,-(FILAMENT_CHANGE_UNLOAD_LENGTH),FILAMENT_CHANGE_UNLOAD_FEEDRATE);
       }
 
       // Load
@@ -2935,17 +2936,10 @@ void kill_screen(const char* lcd_msg) {
 
           // Keep looping if "Extrude More" was selected
         } while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE);
-          KEEPALIVE_STATE(PAUSED_FOR_USER);
-          wait_for_user = false;
-          lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_OPTION);
-          while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
-          KEEPALIVE_STATE(IN_HANDLER);
-
-          // Keep looping if "Extrude More" was selected
-        } while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE);
+        
       }
 
-      KEEPALIVE_STATE(IN_HANDLER);
+      KEEPALIVE_STATE(NOT_BUSY);
     }
 
     static void lcd_filament_change_unload_load (uint16_t changetemp, bool manual_extrude, bool unload_load){
