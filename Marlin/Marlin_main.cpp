@@ -2202,10 +2202,7 @@ static void clean_up_after_endstop_or_probe_move() {
       if (yy) SERIAL_ECHOPGM(MSG_Y);
       if (zz) SERIAL_ECHOPGM(MSG_Z);
       SERIAL_ECHOLNPGM(" " MSG_FIRST);
-
-      #if ENABLED(ULTRA_LCD)
-        lcd_status_printf_P(0, PSTR(MSG_HOME " %s%s%s " MSG_FIRST), xx ? MSG_X : "", yy ? MSG_Y : "", zz ? MSG_Z : "");
-      #endif
+      
       return true;
     }
     return false;
@@ -13247,7 +13244,7 @@ void tool_change(const uint8_t tmp_extruder, const float fr_mm_s/*=0.0*/, bool n
       feedrate_mm_s = fr_mm_s > 0.0 ? fr_mm_s : XY_PROBE_FEEDRATE_MM_S;
 
       if (tmp_extruder != active_extruder) {
-        if (!no_move && axis_unhomed_error()) {
+        if ((!no_move) && axis_unhomed_error()) {
           no_move = true;
           #if ENABLED(DEBUG_LEVELING_FEATURE)
             if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPGM("No move on toolchange");
