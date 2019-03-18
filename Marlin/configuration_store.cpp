@@ -36,25 +36,52 @@
  *
  */
 
-#define EEPROM_VERSION "B01"
 
-/* B01 EEPROM map byte adress
-      * 0-3     Z position
-      * 4-7     X position
-      * 8-11    Y position
-      * 12      Active Extruder,Extruder mode, acceleration
-      * 13-16   E position
-      * 17-18   Fan Speed (reduce to 8 bit??)
-      * 19-20   E0 temp
-      * 21-22   E1 temp
-      * 23-24   Bed temp (reduce to 8 bit??)
-      * 25-28   Sdcard file byte
-      * 29-98   SD File path
-      * 99      Startup wizard flag
-      */
+/**
+ * EEPROM Versions history
+ * B01 - First BEEVC specific EEPROM structure
+ *  B01 EEPROM map byte address
+ *  0-3     Z position
+ *  4-7     X position
+ *  8-11    Y position
+ *  12      Active Extruder,Extruder mode, acceleration
+ *  13-16   E position
+ *  17-18   Fan Speed (reduce to 8 bit??)
+ *  19-20   E0 temp
+ *  21-22   E1 temp
+ *  23-24   Bed temp (reduce to 8 bit??)
+ *  25-28   Sdcard file byte
+ *  29-98   SD File path
+ *  99      Startup wizard flag
+ * 
+ * B02 - Added support for SN storage, and corrected SD card file name storage, changed offset to 150
+ *  B02 EEPROM map byte address
+ *  Adress  Bytes   Type      Description
+ *  0       4       float     SN
+ *  4       4       float     Z position
+ *  8       4       float     X position
+ *  12      4       float     Y position
+ *  16      1       mixed     Active Extruder,Extruder mode, acceleration
+ *  17      4       float     E position
+ *  21      2       uint16_t  Fan Speed
+ *  23      2       uint16_t  E0 temp
+ *  25      2       uint16_t  E1 temp
+ *  27      2       uint16_t  Bed temp
+ *  29      4                 Sdcard file byte
+ *  32      100               SD File path
+ *  132     1       uint8_t   X sensorless homing calibration
+ *  133     1       uint8_t   Y sensorless homing calibration
+ *  134     1       bool      Startup wizard flag
+ *  135     15                Free space
+ * 
+ */
+#define EEPROM_VERSION "B02"
+
+/** 
+ */
 
 // Change EEPROM version if these are changed:
-#define EEPROM_OFFSET 100
+#define EEPROM_OFFSET 150
 
 /**
  * V47 EEPROM Layout:
@@ -213,6 +240,7 @@ MarlinSettings settings;
 #include "ultralcd.h"
 #include "stepper.h"
 #include "gcode.h"
+#include "BEEVC_EEPROM.h"
 
 #if ENABLED(MESH_BED_LEVELING)
   #include "mesh_bed_leveling.h"
@@ -338,34 +366,7 @@ void MarlinSettings::postprocess() {
   }
 
   // NON CRC Version
-
-  // Necessary to write to eeprom
-inline void EEPROM_write(int &pos, const uint8_t *value, uint16_t size) {
-   while (size--) {
-     uint8_t * const p = (uint8_t * const)pos;
-     uint8_t v = *value;
-     // EEPROM has only ~100,000 write cycles,
-     // so only write bytes that have changed!
-     if (v != eeprom_read_byte(p)) {
-       eeprom_write_byte(p, v);
-       if (eeprom_read_byte(p) != v) {
-         SERIAL_ECHO_START();
-         SERIAL_ECHOLNPGM(MSG_ERR_EEPROM_WRITE);
-         return;
-       }
-     }
-     pos++;
-     value++;
-   };
- }
- inline void EEPROM_read(int &pos, uint8_t* value, uint16_t size) {
-   do {
-     uint8_t c = eeprom_read_byte((unsigned char*)pos);
-     *value = c;
-     pos++;
-     value++;
-   } while (--size);
- }
+  // Included in BEEVC_EEPROM
 
   /**
    * M500 - Store Configuration
