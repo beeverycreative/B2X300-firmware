@@ -790,14 +790,6 @@ uint16_t max_display_update_time = 0;
   #define ACTIVE_FILAMENT_SENSOR_WAITING (((READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING) && (active_extruder == 1)) || ((READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING)  && (active_extruder == 0))) 
   #define ACTIVE_FILAMENT_SENSOR_TRIGERED !(((READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING) && (active_extruder == 1)) || ((READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING)  && (active_extruder == 0))) 
 
-  #ifdef SERIAL_DEBUG
-    #define SERIAL_DEBUG_MESSAGE(str)             SERIAL_PROTOCOLLN(str)
-    #define SERIAL_DEBUG_MESSAGE_VALUE(str, val)  SERIAL_PROTOCOLLNPAIR(str, val)
-  #else
-    #define SERIAL_DEBUG_MESSAGE(str) 
-    #define SERIAL_DEBUG_MESSAGE_VALUE(str, val)
-  #endif
-
   static void beevc_move_axis(AxisEnum axis,float move_mm, float feed_mms){
     // Sets the motion ammount and executes movement at requested speed
     current_position[axis] += move_mm;
