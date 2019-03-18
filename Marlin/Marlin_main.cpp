@@ -251,6 +251,7 @@
  * M730 - Prints dual nozzle Z offset test
  * M731 - Prints dual nozzle XY offset test
  * M740 - Prints a prime line with the active extruder
+ * M800 - Prints or sets the printer's SN
  * M916 - Set chopping mode (Only works for TMC2130 or TMC2208)
  * M917 - Read stallGuard2 values
  * M918 - Set Sensorless_homing calibration value
@@ -280,6 +281,7 @@
 #include "types.h"
 #include "gcode.h"
 #include "BEEVC_EEPROM.h"
+#include "BEEVC_B2X300_SN.h"
 
 #if HAS_ABL
   #include "vector_3.h"
@@ -761,6 +763,13 @@ XYZ_CONSTS_FROM_CONFIG(signed char, home_dir, HOME_DIR);
 ////////////     Better autoleveling     //////////////
 #ifdef BEEVC_B2X300
 	bool G28_stow = true;
+#endif
+///////////////////////////////////////////////////////
+
+////////////     Serial number     //////////////
+#ifdef BEEVC_B2X300
+  // Initializes seriaNumber value to default (lates B2X300 version) in case load fails
+	uint32_t serialNumber = BEEVC_B2X300_LATEST_SN;
 #endif
 ///////////////////////////////////////////////////////
 
@@ -5114,7 +5123,6 @@ void home_all_axes() { gcode_G28(true); }
 	  //DR-Stores the extruder and changes to E0
     uint8_t extruderNumber = active_extruder;
     if (extruderNumber != 0) tool_change(0);
-
 
     // G29 Q is also available if debugging
     #if ENABLED(DEBUG_LEVELING_FEATURE)
@@ -13126,6 +13134,42 @@ inline void gcode_M999() {
     }
   }
 
+  /**
+   * M800: Prints or saves printer SN
+   * The serial number is checked to see if valid before saving
+   * If no argument is given prints current SN
+   *
+   * Examples:
+   * Save SN to EEPROM :  M800 S0123456789
+   * Print SN:            M800
+  */
+  void gcode_M800(){
+    // Temporary variable to read/save SN
+    uint32_t tempSerial;
+
+    // If the is a serial number input
+    if(parser.seenval('S')){
+      tempSerial = parser.value_ulong();
+      // Checks SN validity
+      // If valid
+      if(validateSerial(tempSerial)){
+        //Saves SN to EEPROM
+        BEEVC_WRITE_EEPROM(SN,tempSerial);
+        // Loads current SN to global variable
+        BEEVC_READ_EEPROM(SN,serialNumber);
+        // Prints current SN
+        SERIAL_PROTOCOLLNPAIR("Printer SN: ",serialNumber);
+      }
+      // If invalid SN
+      else
+        SERIAL_PROTOCOLLNPAIR("Invalid serial number : ", tempSerial);
+    }
+    // If there is no SN input, prints SN
+    else{
+      // Prints current SN
+      SERIAL_PROTOCOLLNPAIR("Printer SN: ",serialNumber);
+    }
+  }
 
 #endif // BEEVC_B2X300
 
@@ -14600,7 +14644,13 @@ void process_parsed_command() {
           gcode_M740();
           break;
 
-		#endif
+		#endif   // BEEVC_RESTORE
+
+    #ifdef BEEVC_B2X300
+      case 800: // Prints or saves printer SN
+          gcode_M800();
+          break;
+    #endif
     }
     break;
 
@@ -16763,7 +16813,6 @@ void setup() {
 		pinMode(11, INPUT_PULLUP);           		// set pin 11 to input pullup
 		(_SFR_BYTE(PCICR) |= _BV(PCIE0));			// Enables interrupts on PCI0
 		(_SFR_BYTE(PCMSK0) |= _BV(PCINT5));		// Sets the interrupt to trigger on PCINT_5 (port D11)
-
 
 		// Check if there is a print to be recovered
 		float tempZ = 0;

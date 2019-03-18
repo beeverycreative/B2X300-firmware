@@ -240,6 +240,7 @@ MarlinSettings settings;
 #include "ultralcd.h"
 #include "stepper.h"
 #include "gcode.h"
+#include "BEEVC_B2X300_SN.h"
 #include "BEEVC_EEPROM.h"
 
 #if ENABLED(MESH_BED_LEVELING)
@@ -807,6 +808,12 @@ void MarlinSettings::postprocess() {
    * M501 - Retrieve Configuration
    */
   bool MarlinSettings::load() {
+
+    ////////////     Serial number     //////////////
+    #ifdef BEEVC_B2X300
+      BEEVC_READ_EEPROM(SN,serialNumber);
+    #endif
+    ///////////////////////////////////////////////////////
     uint16_t working_crc = 0;
 
     EEPROM_START();
@@ -819,6 +826,7 @@ void MarlinSettings::postprocess() {
 
     // Version has to match or defaults are used
     if (strncmp(version, stored_ver, 3) != 0) {
+      serialNumber = 1212300001;
       if (stored_ver[0] != 'B') {
         stored_ver[0] = '?';
         stored_ver[1] = '\0';
@@ -1438,10 +1446,17 @@ void MarlinSettings::postprocess() {
  * M502 - Reset Configuration
  */
 void MarlinSettings::reset() {
-  static const float tmp1[] PROGMEM = DEFAULT_AXIS_STEPS_PER_UNIT, tmp2[] PROGMEM = DEFAULT_MAX_FEEDRATE;
+  #ifndef BEEVC_B2X300
+    static const float tmp1[] PROGMEM = DEFAULT_AXIS_STEPS_PER_UNIT;
+  #endif
+  static const float tmp2[] PROGMEM = DEFAULT_MAX_FEEDRATE;
   static const uint32_t tmp3[] PROGMEM = DEFAULT_MAX_ACCELERATION;
   LOOP_XYZE_N(i) {
-    planner.axis_steps_per_mm[i]          = pgm_read_float(&tmp1[i < COUNT(tmp1) ? i : COUNT(tmp1) - 1]);
+    #ifdef BEEVC_B2X300
+      planner.axis_steps_per_mm[i]          = getSteps((AxisEnum)i,serialNumber);
+    #else
+      planner.axis_steps_per_mm[i]          = pgm_read_float(&tmp1[i < COUNT(tmp1) ? i : COUNT(tmp1) - 1]);
+    #endif
     planner.max_feedrate_mm_s[i]          = pgm_read_float(&tmp2[i < COUNT(tmp2) ? i : COUNT(tmp2) - 1]);
     planner.max_acceleration_mm_per_s2[i] = pgm_read_dword_near(&tmp3[i < COUNT(tmp3) ? i : COUNT(tmp3) - 1]);
   }
@@ -1552,9 +1567,16 @@ void MarlinSettings::reset() {
       HOTEND_LOOP()
     #endif
     {
-      PID_PARAM(Kp, e) = DEFAULT_Kp;
-      PID_PARAM(Ki, e) = scalePID_i(DEFAULT_Ki);
-      PID_PARAM(Kd, e) = scalePID_d(DEFAULT_Kd);
+      #ifdef BEEVC_B2X300
+        PID_PARAM(Kp, e) = getPID(e+1,serialNumber,'P');
+        PID_PARAM(Ki, e) = scalePID_i(getPID(e+1,serialNumber,'I'));
+        PID_PARAM(Kd, e) = scalePID_d(getPID(e+1,serialNumber,'D'));
+      #else
+        PID_PARAM(Kp, e) = DEFAULT_Kp;
+        PID_PARAM(Ki, e) = scalePID_i(DEFAULT_Ki);
+        PID_PARAM(Kd, e) = scalePID_d(DEFAULT_Kd);
+      #endif
+      
       #if ENABLED(PID_EXTRUSION_SCALING)
         PID_PARAM(Kc, e) = DEFAULT_Kc;
       #endif
@@ -1565,9 +1587,15 @@ void MarlinSettings::reset() {
   #endif // PIDTEMP
 
   #if ENABLED(PIDTEMPBED)
-    thermalManager.bedKp = DEFAULT_bedKp;
-    thermalManager.bedKi = scalePID_i(DEFAULT_bedKi);
-    thermalManager.bedKd = scalePID_d(DEFAULT_bedKd);
+    #ifdef BEEVC_B2X300
+      thermalManager.bedKp = getPID(0,serialNumber,'P');
+      thermalManager.bedKi = scalePID_i(getPID(0,serialNumber,'I'));
+      thermalManager.bedKd = scalePID_d(getPID(0,serialNumber,'D'));
+    #else
+      thermalManager.bedKp = DEFAULT_bedKp;
+      thermalManager.bedKi = scalePID_i(DEFAULT_bedKi);
+      thermalManager.bedKd = scalePID_d(DEFAULT_bedKd);
+    #endif
   #endif
 
   #if HAS_LCD_CONTRAST
