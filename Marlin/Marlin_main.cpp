@@ -16775,7 +16775,7 @@ void setup() {
     BEEVC_READ_EEPROM(Z,tempZ);
 
 		//Sets the toRecover flag if at the last store it had a Z height, the Z heigh is reset when the recovery happens
-		if (tempZ != 0)
+		if ((tempZ != 0) && (toCalibrate >1))
 		{
 			toRecover = true;
 			lcd_setstatus("Powerloss-print saved");
@@ -16787,6 +16787,13 @@ void setup() {
         toRecoverNow = true;
       }
 
+      // If the bed temperature exceeds the max temperature, something has gone wrong hence disable heating and restore
+      if(thermalManager.target_temperature_bed > BED_MAXTEMP){
+        thermalManager.target_temperature_bed = 0;
+        toRecover = false;
+        toRecoverNow = false;
+      }
+		}
 	#endif
 	///////////////////////////////////////////////////////
 
