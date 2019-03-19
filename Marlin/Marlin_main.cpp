@@ -13138,10 +13138,15 @@ inline void gcode_M999() {
    * M800: Prints or saves printer SN
    * The serial number is checked to see if valid before saving
    * If no argument is given prints current SN
-   *
+   * 
+   * Arguments:
+   * S{number}            checks if valid and sets the serial number as provided
+   * R                    resets SN to zero on both EEPROM and machine
+   * 
    * Examples:
    * Save SN to EEPROM :  M800 S0123456789
    * Print SN:            M800
+   * Reset SN:            M800 R
   */
   void gcode_M800(){
     // Temporary variable to read/save SN
@@ -13163,6 +13168,15 @@ inline void gcode_M999() {
       // If invalid SN
       else
         SERIAL_PROTOCOLLNPAIR("Invalid serial number : ", tempSerial);
+    }
+    // If there is a Reset requested
+    else if(parser.seen('R')){
+      serialNumber = 0;
+
+      //Saves SN to EEPROM
+      BEEVC_WRITE_EEPROM(SN,serialNumber);
+
+      SERIAL_PROTOCOLLN("Serial number reset!");
     }
     // If there is no SN input, prints SN
     else{
