@@ -2574,6 +2574,10 @@ void kill_screen(const char* lcd_msg) {
       strncat(about_string, itostr4sign(stepperE0.getCurrent()),5);
       STATIC_ITEM("Curr. Z/E: ", false, false, about_string);
 
+      char serial[11];
+      sprintf(serial, "%lu", serialNumber);
+      STATIC_ITEM("SN: ",false,false,serial);
+
       END_SCREEN();
     }
 
