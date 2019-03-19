@@ -944,12 +944,221 @@ uint16_t max_display_update_time = 0;
   lcd_printPGM(PSTR(LCD_STR_DEGREE));\
   u8g.print("C")
 
+
+/**
+ *
+ * "Set Serial number screen"
+ *
+ *
+*/
+uint32_t iPow10(uint8_t n)
+{
+    uint32_t number = 1;
+
+    for (int i = 0; i < n; ++i)
+        number *= 10;
+
+    return(number);
+}
+
+void beevc_set_serial_start(){
+  START_SCREEN();
+  STATIC_ITEM("Serial number wizard", true, true);
+  STATIC_ITEM("Serial number not");
+  STATIC_ITEM("detected.");
+  STATIC_ITEM(" ");
+  STATIC_ITEM("(scroll to read more)");
+  STATIC_ITEM("Please insert the");
+  STATIC_ITEM("serial number present");
+  STATIC_ITEM("on the sticker on the");
+  STATIC_ITEM("back of the printer,");
+  STATIC_ITEM("next to extruder E1.");
+  STATIC_ITEM("This will allow the");
+  STATIC_ITEM("printer to correctly");
+  STATIC_ITEM("load the settings");
+  STATIC_ITEM("for your machine.");
+  STATIC_ITEM(" ");
+  STATIC_ITEM("Click to continue.");
+  END_SCREEN();
+}
+
+void beevc_set_serial_adjust(){
+  // When finished
+  if (lcd_clicked){
+    beevc_screen_header++;
+
+    // Serial number has 10 numbers if bigger than that it has finished
+    if(beevc_screen_header >10)
+      beevc_selection_finished();
+  }      
+  ENCODER_DIRECTION_NORMAL();
+
+  // Extracts selected number from SN
+    uint8_t selected_number = ((int)(serialNumber/iPow10(10-beevc_screen_header)) - (int)(serialNumber/iPow10(11-beevc_screen_header))*10);
+
+  if (encoderPosition) {
+    refresh_cmd_timeout();
+
+    // Apply change capping the number limit
+    if((int32_t)encoderPosition >0){
+      if (selected_number < 9)
+        selected_number++;
+    }
+    else{
+      if(selected_number > 0)
+        selected_number--;
+    }
+
+    // Re-constructs the SN with the new number
+    serialNumber = (((serialNumber/iPow10(11-beevc_screen_header))*10) + selected_number)*iPow10(10-beevc_screen_header) ; // + (serialNumber - serialNumber/(10^(10-beevc_screen_header)))
+    
+    encoderPosition = 0;
+    lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+  }
+  if (lcdDrawUpdate) {
+    START_SCREEN();
+    STATIC_ITEM("Serial number wizard", true, true);
+    STATIC_ITEM("SN:");
+    STATIC_ITEM(" ");
+    STATIC_ITEM(" ");
+    STATIC_ITEM("Please insert SN.");
+    END_SCREEN();
+
+    // Shows selected number
+    u8g.setPrintPos(beevc_screen_header*6 +18, 36);
+	  u8g.print("^");
+
+    // Prints SN
+    u8g.setPrintPos(6*4, 24);
+    u8g.print(serialNumber);
+  }
+}
+
+void beevc_set_serial_invalid(){
+  START_SCREEN();
+  STATIC_ITEM("Serial number wizard", true, true);
+  STATIC_ITEM("Serial number invalid!");
+  STATIC_ITEM("");
+  STATIC_ITEM("");
+  STATIC_ITEM("Click to reinsert SN");
+  END_SCREEN();
+}
+
+void beevc_set_serial_yes(){
+  // Sets completion
+  beevc_selection_finished();
+
+  // Sets to continue
+  beevc_continue = true;
+
+}
+
+void beevc_set_serial_no(){
+  // Sets completion
+  beevc_selection_finished();
+
+  // Sets to repeat
+  beevc_continue = false;
+}
+
+void beevc_set_serial_confirm(){
+  START_MENU();
+  STATIC_ITEM("Serial number wizard", true, true);
+  STATIC_ITEM("Is this correct?");
+  STATIC_ITEM("SN:");
+  MENU_ITEM_MIX(submenu, _UxGT(" - Yes"), beevc_set_serial_yes);
+  MENU_ITEM_MIX(submenu, _UxGT(" - No"), beevc_set_serial_no);
+  END_SCREEN();
+
+  // Prints SN
+  u8g.setPrintPos(6*4, 36);
+  u8g.print(serialNumber);
+}
+
+void beevc_set_serial_finish(){
+  START_SCREEN();
+  STATIC_ITEM("Serial number wizard", true, true);
+  STATIC_ITEM("Serial number is now");
+  STATIC_ITEM("configured.");
+  STATIC_ITEM(" ");
+  STATIC_ITEM("Click to continue.");
+  END_SCREEN();
+}
+
+void beevc_set_serial_run(){
+  // Stores previous screen history depth to allow exit
+  uint8_t old_depth = screen_history_depth -1;
+
+  // Show start screen
+  lcd_goto_screen(beevc_set_serial_start);
+
+  // Wait for click
+  beevc_wait_click();
+
+  // Loops to allow comming back here
+  do{
+    // Sets variable to 5 to start editing on the fifth character of the number
+    beevc_screen_header = 5;
+
+    // Resets serial number
+    serialNumber = 1212000000;
+
+    // Go to insert serial screen
+    lcd_goto_screen(beevc_set_serial_adjust);
+
+    // Waits for completion
+    beevc_wait_selection();
+
+    // If inserted number is invalid
+    if(!validateSerial(serialNumber)){
+      // Show invalid number screen
+      lcd_goto_screen(beevc_set_serial_invalid);
+
+      // Wait for click
+      beevc_wait_click();
+
+      // Force reeinsertion
+      beevc_continue = false;
+    }
+    // If valid
+    else{
+      // Sets up wait for selection
+      beevc_continue = false;
+
+      // Asks if correct, if not loops
+      lcd_goto_screen(beevc_set_serial_confirm);
+
+      // Waits for completion
+      beevc_wait_selection();
+    }
+
+  } while(!beevc_continue);
+
+  // Shows finish screen
+  lcd_goto_screen(beevc_set_serial_finish);
+
+  // Wait for click
+  beevc_wait_click();
+
+  // Stores new SN
+  BEEVC_WRITE_EEPROM(SN,serialNumber);
+
+  // Disabled if execting from self test wizard
+  if(toCalibrate > 1){
+    // Back action
+    lcd_goto_screen(screen_history[old_depth].menu_function,screen_history[old_depth].encoder_position);
+
+    // Forces screen update
+    beevc_force_screen_update();
+  }
+}
+
 /**
  *
  * "Dual Nozzle Z offset Assistant"
  *
  *
- */
+*/
 
   void lcd_screen_dual_z_offset_start() {
     START_SCREEN();
@@ -6686,6 +6895,15 @@ void beevc_machine_setup_test_powerloss (){
     if(toCalibrate == 1) {
       lcd_goto_screen(beevc_machine_setup_EEPROM_updated);
       beevc_wait_click();
+    }
+
+    // If serial number is invalid request it
+    if(!validateSerial(serialNumber)){
+      // This informs the function is called from self-test wizard in order exit corretly
+      toCalibrate = 0;
+
+      // Set SN
+      beevc_set_serial_run();
     }
 
     // Start screen
