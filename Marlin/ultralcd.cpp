@@ -269,7 +269,6 @@ uint16_t max_display_update_time = 0;
     float old_hotend_offset = 0;
     bool isX = 0 ;
     bool beevc_screen_constant_update = false;
-    long beevc_screen_constant_update_time = 0;
 	#endif
 	///////////////////////////////////////////////////////
 
@@ -920,15 +919,14 @@ uint16_t max_display_update_time = 0;
   }
 
   void beevc_force_screen_update(){
-    // Four idle to ensure the redraw is completed.
-    lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
-    idle(true);
-    lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
-    idle(true);
-    lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
-    idle(true);
-    lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
-    idle(true);
+    // Execute a screen draw right now
+    u8g.firstPage();
+    (*currentScreen)(), lcd_clicked = false;
+
+    // lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+    // // Two idle to ensure the redraw is completed.
+    // idle(true);
+    // idle(true);
   }
 #endif
 
@@ -8735,7 +8733,6 @@ void lcd_update() {
 
     // B2X300 - keep screen updating
     if(beevc_screen_constant_update){
-      beevc_screen_constant_update_time = millis() + 200;
       lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
     }
 
