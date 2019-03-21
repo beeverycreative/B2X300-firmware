@@ -2867,17 +2867,20 @@ void kill_screen(const char* lcd_msg) {
         defer_return_to_status = true;
         beevc_screen_constant_update = true;
         ENCODER_DIRECTION_NORMAL();
-        if (encoderPosition && (!processing_manual_move)) {
+        if (encoderPosition) {
           float diff = float((int32_t)encoderPosition) * 10;
           NOMORE(diff,5);
           NOLESS(diff,-5);
 
           current_position[E_AXIS] += diff;
-          manual_move_to_current(E_AXIS, active_extruder);
+          planner.buffer_line_kinematic(current_position, 2, active_extruder);
+
           lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
           encoderPosition = 0;
         }
-        if (lcdDrawUpdate) lcd_filament_change_move_e_screen();
+
+        if (lcdDrawUpdate) 
+          lcd_filament_change_move_e_screen();
     }
 
     
