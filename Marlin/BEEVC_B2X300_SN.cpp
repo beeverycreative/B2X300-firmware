@@ -155,8 +155,16 @@
      */
     bool validateSerial(uint32_t serial){
         
-        // Check if within BETA/Preproduction units
-        if (serial >= BEEVC_B2X300_FIRST_SN && serial < BEEVC_B2X300_FIRST_SN+50)
+        // Check if within BETA units
+        if (serial >= BEEVC_B2X300_BETA_SN && serial < BEEVC_B2X300_BETA_SN+5)
+            return true;
+
+        // Check if within first internal units
+        if (serial >= BEEVC_B2X300_INTERNAL1_SN && serial < BEEVC_B2X300_INTERNAL1_SN+5)
+            return true;
+    
+        // Check if within second internal units
+        if (serial >= BEEVC_B2X300_INTERNAL2_SN && serial < BEEVC_B2X300_INTERNAL2_SN+10)
             return true;
 
         // Check if within first production
