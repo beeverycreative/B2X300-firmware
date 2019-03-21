@@ -7810,6 +7810,9 @@ void beevc_machine_setup_test_powerloss (){
     void lcd_sdcard_menu() {
       ENCODER_DIRECTION_MENUS();
 
+      //Forces fast screen update
+      beevc_screen_constant_update = true;
+
       const uint16_t fileCnt = card.get_num_Files();
 
       START_MENU();
@@ -8433,7 +8436,7 @@ void beevc_machine_setup_test_powerloss (){
    * Menu actions
    *
    */
-  void _menu_action_back() { lcd_goto_previous_menu(); }
+  void _menu_action_back() { lcd_goto_previous_menu(); beevc_screen_constant_update = false; }
   void menu_action_submenu(screenFunc_t func) { lcd_save_previous_screen(); lcd_goto_screen(func); }
   void menu_action_gcode(const char* pgcode) { enqueue_and_echo_commands_P(pgcode); }
   void menu_action_function(screenFunc_t func) { (*func)(); }
@@ -8737,6 +8740,7 @@ void lcd_update() {
     // B2X300 - keep screen updating
     if(beevc_screen_constant_update){
       lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+      NOMORE(max_display_update_time,200);
     }
 
     // We arrive here every ~100ms when idling often enough.
@@ -8814,6 +8818,7 @@ void lcd_update() {
         // The nextPage will already be set up on the next call.
         if (drawing_screen && (drawing_screen = u8g.nextPage())) {
           NOLESS(max_display_update_time, millis() - ms);
+          NOMORE(max_display_update_time,1000); // Caps max to 1 second
           return;
         }
       #else
@@ -8823,6 +8828,7 @@ void lcd_update() {
       // Keeping track of the longest time for an individual LCD update.
       // Used to do screen throttling when the planner starts to fill up.
       NOLESS(max_display_update_time, millis() - ms);
+      NOMORE(max_display_update_time,1000); // Caps max to 1 second
     }
 
     #if ENABLED(ULTIPANEL)
