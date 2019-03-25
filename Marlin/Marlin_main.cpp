@@ -930,6 +930,10 @@ void report_current_position_detail();
 
     // Stops stallGuard reading from triggering endstop
     STALLGUARDTRIGGERENDSTOPS(axis,false);
+
+    #ifdef SERIAL_DEBUG
+      SERIAL_ECHOLNPAIR("Homing duration: ", *homeduration);
+    #endif
   }
 
   static void sensorless_homeaxis_move_away(const AxisEnum axis){
@@ -983,23 +987,17 @@ void report_current_position_detail();
     uint16_t current_store = 0;
     bool stealthchop_restore = false;
 
-    #ifdef SERIAL_DEBUG
-      SERIAL_PROTOCOLLN("Preparing stepper");
-    #endif
+    SERIAL_DEBUG_MESSAGE("Preparing stepper");
 
     // Prepare stepper and store necessary data
     sensorless_homeaxis_prepare_stepper(axis,&stealthchop_restore,&current_store);
     
-    #ifdef SERIAL_DEBUG
-      SERIAL_PROTOCOLLN("Homing loop");
-    #endif
+    SERIAL_DEBUG_MESSAGE("Homing loop");
 
     // Does the loop to measure wall position
     sensorless_homeaxis_loop(axis);
 
-    #ifdef SERIAL_DEBUG
-      SERIAL_PROTOCOLLN("Restoring stepper");
-    #endif
+    SERIAL_DEBUG_MESSAGE("Restoring stepper");
 
     // Restores stepper driver to former state
     sensorless_homeaxis_restore_stepper(axis,&stealthchop_restore,&current_store);
@@ -1007,11 +1005,7 @@ void report_current_position_detail();
     // Restores acceleration settings
     planner.travel_acceleration = old_acceleration;
 
-    #ifdef SERIAL_DEBUG
-      SERIAL_PROTOCOLLN("Finished homing");
-      //SERIAL_PROTOCOLLNPAIR("current_restore:       ", current_store);
-      //SERIAL_PROTOCOLLNPAIR("stealthchop_restore:   ", stealthchop_restore);
-    #endif
+    SERIAL_DEBUG_MESSAGE("Finished homing");
   }
 
   static void sensoless_homeaxis_calibration_prepare_stepper(const AxisEnum axis){
@@ -1037,7 +1031,10 @@ void report_current_position_detail();
         st.sgt(st.sgt()-1);
         // Reset calibration midvalue
         *calibration_value = 50;
-      }   
+      }
+
+    SERIAL_DEBUG_MESSAGE_VALUE("Raised sensitivity to: ", *calibration_value);
+    SERIAL_DEBUG_MESSAGE_VALUE("SGT is               : ", st.sgt());
   }
 
   static void sensorless_homeaxis_lower_sensitivity (const AxisEnum axis, uint8_t *calibration_value){
@@ -1055,15 +1052,18 @@ void report_current_position_detail();
         st.sgt(st.sgt()+1);
         // Reset calibration midvalue
         *calibration_value = 50;
-      }   
+      }
+
+    SERIAL_DEBUG_MESSAGE_VALUE("Lowered sensitivity to: ", *calibration_value);
+    SERIAL_DEBUG_MESSAGE_VALUE("SGT is                : ", st.sgt());   
   }
 
   static void sensorless_homeaxis_calibration_loop(const AxisEnum axis){
     bool to_calibrate = true;
     uint16_t home_duration_sum = 0;
     uint16_t home_duration = 0;
-    const uint16_t home_duration_expected = 310;
-    const uint16_t home_duration_limit = 318;
+    const uint16_t home_duration_expected = (axis == X_AXIS ?310 : 320);
+    const uint16_t home_duration_limit = (axis == X_AXIS ?320 : 330);
     const uint16_t home_duration_adjust_threshold = home_duration_expected -50;
     uint8_t *calibration_value = (axis == X_AXIS ? &thermalManager.sg2_homing_x_calibration: &thermalManager.sg2_homing_y_calibration);
     uint8_t count = 0;
@@ -1092,10 +1092,6 @@ void report_current_position_detail();
         // Advance the progress on screen
         if(++sensorless_homing_progress > 3)
           sensorless_homing_progress = 0;
-
-        #ifdef SERIAL_DEBUG
-          SERIAL_ECHOLNPAIR("Homing duration", home_duration);
-        #endif
 
         // Show and force update of screen
         if(axis == X_AXIS)

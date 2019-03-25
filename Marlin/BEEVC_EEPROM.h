@@ -95,19 +95,23 @@
     }
 
     #ifdef SERIAL_DEBUG
-        #define SERIAL_DEBUG_WRITE_EEPROM_MESSAGE(name, pointer)  \
-            int address = ADDRESS_##name;           \
-            SERIAL_ECHO("Saved "); \
-            SERIAL_ECHO(#name);     \
-            SERIAL_ECHOPAIR(": ", pointer);       \
-            SERIAL_ECHOPAIRLN(" @ ", address);
+        #define SERIAL_DEBUG_WRITE_EEPROM_MESSAGE(name, pointer) {  \
+            int address = ADDRESS_##name;                           \
+            SERIAL_ECHO("Saved ");                                  \
+            SERIAL_ECHO(#name);                                     \
+            SERIAL_ECHOPAIR(": ", pointer);                         \
+            SERIAL_ECHOLNPAIR(" @ ", address);                      \
+        }
             
-        #define SERIAL_DEBUG_READ_EEPROM_MESSAGE(name, pointer)  \
-            int address = ADDRESS_##name;           \
-            SERIAL_ECHO("Read "); \
-            SERIAL_ECHO(#name);     \
-            SERIAL_ECHOPAIR(": ", pointer);       \
-            SERIAL_ECHOPAIRLN(" @ ", address);
+            
+        #define SERIAL_DEBUG_READ_EEPROM_MESSAGE(name, pointer) {   \
+            int address = ADDRESS_##name;                           \
+            SERIAL_ECHO("Read ");                                   \
+            SERIAL_ECHO(#name);                                     \
+            SERIAL_ECHOPAIR(": ", pointer);                         \
+            SERIAL_ECHOLNPAIR(" @ ", address);                      \
+        }
+            
     #else
         #define SERIAL_DEBUG_WRITE_EEPROM_MESSAGE(name, pointer)
         #define SERIAL_DEBUG_READ_EEPROM_MESSAGE(name, pointer)
@@ -115,13 +119,13 @@
 
     #define BEEVC_READ_EEPROM(name, pointer) {                  \
         int address = ADDRESS_##name;                           \
-        EEPROM_read(address, (uint8_t*)&pointer, SIZE_##name) ; \
+        EEPROM_read(address, (uint8_t*)&pointer, SIZE_##name);  \
         SERIAL_DEBUG_READ_EEPROM_MESSAGE(name, pointer);        \
     }
 
     #define BEEVC_WRITE_EEPROM(name, pointer) {                 \
         int address = ADDRESS_##name;                           \
-        EEPROM_write(address, (uint8_t*)&pointer, SIZE_##name)  \
+        EEPROM_write(address, (uint8_t*)&pointer, SIZE_##name); \
         SERIAL_DEBUG_WRITE_EEPROM_MESSAGE(name, pointer);       \
     }
 
