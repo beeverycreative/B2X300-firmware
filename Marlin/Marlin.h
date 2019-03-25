@@ -90,6 +90,12 @@ void manage_inactivity(bool ignore_stepper_queue = false);
 #endif
 ///////////////////////////////////////////////////////
 
+////////////     Serial number     //////////////
+#ifdef BEEVC_B2X300
+	extern uint32_t serialNumber;
+#endif
+///////////////////////////////////////////////////////
+
 
 #if ENABLED(DUAL_X_CARRIAGE) || ENABLED(DUAL_NOZZLE_DUPLICATION_MODE)
   extern bool extruder_duplication_enabled;
