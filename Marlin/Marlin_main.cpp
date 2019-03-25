@@ -1020,51 +1020,54 @@ void report_current_position_detail();
     // Decreasing SGT increases the sensitivity of stallGuard
 
     // Stores required stepper in variable
-    TMC2130Stepper st = ( axis == X_AXIS? stepperX : stepperY);
+    TMC2130Stepper *st;
+    st = ( axis == X_AXIS? &stepperX : &stepperY);
 
     if(*calibration_value <= 95)
       // Tries raising the calibration value
       *calibration_value += 5;
     else
       // If it can't change the StallGuard treshold
-      if (st.sgt() > 0){
-        st.sgt(st.sgt()-1);
+      if (st->sgt() > 0){
+        st->sgt(st->sgt()-1);
         // Reset calibration midvalue
-        *calibration_value = 50;
+        *calibration_value = 75;
       }
 
     SERIAL_DEBUG_MESSAGE_VALUE("Raised sensitivity to: ", *calibration_value);
-    SERIAL_DEBUG_MESSAGE_VALUE("SGT is               : ", st.sgt());
+    SERIAL_DEBUG_MESSAGE_VALUE("SGT is               : ", st->sgt());
   }
 
   static void sensorless_homeaxis_lower_sensitivity (const AxisEnum axis, uint8_t *calibration_value){
     // Increasing SGT decreases the sensitivity of stallGuard
 
     // Stores required stepper in variable
-    TMC2130Stepper st = ( axis == X_AXIS? stepperX : stepperY);
+    TMC2130Stepper *st;
+    st = ( axis == X_AXIS? &stepperX : &stepperY);
 
     if(*calibration_value >= 5)
       // Tries raising the calibration value
       *calibration_value -= 5;
     else
-      // If it can't change the StallGuard treshold
-      if (st.sgt() < 10){
-        st.sgt(st.sgt()+1);
+      // If it can't, change the StallGuard treshold
+      if (st->sgt() < 10){
+        st->sgt(st->sgt()+1);
         // Reset calibration midvalue
-        *calibration_value = 50;
+        *calibration_value = 25;
       }
 
     SERIAL_DEBUG_MESSAGE_VALUE("Lowered sensitivity to: ", *calibration_value);
-    SERIAL_DEBUG_MESSAGE_VALUE("SGT is                : ", st.sgt());   
+    SERIAL_DEBUG_MESSAGE_VALUE("SGT is                : ", st->sgt());   
   }
 
   static void sensorless_homeaxis_calibration_loop(const AxisEnum axis){
     bool to_calibrate = true;
     uint16_t home_duration_sum = 0;
     uint16_t home_duration = 0;
-    const uint16_t home_duration_expected = (axis == X_AXIS ?310 : 320);
-    const uint16_t home_duration_limit = (axis == X_AXIS ?320 : 330);
-    const uint16_t home_duration_adjust_threshold = home_duration_expected -50;
+    const uint16_t home_duration_expected = (axis == X_AXIS ?270 : 280);
+    const uint16_t home_duration_limit = home_duration_expected + 10 ;
+    const uint16_t home_duration_adjust_threshold_bottom = home_duration_expected -20;
+    const uint16_t home_duration_adjust_threshold_top = home_duration_expected +50;
     uint8_t *calibration_value = (axis == X_AXIS ? &thermalManager.sg2_homing_x_calibration: &thermalManager.sg2_homing_y_calibration);
     uint8_t count = 0;
 
@@ -1078,15 +1081,27 @@ void report_current_position_detail();
         // Measures duration till contact
         sensorless_homeaxis_measure_duration(axis,&home_duration);
 
-        // Speeds up finding the correct value
-        if (home_duration < home_duration_adjust_threshold)
-          if(*calibration_value >= 5)
-            *calibration_value -= 5;
+        // Speeds up finding the correct value by making adjustment if measure is too far off
+        if (home_duration < home_duration_adjust_threshold_bottom){
+          sensorless_homeaxis_lower_sensitivity(axis,calibration_value);
+          // Restart the loop
+          k=-1;
+          home_duration_sum = 0;
+          home_duration = 0;
+        }
+          
+        
+        if (home_duration > home_duration_adjust_threshold_top){
+          sensorless_homeaxis_raise_sensitivity(axis,calibration_value);
+          // Restart the loop
+          k=-1;
+          home_duration_sum = 0;
+          home_duration = 0;
+        }
+          
         
         // Makes sure the result never leads to false positives
-        if (home_duration < home_duration_expected)
-          home_duration = 0;
-        else
+        if (home_duration > home_duration_adjust_threshold_bottom)
           home_duration_sum += home_duration;
 
         // Advance the progress on screen
@@ -1105,13 +1120,17 @@ void report_current_position_detail();
         idle(true);
 
       }
-      uint16_t home_duration = (home_duration_sum/5);
+      // Calculate average and reset measurement result for next loop
+      uint16_t home_duration_result = (home_duration_sum/5);
+      home_duration_sum = 0;
+
+      SERIAL_DEBUG_MESSAGE_VALUE("Adjusting sensitivity for duration: ",home_duration_result);
 
       // Verifies if the homing values appear good if so exits, otherwise adjusts calibration
-      if (home_duration > home_duration_limit)
+      if (home_duration_result > home_duration_limit)
         // If it takes too long to detect means sensitivity is too low
         sensorless_homeaxis_raise_sensitivity(axis,calibration_value);
-      else if (home_duration < home_duration_expected)
+      else if (home_duration_result < home_duration_expected)
         // If it takes less time than expected means false positives, hence sensitivity is too high
         sensorless_homeaxis_lower_sensitivity(axis,calibration_value);
       else
@@ -1121,6 +1140,7 @@ void report_current_position_detail();
       // Avoids excessive looping
       if (++count > 20)
         break;
+
     }
 
     // Show done screen
