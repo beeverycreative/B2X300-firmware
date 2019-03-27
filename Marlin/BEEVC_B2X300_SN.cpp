@@ -39,7 +39,7 @@
             return 80.0;
         else if (axis == Z_AXIS)
             return 1600.0;
-        else if (axis == E_AXIS){
+        else if (axis >= E_AXIS){
             // Pre- Release
             if (serial < BEEVC_B2X300_PROD1_SN) //PRE- RELEASE
                 return 100;
