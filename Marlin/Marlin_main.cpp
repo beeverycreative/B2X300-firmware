@@ -11018,6 +11018,10 @@ inline void gcode_M502() {
       }
       MYSERIAL.print((drv_status>>4)&0xF, HEX);
       MYSERIAL.print((drv_status)&0xF, HEX);
+
+      if(drv_status == 0x00000000 || drv_status == 0xFFFFFFFF)
+        MYSERIAL.print(" - NOK - COMUNICATION ERROR");
+
       SERIAL_EOL();
     }
 
@@ -11025,7 +11029,12 @@ inline void gcode_M502() {
       static void tmc_status(TMC2130Stepper &st, const TMC_debug_enum i) {
         switch(i) {
           case TMC_PWM_SCALE: MYSERIAL.print(st.PWM_SCALE(), DEC); break;
-          case TMC_TSTEP: SERIAL_ECHO(st.TSTEP()); break;
+          case TMC_TSTEP:
+            if(st.TSTEP()>999999)
+              MYSERIAL.print("OVER");
+            else
+              MYSERIAL.print(st.TSTEP());
+            break;
           case TMC_SGT: MYSERIAL.print(st.sgt(), DEC); break;
           case TMC_STEALTHCHOP: serialprintPGM(st.stealthChop() ? PSTR("true") : PSTR("false")); break;
           default: break;
@@ -11221,21 +11230,23 @@ inline void gcode_M502() {
         } else
           report_tmc_status = false;
       } else {
-        SERIAL_ECHOPGM(" \t\t");                 tmc_debug_loop(TMC_CODES);
+        SERIAL_ECHOPGM("\t");                 tmc_debug_loop(TMC_CODES);
         SERIAL_ECHOPGM("Enabled");          tmc_debug_loop(TMC_ENABLED);
         SERIAL_ECHOPGM("Set current");        tmc_debug_loop(TMC_CURRENT);
         SERIAL_ECHOPGM("RMS current");        tmc_debug_loop(TMC_RMS_CURRENT);
-        SERIAL_ECHOPGM("MAX current");        tmc_debug_loop(TMC_MAX_CURRENT);
-        SERIAL_ECHOPGM("Run current");        tmc_debug_loop(TMC_IRUN);
-        SERIAL_ECHOPGM("Hold current");       tmc_debug_loop(TMC_IHOLD);
-        SERIAL_ECHOPGM("CS actual");        tmc_debug_loop(TMC_CS_ACTUAL);
+        //SERIAL_ECHOPGM("MAX current");        tmc_debug_loop(TMC_MAX_CURRENT);
+        //SERIAL_ECHOPGM("Run current");        tmc_debug_loop(TMC_IRUN);
+        //SERIAL_ECHOPGM("Hold current");       tmc_debug_loop(TMC_IHOLD);
+        //SERIAL_ECHOPGM("CS actual");        tmc_debug_loop(TMC_CS_ACTUAL);
         SERIAL_ECHOPGM("PWM scale");          tmc_debug_loop(TMC_PWM_SCALE);
         SERIAL_ECHOPGM("vsense\t");           tmc_debug_loop(TMC_VSENSE);
         SERIAL_ECHOPGM("stealthChop");        tmc_debug_loop(TMC_STEALTHCHOP);
         SERIAL_ECHOPGM("msteps\t");           tmc_debug_loop(TMC_MICROSTEPS);
-        SERIAL_ECHOPGM("tstep\t");            tmc_debug_loop(TMC_TSTEP);
-        SERIAL_ECHOPGM("pwm\nthreshold");   tmc_debug_loop(TMC_TPWMTHRS);
-        SERIAL_ECHOPGM("[mm/s]\t");           tmc_debug_loop(TMC_TPWMTHRS_MMS);
+        #ifdef HYBRID_THRESHOLD
+          SERIAL_ECHOPGM("tstep\t");            tmc_debug_loop(TMC_TSTEP);
+          SERIAL_ECHOPGM("pwm\nthreshold");   tmc_debug_loop(TMC_TPWMTHRS);
+          SERIAL_ECHOPGM("[mm/s]\t");           tmc_debug_loop(TMC_TPWMTHRS_MMS);
+        #endif
         SERIAL_ECHOPGM("OT prewarn");         tmc_debug_loop(TMC_OTPW);
         SERIAL_ECHOPGM("OT prewarn T"); tmc_debug_loop(TMC_OTPW_TRIGGERED);
         SERIAL_ECHOPGM("off time");         tmc_debug_loop(TMC_TOFF);
@@ -11244,7 +11255,7 @@ inline void gcode_M502() {
         SERIAL_ECHOPGM("-start\t");           tmc_debug_loop(TMC_HSTRT);
         SERIAL_ECHOPGM("SG thrs");            tmc_debug_loop(TMC_SGT);
 
-        SERIAL_ECHOPGM("DRVSTATUS");          drv_status_loop(TMC_DRV_CODES);
+        SERIAL_ECHOPGM("\nDRVSTATUS");          drv_status_loop(TMC_DRV_CODES);
         #if ENABLED(HAVE_TMC2130)
           SERIAL_ECHOPGM("stallguard\t");     drv_status_loop(TMC_STALLGUARD);
           SERIAL_ECHOPGM("SG_Value");      drv_status_loop(TMC_SG_RESULT);
