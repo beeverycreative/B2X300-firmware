@@ -819,13 +819,37 @@ void MarlinSettings::postprocess() {
     EEPROM_START();
 
     char stored_ver[4];
+
+    // Ensures there is no leftover data from last EEPROM version
+    eeprom_index = 100;
+    EEPROM_READ(stored_ver);
+    // If there is the old version still stored
+    if((strncmp("B00", stored_ver, 3) == 0) ||  (strncmp("B01", stored_ver, 3) == 0)){
+      // Deletes flag to avoid problems on downgrade
+      eeprom_index = 100;
+      strcpy(stored_ver, "ERR");
+      EEPROM_WRITE(stored_ver);
+
+      // Corrupts current version flag to force reset
+      eeprom_index = EEPROM_OFFSET;
+      EEPROM_WRITE(stored_ver);
+    }
+
+    // Resets everything to default status and continues load
+    working_crc = 0;
+    eeprom_index = EEPROM_OFFSET;
+
     EEPROM_READ(stored_ver);
 
     uint16_t stored_crc;
     EEPROM_READ(stored_crc);
 
+    SERIAL_ECHOPAIR("EEPROM=", stored_ver);
+    SERIAL_ECHOLNPGM(" Marlin=" EEPROM_VERSION);
+
     // Version has to match or defaults are used
     if (strncmp(version, stored_ver, 3) != 0) {
+      SERIAL_ECHOPGM("EEPROM version mismatch ");
       serialNumber = 1212300001;
       if (stored_ver[0] != 'B') {
         stored_ver[0] = '?';
