@@ -724,10 +724,8 @@ void MarlinSettings::postprocess() {
     EEPROM_WRITE(thrs);
 
     // SPI Sensorless homing extra calibration
-    int temp_index = 50;
-    EEPROM_write(temp_index, (uint8_t*)&thermalManager.sg2_homing_x_calibration, sizeof(thermalManager.sg2_homing_x_calibration));
-    EEPROM_write(temp_index, (uint8_t*)&thermalManager.sg2_homing_y_calibration, sizeof(thermalManager.sg2_homing_y_calibration));
-
+    BEEVC_WRITE_EEPROM(X_CAL,thermalManager.sg2_homing_x_calibration);
+    BEEVC_WRITE_EEPROM(Y_CAL,thermalManager.sg2_homing_y_calibration);
 
     //
     // Linear Advance
@@ -1247,9 +1245,8 @@ void MarlinSettings::postprocess() {
       #endif
 
       // Extra sensorless homing calibration
-      int sensorless_index = 50;
-      EEPROM_read(sensorless_index, (uint8_t*)&thermalManager.sg2_homing_x_calibration, sizeof(thermalManager.sg2_homing_x_calibration));
-      EEPROM_read(sensorless_index, (uint8_t*)&thermalManager.sg2_homing_y_calibration, sizeof(thermalManager.sg2_homing_y_calibration));
+      BEEVC_READ_EEPROM(X_CAL,thermalManager.sg2_homing_x_calibration);
+      BEEVC_READ_EEPROM(Y_CAL,thermalManager.sg2_homing_y_calibration);
 
       //
       // Linear Advance
