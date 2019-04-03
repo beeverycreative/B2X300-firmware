@@ -20,7 +20,9 @@
  *  108     1       uint8_t   X sensorless homing calibration
  *  109     1       uint8_t   Y sensorless homing calibration
  *  110     1       uint8_t   Startup wizard flag
- *  111     39                Free space
+ *  111     1       uint8_t   Reserved
+ *  112     1       uint8_t   Reserved
+ *  113     37                Free space
  * 
  */
 

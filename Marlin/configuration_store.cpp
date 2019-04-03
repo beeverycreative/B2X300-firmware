@@ -61,18 +61,22 @@
  *  4       4       float     Z position
  *  8       4       float     X position
  *  12      4       float     Y position
- *  16      1       mixed     Active Extruder,Extruder mode, acceleration
- *  17      4       float     E position
- *  21      2       uint16_t  Fan Speed
- *  23      2       uint16_t  E0 temp
- *  25      2       uint16_t  E1 temp
- *  27      2       uint16_t  Bed temp
- *  29      4                 Sdcard file byte
- *  32      100               SD File path
- *  132     1       uint8_t   X sensorless homing calibration
- *  133     1       uint8_t   Y sensorless homing calibration
- *  134     1       bool      Startup wizard flag
- *  135     15                Free space
+ *  16      1       uint8_t   Active Extruder,Extruder mode, acceleration
+ *  17      1       bool      Extruder mode
+ *  18      4       uint32_t  Acceleration
+ *  22      4       float     E position
+ *  26      2       uint16_t  Fan Speed
+ *  28      2       uint16_t  E0 temp
+ *  30      2       uint16_t  E1 temp
+ *  32      2       uint16_t  Bed temp
+ *  34      4       uint32_t  Sdcard file adress
+ *  38      70                SD File path
+ *  108     1       uint8_t   X sensorless homing calibration
+ *  109     1       uint8_t   Y sensorless homing calibration
+ *  110     1       uint8_t   Startup wizard flag
+ *  111     1       uint8_t   Reserved
+ *  112     1       uint8_t   Reserved
+ *  113     37                Free space
  * 
  */
 #define EEPROM_VERSION "B02"
