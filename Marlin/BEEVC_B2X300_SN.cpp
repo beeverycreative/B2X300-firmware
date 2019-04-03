@@ -92,12 +92,20 @@
 
         // BED
         if (hotend == 0){
+            // Handle exceptions first 
+            if (serial == 1212400076)
+                PIDReturn(info,85.49,7.67,238.12)
+
             // Pre release
             if (serial < BEEVC_B2X300_PROD1_SN)
                 PIDReturn(info,300,5,350)
-            // Release
-            else
+            // Release prior to series 3
+            else if (serial < BEEVC_B2X300_PROD3_SN)
                 PIDReturn(info,85.49,7.67,238.12)
+            // Latest - Series 3 forward
+            else 
+                PIDReturn(info,85.49,7.67,238.12)
+                
         }
         // Extruder 1
         if (hotend == 1){
@@ -138,12 +146,19 @@
      *  @return {uint8_t}    PWM_max     Returns the max pwm value for bed
      */
     uint16_t getBedPWM(uint32_t serial){
+        // Handle exceptions first
+        if (serial == 1212400076)
+            return 255;
+        
         // Pre release
         if (serial < BEEVC_B2X300_PROD1_SN)
             return 255;
-        // Release
-        else
+        // Release prior to series 3
+        else if (serial < BEEVC_B2X300_PROD3_SN)
             return 205;
+        // Latest - Series 3 forward
+        else 
+            return 255;
     }
 
     /**
@@ -173,6 +188,10 @@
 
         // Check if within second production
         if (serial >= BEEVC_B2X300_PROD2_SN && serial < BEEVC_B2X300_PROD2_SN+50)
+            return true;
+
+        // Check if within third production
+        if (serial >= BEEVC_B2X300_PROD3_SN && serial < BEEVC_B2X300_PROD3_SN+54)
             return true;
 
         return false;

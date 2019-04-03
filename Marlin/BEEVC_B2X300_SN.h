@@ -18,15 +18,17 @@
  *      SN              |   Description
  * -------------------------------------------------
  * < 1212300000         |   Beta testing
- * 1212300000-1212400000|   First production series
- * 1212400000-1212500000|   Second production series
+ * 1212300000-1212300050|   First production series
+ * 1212400051-1212400095|   Second production series
+ * 1212400096-1212400150|   Third production series
  * 
  * Revision history
  *      SN              |   Changes
  * -------------------------------------------------
  * < 1212300000         |   None
- * 1212300000-1212400000|   New extruder hobbed gear, release bed
- * 1212400000-1212500000|   None
+ * 1212300000-1212300050|   New extruder hobbed gear, release bed
+ * 1212400051-1212400095|   None
+ * 1212400096-1212400150|   New heated bed PCB
  */
 
 #include "enum.h"
@@ -43,8 +45,9 @@
     #define BEEVC_B2X300_INTERNAL1_SN   1212100001
     #define BEEVC_B2X300_INTERNAL2_SN   1212200001
     #define BEEVC_B2X300_PROD1_SN       1212300001   
-    #define BEEVC_B2X300_PROD2_SN       1212400051 
-    #define BEEVC_B2X300_LATEST_SN BEEVC_B2X300_PROD2_SN
+    #define BEEVC_B2X300_PROD2_SN       1212400051
+    #define BEEVC_B2X300_PROD3_SN       1212400096
+    #define BEEVC_B2X300_LATEST_SN BEEVC_B2X300_PROD3_SN
 
     /**
      * getSteps: return the steps/mm for a given axis and serial number
