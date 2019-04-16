@@ -562,7 +562,11 @@ static void lcd_implementation_status_screen() {
     #if HAS_FAN0
       if (PAGE_CONTAINS(20, 27)) {
         // Fan
-        const int16_t per = ((fanSpeeds[0] + 1) * 100) / 256;
+        // Maps per to correct ammount        
+        const int16_t speed = map(fanSpeeds[0],B2X300_MIN_FAN,255,0,255);
+        // Calculate percentage
+        const int16_t per = ((speed + 1) * 100) / 256;
+        
         if (per) {
           u8g.setPrintPos(104, 27);
           lcd_print(itostr3(per));
