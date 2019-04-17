@@ -123,6 +123,7 @@ class Temperature {
 
     #if HAS_HEATER_BED
       static int16_t target_temperature_bed;
+      static uint8_t bed_pwm;
     #endif
 
     static volatile bool in_temp_isr;
@@ -341,7 +342,7 @@ class Temperature {
     /**
      * Call periodically to manage heaters
      */
-    static void manage_heater() _O2; // Added _O2 to work around a compiler error
+    void manage_heater() _O2; // Added _O2 to work around a compiler error
 
     /**
      * Preheating hotends
@@ -475,7 +476,7 @@ class Temperature {
      * Perform auto-tuning for hotend or bed in response to M303
      */
     #if HAS_PID_HEATING
-      static void PID_autotune(const float temp, const int8_t hotend, const int8_t ncycles, const bool set_result=false);
+      void PID_autotune(const float temp, const int8_t hotend, const int8_t ncycles, const bool set_result=false);
 
       /**
        * Update the temp manager when PID values change
@@ -605,7 +606,7 @@ class Temperature {
     static float get_pid_output(const int8_t e);
 
     #if ENABLED(PIDTEMPBED)
-      static float get_pid_output_bed();
+      float get_pid_output_bed();
     #endif
 
     static void _temp_error(const int8_t e, const char * const serial_msg, const char * const lcd_msg);

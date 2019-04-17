@@ -815,6 +815,15 @@ void MarlinSettings::postprocess() {
     #ifdef BEEVC_B2X300
       BEEVC_READ_EEPROM(SN,serialNumber);
     #endif
+
+    // If serial is invalid forces self-test wizard and printer reset
+    if (!validateSerial(serialNumber)){
+      // Sets Setup Wizard flag
+      gcode_M720();
+
+      // Restarts the firmware
+      asm volatile ("  jmp 0");
+    }
     ///////////////////////////////////////////////////////
     uint16_t working_crc = 0;
 
@@ -874,6 +883,9 @@ void MarlinSettings::postprocess() {
       asm volatile ("  jmp 0");
     }
     else {
+      // BEEVC loads bed PWM
+      BEEVC_READ_EEPROM(BED_PWM,thermalManager.bed_pwm); 
+
       float dummy = 0;
       #if DISABLED(AUTO_BED_LEVELING_UBL) || DISABLED(FWRETRACT)
         bool dummyb;
@@ -1471,6 +1483,10 @@ void MarlinSettings::postprocess() {
  * M502 - Reset Configuration
  */
 void MarlinSettings::reset() {
+  // Reset and store Bed PWM
+  thermalManager.bed_pwm = getBedPWM(serialNumber);
+  BEEVC_WRITE_EEPROM(BED_PWM,thermalManager.bed_pwm); 
+
   #ifndef BEEVC_B2X300
     static const float tmp1[] PROGMEM = DEFAULT_AXIS_STEPS_PER_UNIT;
   #endif

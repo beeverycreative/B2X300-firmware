@@ -384,6 +384,7 @@ int16_t Temperature::current_temperature_raw[HOTENDS] = { 0 },
 
 #if HAS_HEATER_BED
   int16_t Temperature::target_temperature_bed = 0;
+  uint8_t Temperature::bed_pwm = 0;
 #endif
 
 // Initialized by settings.load()
@@ -606,13 +607,13 @@ uint8_t Temperature::soft_pwm_amount[HOTENDS],
 
     #if HAS_PID_FOR_BOTH
       if (hotend < 0)
-        soft_pwm_amount_bed = bias = d = (MAX_BED_POWER) >> 1;
+        soft_pwm_amount_bed = bias = d = (bed_pwm) >> 1;
       else
         soft_pwm_amount[hotend] = bias = d = (PID_MAX) >> 1;
     #elif ENABLED(PIDTEMP)
       soft_pwm_amount[hotend] = bias = d = (PID_MAX) >> 1;
     #else
-      soft_pwm_amount_bed = bias = d = (MAX_BED_POWER) >> 1;
+      soft_pwm_amount_bed = bias = d = (bed_pwm) >> 1;
     #endif
 
     wait_for_heatup = true;
@@ -672,11 +673,11 @@ uint8_t Temperature::soft_pwm_amount[HOTENDS],
             if (cycles > 0) {
               long max_pow =
                 #if HAS_PID_FOR_BOTH
-                  hotend < 0 ? MAX_BED_POWER : PID_MAX
+                  hotend < 0 ? bed_pwm : PID_MAX
                 #elif ENABLED(PIDTEMP)
                   PID_MAX
                 #else
-                  MAX_BED_POWER
+                  bed_pwm
                 #endif
               ;
               bias += (d * (t_high - t_low)) / (t_low + t_high);
@@ -1013,16 +1014,16 @@ float Temperature::get_pid_output(const int8_t e) {
       temp_dState_bed = current_temperature_bed;
 
       pid_output = pTerm_bed + iTerm_bed - dTerm_bed;
-      if (pid_output > MAX_BED_POWER) {
+      if (pid_output > bed_pwm) {
         if (pid_error_bed > 0) temp_iState_bed -= pid_error_bed; // conditional un-integration
-        pid_output = MAX_BED_POWER;
+        pid_output = bed_pwm;
       }
       else if (pid_output < 0) {
         if (pid_error_bed < 0) temp_iState_bed -= pid_error_bed; // conditional un-integration
         pid_output = 0;
       }
     #else
-      pid_output = constrain(target_temperature_bed, 0, MAX_BED_POWER);
+      pid_output = constrain(target_temperature_bed, 0, bed_pwm);
     #endif // PID_OPENLOOP
 
     #if ENABLED(PID_BED_DEBUG)
@@ -1167,7 +1168,7 @@ void Temperature::manage_heater() {
           if (current_temperature_bed >= target_temperature_bed + BED_HYSTERESIS)
             soft_pwm_amount_bed = 0;
           else if (current_temperature_bed <= target_temperature_bed - (BED_HYSTERESIS))
-            soft_pwm_amount_bed = MAX_BED_POWER >> 1;
+            soft_pwm_amount_bed = bed_pwm >> 1;
         }
         else {
           soft_pwm_amount_bed = 0;
@@ -1176,7 +1177,7 @@ void Temperature::manage_heater() {
       #else // !PIDTEMPBED && !BED_LIMIT_SWITCHING
         // Check if temperature is within the correct range
         if (WITHIN(current_temperature_bed, BED_MINTEMP, BED_MAXTEMP)) {
-          soft_pwm_amount_bed = current_temperature_bed < target_temperature_bed ? MAX_BED_POWER >> 1 : 0;
+          soft_pwm_amount_bed = current_temperature_bed < target_temperature_bed ? bed_pwm >> 1 : 0;
         }
         else {
           soft_pwm_amount_bed = 0;

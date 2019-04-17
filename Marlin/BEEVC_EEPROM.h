@@ -22,7 +22,8 @@
  *  110     1       uint8_t   Startup wizard flag
  *  111     1       uint8_t   Reserved
  *  112     1       uint8_t   Reserved
- *  113     37                Free space
+ *  113     1       uint8_t   Bed PWM max
+ *  114     36                Free space
  * 
  */
 
@@ -47,6 +48,8 @@
     #define SIZE_X_CAL      1
     #define SIZE_Y_CAL      1
     #define SIZE_W_FLAG     1
+    #define SIZE_RESERVED   1
+    #define SIZE_BED_PWM    1
     
     // Variable EEPROM address defines
     #define ADDRESS_SN         0
@@ -66,6 +69,9 @@
     #define ADDRESS_X_CAL      ADDRESS_SD_PATH+ SIZE_SD_PATH
     #define ADDRESS_Y_CAL      ADDRESS_X_CAL+ SIZE_X_CAL
     #define ADDRESS_W_FLAG     ADDRESS_Y_CAL+ SIZE_Y_CAL
+    #define ADDRESS_RESERVED1  ADDRESS_W_FLAG+ SIZE_RESERVED
+    #define ADDRESS_RESERVED2  ADDRESS_RESERVED1+ SIZE_RESERVED
+    #define ADDRESS_BED_PWM    ADDRESS_RESERVED2+ SIZE_BED_PWM
 
     // NON CRC Version
     // Necessary to write to eeprom
