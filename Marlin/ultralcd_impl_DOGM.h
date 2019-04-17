@@ -564,8 +564,13 @@ static void lcd_implementation_status_screen() {
         // Fan
         // Maps per to correct ammount        
         const int16_t speed = map(fanSpeeds[0],B2X300_MIN_FAN,255,0,255);
+
         // Calculate percentage
-        const int16_t per = ((speed + 1) * 100) / 256;
+        int8_t per = ((speed + 1) * 100) / 256;
+
+        // Caps percentage to a value from 0 to 100
+        NOMORE(per,100);
+        NOLESS(per,0);
         
         if (per) {
           u8g.setPrintPos(104, 27);
