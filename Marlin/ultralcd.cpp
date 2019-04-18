@@ -259,7 +259,60 @@ uint16_t max_display_update_time = 0;
 	#ifdef BEEVC_B2X300
 		void beevc_machine_setup();
     uint8_t trinamic_ok = 0;
-	#endif // BEEVC_Restore
+    void beevc_trinamic_test(){
+      // Ensures the variable is clear
+      trinamic_ok = 0;
+
+      // Temporary variable to store default data
+      uint32_t trinamic_data = 0;
+
+      // Tests each axis one at a time storing the result if positive
+      // X
+        trinamic_data = stepperX.GCONF(); 
+        stepperX.GCONF(0b101010101010101010);
+        if(stepperX.GCONF() == 0b101010101010101010){
+          stepperX.GCONF(trinamic_data);
+          if(stepperX.GCONF() == trinamic_data)
+            trinamic_ok |= 0x01;
+        }
+
+      // Y
+        trinamic_data = stepperY.GCONF(); 
+        stepperY.GCONF(0b101010101010101010);
+        if(stepperY.GCONF() == 0b101010101010101010){
+          stepperY.GCONF(trinamic_data);
+          if(stepperY.GCONF() == trinamic_data)
+            trinamic_ok |= 0x02;
+        }
+
+      // Z
+        trinamic_data = stepperZ.GCONF(); 
+        stepperZ.GCONF(0b101010101010101010);
+        if(stepperZ.GCONF() == 0b101010101010101010){
+          stepperZ.GCONF(trinamic_data);
+          if(stepperZ.GCONF() == trinamic_data)
+            trinamic_ok |= 0x04;
+        }
+
+      // E0
+        trinamic_data = stepperE0.GCONF(); 
+        stepperE0.GCONF(0b101010101010101010);
+        if(stepperE0.GCONF() == 0b101010101010101010){
+          stepperE0.GCONF(trinamic_data);
+          if(stepperE0.GCONF() == trinamic_data)
+            trinamic_ok |= 0x08;
+        }
+
+      // E1
+        trinamic_data = stepperE1.GCONF(); 
+        stepperE1.GCONF(0b101010101010101010);
+        if(stepperE1.GCONF() == 0b101010101010101010){
+          stepperE1.GCONF(trinamic_data);
+          if(stepperE1.GCONF() == trinamic_data)
+            trinamic_ok |= 0x10;
+        }
+    }
+	#endif // BEEVC_B2X300
 	///////////////////////////////////////////////////////
 
   ////////////   Auxiliary functions    //////////////
@@ -1140,8 +1193,8 @@ void beevc_set_serial_screens (){
     sprintf(sn, "%lu", serialNumber);
     STATIC_ITEM("SN: ",false,false, sn);
     STATIC_ITEM("Is this correct?");
-    MENU_ITEM_MIX(submenu, _UxGT(" - Yes"), beevc_set_serial_yes);
-    MENU_ITEM_MIX(submenu, _UxGT(" - No"), beevc_set_serial_no);
+    MENU_ITEM_MIX(submenu, " - Yes", beevc_set_serial_yes);
+    MENU_ITEM_MIX(submenu, " - No", beevc_set_serial_no);
     END_SCREEN();
   }
   else{
@@ -1379,8 +1432,8 @@ void beevc_set_serial_run(){
   void lcd_nozzle_z_offset_hotend_status() {
 		START_SCREEN();
       STATIC_ITEM(_UxGT("Nozzle Z-offset test"), true, true);
-      STATIC_ITEM("  ");
-      STATIC_ITEM("  ");
+      STATIC_EMPTY_LINE();
+      STATIC_EMPTY_LINE();
       STATIC_ITEM("Status: heating E1+E2 ");
       #ifdef MSG_FILAMENT_CHANGE_HEATING_2
         STATIC_ITEM("Please wait. ");
@@ -2739,33 +2792,66 @@ void kill_screen(const char* lcd_msg) {
       strncat(about_string, BUILDBRANCH,6);
       strcat(about_string, "-");
       strncat(about_string, BUILDCOMMIT,7);
-      STATIC_ITEM("", true, false, about_string);
+      STATIC_STRING(about_string);
       STATIC_EMPTY_LINE();
       STATIC_ITEM("Diagnostic Info.", false, true);
 
-      about_string[0] = '\0';
+      strcpy(about_string,"Homing X/Y: ");
       strncat(about_string, i8tostr3(thermalManager.sg2_homing_x_calibration),3);
       strcat(about_string, "/");
       strncat(about_string, i8tostr3(thermalManager.sg2_homing_y_calibration),4);
-      STATIC_ITEM("Homing X/Y: ", false, false, about_string);
+      STATIC_STRING(about_string);
 
       STATIC_ITEM(_UxGT("Nozzle height: "), false, false, ftostr42sign(zprobe_zoffset));
 
-      about_string[0] = '\0';
+      strcpy(about_string,"Curr. X/Y: ");
       strncat(about_string, itostr4sign(stepperX.getCurrent()),4);
       strcat(about_string, "/");
       strncat(about_string, itostr4sign(stepperY.getCurrent()),5);
-      STATIC_ITEM("Curr. X/Y: ", false, false, about_string);
+      STATIC_STRING(about_string);
 
-      about_string[0] = '\0';
+      strcpy(about_string,"Curr. Z/E: ");
       strncat(about_string, itostr4sign(stepperZ.getCurrent()),4);
       strcat(about_string, "/");
       strncat(about_string, itostr4sign(stepperE0.getCurrent()),5);
-      STATIC_ITEM("Curr. Z/E: ", false, false, about_string);
+      STATIC_STRING(about_string);
 
       char serial[11];
       sprintf(serial, "%lu", serialNumber);
       STATIC_ITEM("SN: ",false,false,serial);
+
+      // Shows bed PWM max
+      strcpy(about_string,"Bed PWM max: ");
+      strcat(about_string, i8tostr3(thermalManager.bed_pwm));
+      STATIC_STRING(about_string);
+
+      // Only runs test once
+      if(trinamic_ok == 0){
+        beevc_trinamic_test();
+      }
+      // Only show space if error exists
+      if (trinamic_ok != 0x1F){
+        // X axis
+        if(!(trinamic_ok & 0x01)){
+          STATIC_ITEM("X Stepper driver: NOK");
+        }          
+        // Y axis
+        if(!(trinamic_ok & 0x02)){
+          STATIC_ITEM("Y Stepper driver: NOK");
+        }          
+        // Z axis
+        if(!(trinamic_ok & 0x04)){
+          STATIC_ITEM("Z Stepper driver: NOK");
+        }
+        // E1 axis
+        if(!(trinamic_ok & 0x08)){
+          STATIC_ITEM("E1 Stepper driver:NOK");
+        }
+        // E2 axis
+        if(!(trinamic_ok & 0x10)){
+          STATIC_ITEM("E2 Stepper driver:NOK");
+        }
+      }
 
       END_SCREEN();
     }
@@ -6749,57 +6835,7 @@ void beevc_machine_setup_test_trinamic (){
     // Waits for 5s or click
     beevc_wait(5000);
 
-    // Re-initializes variable
-    trinamic_ok = 0;
-
-    // Temporary variable to store default data
-    uint32_t trinamic_data = 0;
-
-    // Tests each axis one at a time storing the result if positive
-    // X
-      trinamic_data = stepperX.GCONF(); 
-      stepperX.GCONF(0b101010101010101010);
-      if(stepperX.GCONF() == 0b101010101010101010){
-        stepperX.GCONF(trinamic_data);
-        if(stepperX.GCONF() == trinamic_data)
-          trinamic_ok |= 0x01;
-      }
-
-    // Y
-      trinamic_data = stepperY.GCONF(); 
-      stepperY.GCONF(0b101010101010101010);
-      if(stepperY.GCONF() == 0b101010101010101010){
-        stepperY.GCONF(trinamic_data);
-        if(stepperY.GCONF() == trinamic_data)
-          trinamic_ok |= 0x02;
-      }
-
-    // Z
-      trinamic_data = stepperZ.GCONF(); 
-      stepperZ.GCONF(0b101010101010101010);
-      if(stepperZ.GCONF() == 0b101010101010101010){
-        stepperZ.GCONF(trinamic_data);
-        if(stepperZ.GCONF() == trinamic_data)
-          trinamic_ok |= 0x04;
-      }
-
-    // E0
-      trinamic_data = stepperE0.GCONF(); 
-      stepperE0.GCONF(0b101010101010101010);
-      if(stepperE0.GCONF() == 0b101010101010101010){
-        stepperE0.GCONF(trinamic_data);
-        if(stepperE0.GCONF() == trinamic_data)
-          trinamic_ok |= 0x08;
-      }
-
-    // E1
-      trinamic_data = stepperE1.GCONF(); 
-      stepperE1.GCONF(0b101010101010101010);
-      if(stepperE1.GCONF() == 0b101010101010101010){
-        stepperE1.GCONF(trinamic_data);
-        if(stepperE1.GCONF() == trinamic_data)
-          trinamic_ok |= 0x10;
-      }
+    beevc_trinamic_test();
 
     #ifdef SERIAL_DEBUG
       SERIAL_PROTOCOLLNPAIR("X = ", stepperX.test_connection());

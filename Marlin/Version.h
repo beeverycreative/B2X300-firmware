@@ -39,7 +39,7 @@
   #define BUILDCOMMIT "Custom"
 
   // Build date
-  #define BUILDDATE "01/08/18"
+  #define BUILDDATE "082018"
 
   /**
    * Marlin release version identifier
