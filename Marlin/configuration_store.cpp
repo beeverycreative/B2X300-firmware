@@ -818,11 +818,18 @@ void MarlinSettings::postprocess() {
 
     // If serial is invalid forces self-test wizard and printer reset
     if (!validateSerial(serialNumber)){
-      // Sets Setup Wizard flag
+
+      // Only sets flag and resets if setup wizard isn't set
+      uint8_t temp = 0;
+      BEEVC_READ_EEPROM(W_FLAG,temp);
+      if (temp > 2){
+        // Sets Setup Wizard flag
       gcode_M720();
 
       // Restarts the firmware
       asm volatile ("  jmp 0");
+      }
+      
     }
     ///////////////////////////////////////////////////////
     uint16_t working_crc = 0;

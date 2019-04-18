@@ -6886,9 +6886,6 @@ void beevc_machine_setup_test_powerloss (){
    */
   void beevc_machine_setup() {
 
-    // Resets the printer to the default configuration
-    lcd_init_eeprom();
-
     // Clear LCD
     lcd_implementation_clear();
 
@@ -6906,6 +6903,9 @@ void beevc_machine_setup_test_powerloss (){
       // Set SN
       beevc_set_serial_run();
     }
+
+    // Resets the printer to the default configuration after ensuring the SN is set
+    lcd_init_eeprom();
 
     // Start screen
 
