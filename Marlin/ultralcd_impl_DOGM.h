@@ -882,6 +882,31 @@ static void lcd_implementation_status_screen() {
     while (n-- > 0) u8g.print(' ');
   }
 
+  // Draw a static string
+  static void lcd_implementation_drawmenu_string(const uint8_t row, const char* valstr=NULL) {
+
+    row_y1 = row * row_height + 1;
+    row_y2 = row_y1 + row_height - 1;
+
+    u8g.setPrintPos((START_COL) * (DOG_CHAR_WIDTH), row_y2);
+
+    if (!PAGE_CONTAINS(row_y1, row_y2)) return;
+
+    int8_t n = LCD_WIDTH - (START_COL);
+
+    if(valstr){
+      char c;
+      while (n > 0 && (c = *valstr)) {
+        n -= lcd_print_and_count(c);
+        valstr++;
+      }
+    }
+    
+    while (n-- > 0) u8g.print(' ');
+  }
+
+  
+
   // Draw a generic menu item
   static void lcd_implementation_drawmenu_generic(const bool isSelected, const uint8_t row, const char* pstr, const char pre_char, const char post_char) {
     UNUSED(pre_char);

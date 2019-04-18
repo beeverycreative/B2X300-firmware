@@ -274,6 +274,10 @@ uint16_t max_display_update_time = 0;
 	#endif
 	///////////////////////////////////////////////////////
 
+  ////////////   Screen state   //////////////
+  uint8_t screen_status = 0;
+	///////////////////////////////////////////////////////
+
   ////////////   Pause/Filament runout   //////////////
 	bool pause_filament_runout = false;
   enum pause {
@@ -287,7 +291,56 @@ uint16_t max_display_update_time = 0;
     pause_resume,
     pause_option
   };
-  uint8_t pause_status = pause_init;
+	///////////////////////////////////////////////////////
+
+  ////////////   Pause/Filament runout   //////////////
+  enum serial_screen {
+    serial_screen_start,
+    serial_screen_adjust,
+    serial_screen_invalid,
+    serial_screen_confirm,
+    serial_screen_finish,
+  };
+  void beevc_set_serial_yes();
+  void beevc_set_serial_no();
+	///////////////////////////////////////////////////////
+
+  ////////////   Self test wizard   //////////////
+  enum self_test {
+    self_test_init,
+    self_test_hotend_init,
+    self_test_hotend_test,
+    self_test_hotend_ok,
+    self_test_hotend_cooling,
+    self_test_error_hotend_timeout,
+    self_test_error_hotend_sensor,
+    self_test_error_hotend_swap,
+    self_test_bed_test,
+    self_test_bed_ok,
+    self_test_error_bed_timeout,
+    self_test_error_bed_sensor,
+    self_test_blower_init,
+    self_test_blower_test,
+    self_test_blower_ok,
+    self_test_error_blower,
+    self_test_trinamic_init,
+    self_test_trinamic_ok,
+    self_test_error_trinamic,
+    self_test_powerloss_init,
+    self_test_powerloss_ok,
+    self_test_error_powerloss,
+    self_test_sensorless_homing,
+    self_test_sensorless_homing_ok,
+    self_test_set_offset_home_ok,
+    self_test_set_offset_explain,
+    self_test_set_offset_home,
+    self_test_set_offset_moving,
+    self_test_set_offset_complete,
+    self_test_eeprom_updated,
+    self_test_complete
+  };
+  void lcd_self_test_wizard_blower_ok();
+  void lcd_self_test_wizard_blower_error();
 	///////////////////////////////////////////////////////
 
   //////////////////   Cold pull   //////////////////////
@@ -306,7 +359,6 @@ uint16_t max_display_update_time = 0;
     cold_pull_during,
     cold_pull_finish
   };
-  uint8_t cold_pull_status = cold_pull_init;
 	///////////////////////////////////////////////////////
 
   ////////////   Filament Change   //////////////
@@ -558,6 +610,7 @@ uint16_t max_display_update_time = 0;
    * START_MENU    Opening code for a screen with menu items.
    *               Scroll as-needed to keep the selected line in view.
    */
+
   #define START_SCREEN() \
     START_SCREEN_OR_MENU(LCD_HEIGHT - (TALL_FONT_CORRECTION)); \
     encoderTopLine = encoderLine; \
@@ -922,6 +975,101 @@ uint16_t max_display_update_time = 0;
     // idle(true);
     // idle(true);
   }
+
+
+  // void beevc_print_extruder_temp(bool stable = false ,bool useCap = false, uint16_t Cap = 0){
+  //   u8g.print("Extruder ");
+  //   u8g.print(active_extruder+1);
+  //   u8g.print(": ");
+  //   if(stable)
+  //     u8g.print(itostr3(thermalManager.degTargetHotend(active_extruder)));
+  //   else
+  //     u8g.print(itostr3((thermalManager.degHotend(active_extruder))));
+  //   u8g.print("/");
+  //   if(useCap)
+  //     u8g.print(itostr3(Cap));
+  //   else
+  //     u8g.print(itostr3(thermalManager.degTargetHotend(active_extruder)));
+  //   lcd_printPGM(PSTR(LCD_STR_DEGREE));
+  //   u8g.print("C");
+  // }
+
+  // void beevc_print_bed_temp(bool stable = false ,bool useCap = false, uint16_t Cap = 0){
+  //   u8g.print("Heated bed:   ");
+  //   if(stable)
+  //     u8g.print(round(thermalManager.degTargetBed()));
+  //   else
+  //     u8g.print(round(thermalManager.degBed()));
+  //   u8g.print("/");
+  //   if(useCap)
+  //     u8g.print(itostr3(Cap));
+  //   else
+  //     u8g.print(round(thermalManager.degTargetBed()));
+  //   lcd_printPGM(PSTR(LCD_STR_DEGREE));
+  //   u8g.print("C");
+  // }
+
+  void beevc_prepare_extruder_temp(char *text, bool stable = false ,bool useCap = false, uint16_t Cap = 0){
+    strcpy(text, "Extruder ");
+    strcat(text, i8tostr1(active_extruder+1));
+    strcat(text, ": ");
+
+    if(stable)
+      strcat(text,itostr3(thermalManager.degTargetHotend(active_extruder)));
+    else
+      strcat(text,itostr3((thermalManager.degHotend(active_extruder))));
+    strcat(text,"/");
+    if(useCap)
+      strcat(text,itostr3(Cap));
+    else
+      strcat(text,itostr3(thermalManager.degTargetHotend(active_extruder)));
+    strcat(text,LCD_STR_DEGREE);
+    strcat(text,"C");
+  }
+
+  void beevc_prepare_bed_temp(char *text, bool stable = false ,bool useCap = false, uint16_t Cap = 0){
+    strcpy(text,"Heated bed:   ");
+    if(stable)
+      strcat(text,itostr3(round(thermalManager.degTargetBed())));
+    else
+      strcat(text,itostr3(round(thermalManager.degBed())));
+    strcat(text,"/");
+    if(useCap)
+      strcat(text,itostr3(Cap));
+    else
+      strcat(text,itostr3(round(thermalManager.degTargetBed())));
+    strcat(text,LCD_STR_DEGREE);
+    strcat(text,"C");
+  }
+
+  void beevc_prepare_extruder_error(char *text){
+    strcpy(text, "Extruder ");
+    strcat(text, i8tostr1(active_extruder+1));
+    strcat(text, ":  xx/100\x09\u0043");
+  }
+
+  inline void beevc_prepare_bed_error(char *text){
+    strcpy(text,"Heated bed:    xx/50\x09\u0043");
+  }
+
+  // void beevc_extruder_error(){
+  //   char string_to_print[25];
+  //   strcpy(string_to_print, "Extruder ");
+  //   strcat(string_to_print, i8tostr1(active_extruder+1));
+  //   strcat(string_to_print, ":  xx/100\x09\u0043");
+  //   u8g.print(string_to_print);
+  // }
+
+  // inline void beevc_bed_error(){
+  //   u8g.print("Heated bed:    xx/50\x09\u0043");
+  // }
+
+  void beevc_print_empty_line(int8_t line){
+    u8g.setPrintPos(0,(line+1) * 12);
+    for (uint8_t k = LCD_WIDTH; k > 0; k--)
+      u8g.print(' ');
+  }
+
 #endif
 
  #define LCD_PRINT_EXT_TEMP() \
@@ -949,6 +1097,23 @@ uint16_t max_display_update_time = 0;
   lcd_printPGM(PSTR(LCD_STR_DEGREE));\
   u8g.print("C")
 
+  #define STATIC_EMPTY_LINE() \
+  if (_menuLineNr == _thisItemNr) \
+    if (lcdDrawUpdate) \
+      lcd_implementation_drawmenu_string(_lcdLineNr);  \
+  ++_thisItemNr
+
+  #define STATIC_STRING(...) \
+    if (_menuLineNr == _thisItemNr) { \
+      if (_skipStatic && encoderLine <= _thisItemNr) { \
+        encoderPosition += ENCODER_STEPS_PER_MENU_ITEM; \
+        ++encoderLine; \
+      } \
+      if (lcdDrawUpdate) \
+        lcd_implementation_drawmenu_string(_lcdLineNr, ## __VA_ARGS__); \
+    } \
+    ++_thisItemNr
+
 
 /**
  *
@@ -966,25 +1131,87 @@ uint32_t iPow10(uint8_t n)
     return(number);
 }
 
-void beevc_set_serial_start(){
-  START_SCREEN();
-  STATIC_ITEM("Serial number wizard", true, true);
-  STATIC_ITEM("Serial number not");
-  STATIC_ITEM("detected.");
-  STATIC_ITEM(" ");
-  STATIC_ITEM("(scroll to read more)");
-  STATIC_ITEM("Please insert the");
-  STATIC_ITEM("serial number present");
-  STATIC_ITEM("on the sticker on the");
-  STATIC_ITEM("back of the printer,");
-  STATIC_ITEM("next to extruder E1.");
-  STATIC_ITEM("This will allow the");
-  STATIC_ITEM("printer to correctly");
-  STATIC_ITEM("load the settings");
-  STATIC_ITEM("for your machine.");
-  STATIC_ITEM(" ");
-  STATIC_ITEM("Click to continue.");
-  END_SCREEN();
+void beevc_set_serial_screens (){
+  // Exception for confirm screen
+  if(screen_status == serial_screen_confirm){
+    START_MENU();
+    STATIC_ITEM("Serial number wizard", true, true);
+    char sn[12];
+    sprintf(sn, "%lu", serialNumber);
+    STATIC_ITEM("SN: ",false,false, sn);
+    STATIC_ITEM("Is this correct?");
+    MENU_ITEM_MIX(submenu, _UxGT(" - Yes"), beevc_set_serial_yes);
+    MENU_ITEM_MIX(submenu, _UxGT(" - No"), beevc_set_serial_no);
+    END_SCREEN();
+  }
+  else{
+    START_SCREEN();
+
+    STATIC_ITEM("Serial number wizard", true, true);
+
+    switch(screen_status){
+      case serial_screen_start:
+        STATIC_ITEM("Serial number not");
+        STATIC_ITEM("detected.");
+        STATIC_EMPTY_LINE();
+        STATIC_ITEM("(scroll to read more)");
+        STATIC_ITEM("Please insert the");
+        STATIC_ITEM("serial number present");
+        STATIC_ITEM("on the sticker on the");
+        STATIC_ITEM("back of the printer,");
+        STATIC_ITEM("next to extruder E1.");
+        STATIC_ITEM("This will allow the");
+        STATIC_ITEM("printer to correctly");
+        STATIC_ITEM("load the settings");
+        STATIC_ITEM("for your machine.");
+        break;
+      case serial_screen_adjust:
+        break;
+      case serial_screen_invalid:
+        STATIC_ITEM("Serial number invalid!");
+        STATIC_EMPTY_LINE();
+        break;
+      case serial_screen_finish:
+        STATIC_ITEM("Serial number is now");
+        STATIC_ITEM("configured.");
+        break;
+    }
+
+    // Mid
+    switch(screen_status){
+      case serial_screen_start:
+      case serial_screen_invalid:
+      case serial_screen_finish:
+        STATIC_EMPTY_LINE();
+        break;
+      case serial_screen_adjust:
+        char sn[12];
+        sprintf(sn, "%lu", serialNumber);
+        STATIC_ITEM("SN: ",false,false, sn);
+        break;
+    }
+
+    // Ending
+    switch(screen_status){
+      case serial_screen_start:
+      case serial_screen_finish:
+        STATIC_ITEM("Click to continue.");
+        break;
+      case serial_screen_adjust:
+        STATIC_EMPTY_LINE();
+        STATIC_ITEM("Please insert SN.");
+        break;
+      case serial_screen_invalid:
+        STATIC_ITEM("Click to reinsert SN");
+    }
+
+    END_SCREEN();
+  }
+}
+
+void beevc_lcd_goto_serial_screen(const serial_screen screen){
+  screen_status = screen;
+  lcd_goto_screen(beevc_set_serial_screens);
 }
 
 void beevc_set_serial_adjust(){
@@ -1021,32 +1248,13 @@ void beevc_set_serial_adjust(){
     lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
   }
   if (lcdDrawUpdate) {
-    START_SCREEN();
-    STATIC_ITEM("Serial number wizard", true, true);
-    STATIC_ITEM("SN:");
-    STATIC_ITEM(" ");
-    STATIC_ITEM(" ");
-    STATIC_ITEM("Please insert SN.");
-    END_SCREEN();
+    screen_status = serial_screen_adjust;
+    beevc_set_serial_screens();
 
     // Shows selected number
     u8g.setPrintPos(beevc_screen_header*6 +18, 36);
 	  u8g.print("^");
-
-    // Prints SN
-    u8g.setPrintPos(6*4, 24);
-    u8g.print(serialNumber);
   }
-}
-
-void beevc_set_serial_invalid(){
-  START_SCREEN();
-  STATIC_ITEM("Serial number wizard", true, true);
-  STATIC_ITEM("Serial number invalid!");
-  STATIC_ITEM("");
-  STATIC_ITEM("");
-  STATIC_ITEM("Click to reinsert SN");
-  END_SCREEN();
 }
 
 void beevc_set_serial_yes(){
@@ -1055,7 +1263,6 @@ void beevc_set_serial_yes(){
 
   // Sets to continue
   beevc_continue = true;
-
 }
 
 void beevc_set_serial_no(){
@@ -1066,36 +1273,12 @@ void beevc_set_serial_no(){
   beevc_continue = false;
 }
 
-void beevc_set_serial_confirm(){
-  START_MENU();
-  STATIC_ITEM("Serial number wizard", true, true);
-  STATIC_ITEM("Is this correct?");
-  STATIC_ITEM("SN:");
-  MENU_ITEM_MIX(submenu, _UxGT(" - Yes"), beevc_set_serial_yes);
-  MENU_ITEM_MIX(submenu, _UxGT(" - No"), beevc_set_serial_no);
-  END_SCREEN();
-
-  // Prints SN
-  u8g.setPrintPos(6*4, 36);
-  u8g.print(serialNumber);
-}
-
-void beevc_set_serial_finish(){
-  START_SCREEN();
-  STATIC_ITEM("Serial number wizard", true, true);
-  STATIC_ITEM("Serial number is now");
-  STATIC_ITEM("configured.");
-  STATIC_ITEM(" ");
-  STATIC_ITEM("Click to continue.");
-  END_SCREEN();
-}
-
 void beevc_set_serial_run(){
   // Stores previous screen history depth to allow exit
   uint8_t old_depth = screen_history_depth -1;
 
   // Show start screen
-  lcd_goto_screen(beevc_set_serial_start);
+  beevc_lcd_goto_serial_screen(serial_screen_start);
 
   // Wait for click
   beevc_wait_click();
@@ -1111,13 +1294,16 @@ void beevc_set_serial_run(){
     // Go to insert serial screen
     lcd_goto_screen(beevc_set_serial_adjust);
 
+    // Force screen update
+    beevc_force_screen_update();
+
     // Waits for completion
     beevc_wait_selection();
 
     // If inserted number is invalid
     if(!validateSerial(serialNumber)){
       // Show invalid number screen
-      lcd_goto_screen(beevc_set_serial_invalid);
+      beevc_lcd_goto_serial_screen(serial_screen_invalid);
 
       // Wait for click
       beevc_wait_click();
@@ -1131,7 +1317,7 @@ void beevc_set_serial_run(){
       beevc_continue = false;
 
       // Asks if correct, if not loops
-      lcd_goto_screen(beevc_set_serial_confirm);
+      beevc_lcd_goto_serial_screen(serial_screen_confirm);
 
       // Waits for completion
       beevc_wait_selection();
@@ -1140,7 +1326,7 @@ void beevc_set_serial_run(){
   } while(!beevc_continue);
 
   // Shows finish screen
-  lcd_goto_screen(beevc_set_serial_finish);
+  beevc_lcd_goto_serial_screen(serial_screen_finish);
 
   // Wait for click
   beevc_wait_click();
@@ -1172,20 +1358,20 @@ void beevc_set_serial_run(){
     STATIC_ITEM("offset between both");
     STATIC_ITEM("nozzles.");
     STATIC_ITEM("(scroll to read more)");
-    STATIC_ITEM(" ");
+    STATIC_EMPTY_LINE();
     STATIC_ITEM("This procedure will");
     STATIC_ITEM("help you assert if");
     STATIC_ITEM("the 2 nozzles are at");
     STATIC_ITEM("the same height");
     STATIC_ITEM("relative to the bed.");
-    STATIC_ITEM(" ");
+    STATIC_EMPTY_LINE();
     STATIC_ITEM("Please check the");
     STATIC_ITEM("\"Other Codes\" chapter");
     STATIC_ITEM("on the User Manual");
     STATIC_ITEM("for more information.");
-    STATIC_ITEM(" ");
+    STATIC_EMPTY_LINE();
     STATIC_ITEM("Proc. code: OC02 ");
-    STATIC_ITEM(" ");
+    STATIC_EMPTY_LINE();
     STATIC_ITEM("Click to continue.");
     END_SCREEN();
   }
@@ -1539,29 +1725,29 @@ void beevc_set_serial_run(){
  }
 
  void beevc_set_offset_explain(){
-   START_SCREEN();
-   STATIC_ITEM(_UxGT("Set nozzle height"), true, true);
-   STATIC_ITEM(_UxGT("Please, adjust the Z"));
-   STATIC_ITEM(_UxGT("height by turning the"));
-   STATIC_ITEM(_UxGT("LCD knob."));
-   STATIC_ITEM(_UxGT("(scroll to read more)"));
-   STATIC_ITEM(_UxGT(" "));
-   STATIC_ITEM(_UxGT("Place a paper sheet "));
-   STATIC_ITEM(_UxGT("between the nozzle "));
-   STATIC_ITEM(_UxGT("and the print surface"));
-   STATIC_ITEM(_UxGT(". Adjust until the "));
-   STATIC_ITEM(_UxGT("paper is neither free"));
-   STATIC_ITEM(_UxGT("nor completely stuck"));
-   STATIC_ITEM(_UxGT(" "));
-   STATIC_ITEM(_UxGT("Please, check the"));
-   STATIC_ITEM(_UxGT("\"Other Codes\" chapter"));
-   STATIC_ITEM(_UxGT("on the User Manual "));
-   STATIC_ITEM(_UxGT("for more information."));
-   STATIC_ITEM(_UxGT(" "));
-   STATIC_ITEM(_UxGT("Proc. code: OC01"));
-   STATIC_ITEM(_UxGT(" "));
-   STATIC_ITEM(_UxGT("Click to continue."));
-   END_SCREEN();
+  START_SCREEN();
+  STATIC_ITEM("Set nozzle height", true, true);
+  STATIC_ITEM("Please, adjust the Z");
+  STATIC_ITEM("height by turning the");
+  STATIC_ITEM("LCD knob.");
+  STATIC_ITEM("(scroll to read more)");
+  STATIC_EMPTY_LINE();
+  STATIC_ITEM("Place a paper sheet ");
+  STATIC_ITEM("between the nozzle ");
+  STATIC_ITEM("and the print surface");
+  STATIC_ITEM(". Adjust until the ");
+  STATIC_ITEM("paper is neither free");
+  STATIC_ITEM("nor completely stuck");
+  STATIC_EMPTY_LINE();
+  STATIC_ITEM("Please, check the");
+  STATIC_ITEM("\"Other Codes\" chapter");
+  STATIC_ITEM("on the User Manual ");
+  STATIC_ITEM("for more information.");
+  STATIC_EMPTY_LINE();
+  STATIC_ITEM("Proc. code: OC01");
+  STATIC_EMPTY_LINE();
+  STATIC_ITEM("Click to continue.");
+  END_SCREEN();
  }
 
  void beevc_set_offset_homing(){
@@ -1979,7 +2165,7 @@ void kill_screen(const char* lcd_msg) {
   void beevc_cold_pull_back(){
     // Ensures correct operation on back and return
     screen_history_depth--;
-    cold_pull_status = cold_pull_extruder;
+    screen_status = cold_pull_extruder;
     beevc_selection_finished();
   }
 
@@ -2030,11 +2216,11 @@ void kill_screen(const char* lcd_msg) {
     // Show title
     STATIC_ITEM("Cold pull",true,true);
 
-    switch(cold_pull_status){
+    switch(screen_status){
       case cold_pull_init:  
         STATIC_ITEM("Welcome to cold pull");
         STATIC_ITEM("wizard!");
-        STATIC_ITEM(" ");
+        STATIC_EMPTY_LINE();
         STATIC_ITEM("(scroll to read more)");
         STATIC_ITEM("This process will ");
         STATIC_ITEM("help you clean the");
@@ -2043,13 +2229,13 @@ void kill_screen(const char* lcd_msg) {
         STATIC_ITEM("between filaments or");
         STATIC_ITEM("if there are any");
         STATIC_ITEM("extrusion problems");
-        STATIC_ITEM(" ");
+        STATIC_EMPTY_LINE();
         STATIC_ITEM("Click to continue.");
         break;
       case cold_pull_heating:  
         LCD_PRINT_EXT_TEMP();
         STATIC_ITEM("Status:heating nozzle");
-        STATIC_ITEM(" ");
+        STATIC_EMPTY_LINE();
         STATIC_ITEM("Please wait.");
         break;
       case cold_pull_unload_explain:  
@@ -2062,13 +2248,13 @@ void kill_screen(const char* lcd_msg) {
         STATIC_ITEM("of the filament that");
         STATIC_ITEM("may get stuck inside");
         STATIC_ITEM("the filament sensor.");
-        STATIC_ITEM(" ");
+        STATIC_EMPTY_LINE();
         STATIC_ITEM("Click to continue.");
         break;
       case cold_pull_unload:  
         LCD_PRINT_EXT_TEMP_STABLE();
         STATIC_ITEM("Status: unloading");
-        STATIC_ITEM(" ");
+        STATIC_EMPTY_LINE();
         STATIC_ITEM("Please wait.");
         break;
       case cold_pull_load_explain:
@@ -2080,13 +2266,13 @@ void kill_screen(const char* lcd_msg) {
       case cold_pull_load:
         LCD_PRINT_EXT_TEMP_STABLE();
         STATIC_ITEM("Status: loading");
-        STATIC_ITEM(" ");
+        STATIC_EMPTY_LINE();
         STATIC_ITEM("Please wait.");
         break;
       case cold_pull_cooldown: 
         LCD_PRINT_EXT_TEMP();
         STATIC_ITEM("Status: preparing");
-        STATIC_ITEM(" ");
+        STATIC_EMPTY_LINE();
         STATIC_ITEM("Please wait."); 
         break;
       case cold_pull_clean_hotend:
@@ -2104,7 +2290,7 @@ void kill_screen(const char* lcd_msg) {
       case cold_pull_during:  
         LCD_PRINT_EXT_TEMP_STABLE();
         STATIC_ITEM("Status:  cold pulling");
-        STATIC_ITEM(" ");
+        STATIC_EMPTY_LINE();
         STATIC_ITEM("Please pull filament.");
         break;
       case cold_pull_finish:  
@@ -2115,7 +2301,7 @@ void kill_screen(const char* lcd_msg) {
         STATIC_ITEM("extracted filament ");
         STATIC_ITEM("please repeat the");
         STATIC_ITEM("process until clean.");
-        STATIC_ITEM(" ");
+        STATIC_EMPTY_LINE();
         STATIC_ITEM("Click to exit.");
         break;
     }
@@ -2127,7 +2313,7 @@ void kill_screen(const char* lcd_msg) {
     // Show title
     STATIC_ITEM("Cold pull",true,true);
 
-    switch(cold_pull_status){
+    switch(screen_status){
       case cold_pull_extruder:  
         // Go back to previous menu
         MENU_ITEM(submenu, _UxGT("Back"), beevc_cold_pull_exit);
@@ -2147,12 +2333,12 @@ void kill_screen(const char* lcd_msg) {
   }
 
   static void beevc_cold_pull_show(cold_pull screen){
-    cold_pull_status = screen;
+    screen_status = screen;
     lcd_goto_screen(beevc_cold_pull_screens);
   }
 
   static void beevc_cold_pull_question(cold_pull screen){
-    cold_pull_status = screen;
+    screen_status = screen;
     lcd_goto_screen(beevc_cold_pull_options);
   }
 
@@ -2188,7 +2374,7 @@ void kill_screen(const char* lcd_msg) {
 
       // Waits until a selection is made
       beevc_wait_selection();
-    } while(cold_pull_status == cold_pull_extruder);
+    } while(screen_status == cold_pull_extruder);
 
     // Go to heating screen
     beevc_cold_pull_show(cold_pull_heating);
@@ -2554,7 +2740,7 @@ void kill_screen(const char* lcd_msg) {
       strcat(about_string, "-");
       strncat(about_string, BUILDCOMMIT,7);
       STATIC_ITEM("", true, false, about_string);
-      STATIC_ITEM(" ");
+      STATIC_EMPTY_LINE();
       STATIC_ITEM("Diagnostic Info.", false, true);
 
       about_string[0] = '\0';
@@ -3059,12 +3245,12 @@ void kill_screen(const char* lcd_msg) {
 
       if(planner.movesplanned() > 0){
         STATIC_ITEM("Status: moving");
-        STATIC_ITEM("");
+        STATIC_EMPTY_LINE();
         STATIC_ITEM("Please wait.");
       } 
       else{
         STATIC_ITEM("Status: standby");
-        STATIC_ITEM("");
+        STATIC_EMPTY_LINE();
         STATIC_ITEM("Click to exit.");
       } 
       END_SCREEN();
@@ -5193,14 +5379,13 @@ void kill_screen(const char* lcd_msg) {
   void _lcd_calibrate_z_offset()
   {
 
-    if (lcd_clicked)
-	{
+    if (lcd_clicked){
 		zprobe_zoffset = (current_position[Z_AXIS] + zprobe_zoffset);
 		lcd_completion_feedback(settings.save());
 
     enqueue_and_echo_commands_P(PSTR("G28 X Y"));
 		lcd_goto_screen(_lcd_z_offset_completed);
-	}
+	  }
 
     ENCODER_DIRECTION_NORMAL();
 
@@ -5223,15 +5408,14 @@ void kill_screen(const char* lcd_msg) {
       encoderPosition = 0;
       lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
     }
-    if (lcdDrawUpdate)
-	{
+    if (lcdDrawUpdate){
 		START_SCREEN();
 		STATIC_ITEM(_UxGT("Nozzle height"), true, true);
 		lcd_implementation_drawedit(PSTR(_UxGT("Z height")), ftostr42sign((current_position[Z_AXIS] + zprobe_zoffset)));
 		lcd_implementation_drawmenu_static(3,PSTR("Press to save"));
 
 		END_SCREEN();
-	}
+	  }
   }
 
 	void _lcd_z_offset_prepare_calibration()
@@ -5942,546 +6126,344 @@ void kill_screen(const char* lcd_msg) {
     }
   #endif
   ///////////////////////////////////////////////////////
+  void lcd_self_test_wizard_prepare_error_codes(char *text,bool error = false){
+    if(error)
+      strcpy(text, "Error code: EC");
+    else
+      strcpy(text, "Status: EC");
 
-  #define MACHINE_SETUP_TITLE \
-    START_SCREEN();\
-    STATIC_ITEM(_UxGT("Self-test wizard"), true, true)
+    // Error code
+    switch (screen_status){
+      case self_test_error_hotend_timeout:
+        strcat(text, (active_extruder == 0 ? "13" : "23"));
+        break;
+      case self_test_error_hotend_sensor:
+        strcat(text, (active_extruder == 0 ? "11" : "21"));
+        break;
+      case self_test_error_hotend_swap:
+        strcat(text, (active_extruder == 0 ? "12" : "22"));
+      case self_test_error_bed_timeout:
+        strcat(text, "33");
+        break;
+      case self_test_error_bed_sensor:
+        strcat(text, "31");
+        break;
+      case self_test_error_blower:
+        strcat(text, "41");
+        break;
+      case self_test_error_trinamic:
+        strcat(text, "51");
+        break;
+      case self_test_error_powerloss:
+        strcat(text, "61");
+        break;
+      default:
+        break;
+    }
 
-  #define MACHINE_SETUP_TITLE_WAIT \
-    START_SCREEN();\
-    STATIC_ITEM(_UxGT("Self-test wizard"), true, true);\
-    STATIC_ITEM(_UxGT("Please wait, while"))
-
-  #define MACHINE_SETUP_END END_SCREEN()
-
-  #define MACHINE_SETUP_TITLE_CHOICE \
-    START_MENU();\
-    STATIC_ITEM(_UxGT("Self-test wizard"), true, true)
-
-  #define MACHINE_SETUP_END_CHOICE END_MENU()
-
-  #define MACHINE_SETUP_WAIT_FOR(N) \
-    STATIC_ITEM(_UxGT(N));\
-    STATIC_ITEM(_UxGT("Please wait for"));\
-    STATIC_ITEM(_UxGT("the process"));\
-    STATIC_ITEM(_UxGT("to finish"))
-
-  #define MACHINE_SETUP_CHECK_MANUAL \
-    STATIC_ITEM(_UxGT(" "));\
-    STATIC_ITEM(_UxGT("(scroll to read more)"));\
-    STATIC_ITEM(_UxGT("A error occured"));\
-    STATIC_ITEM(_UxGT("during the self-test"));\
-    STATIC_ITEM(_UxGT("Please, check the"));\
-    STATIC_ITEM(_UxGT("\"Error Codes\" chapter"));\
-    STATIC_ITEM(_UxGT("on the User Manual."));\
-    STATIC_ITEM(_UxGT(" "))
-
-  #define MACHINE_SETUP_SHUTDOWN \
-    STATIC_ITEM(_UxGT(" "));\
-    STATIC_ITEM(_UxGT("Please shutdown the"));\
-    STATIC_ITEM(_UxGT("printer, fix the"));\
-    STATIC_ITEM(_UxGT("issue and try again."))
-
-  void beevc_machine_setup_EEPROM_updated() {
-    MACHINE_SETUP_TITLE;
-    STATIC_ITEM(_UxGT("EEPROM structure was"));
-    STATIC_ITEM(_UxGT("updated, settings"));
-    STATIC_ITEM(_UxGT("were reset."));
-    STATIC_ITEM(_UxGT("Press to continue."));
-    MACHINE_SETUP_END;
+    if(error)
+      strcat(text, " - ERROR!");
   }
 
-  void beevc_machine_setup_screen_start() {
-    MACHINE_SETUP_TITLE;
-    STATIC_ITEM(_UxGT("Welcome to the B2X300"));
-    STATIC_ITEM(_UxGT("self-test wizard!"));
-    STATIC_ITEM(_UxGT(" "));
-    STATIC_ITEM(_UxGT("(scroll to read more)"));
-    STATIC_ITEM(_UxGT(" "));
-    STATIC_ITEM(_UxGT("I will guide you"));
-    STATIC_ITEM(_UxGT("through the initial"));
-    STATIC_ITEM(_UxGT("printer setup."));
-    STATIC_ITEM(_UxGT(" "));
-    STATIC_ITEM(_UxGT("Click to continue."));
-    MACHINE_SETUP_END;
+  void lcd_self_test_wizard_screens() {
+    // Exception for blower test
+    if(screen_status == self_test_blower_test){
+      START_MENU();
+      STATIC_ITEM("Self-test wizard", true, true);
+      STATIC_ITEM("Is the blower active?");
+      MENU_ITEM_MIX(submenu, (" - Yes"), lcd_self_test_wizard_blower_ok);
+      MENU_ITEM_MIX(submenu, (" - No"), lcd_self_test_wizard_blower_error);
+      END_SCREEN();
+    }
+    else{
+      START_SCREEN();
+      
+      // Title
+      STATIC_ITEM("Self-test wizard", true, true);
+
+      char temp[25] = " ";
+
+      // Start
+      switch (screen_status){
+        case self_test_init:
+          STATIC_ITEM("Welcome to the B2X300");
+          STATIC_ITEM("self-test wizard!");
+          STATIC_EMPTY_LINE();
+          STATIC_ITEM("(scroll to read more)");
+          STATIC_EMPTY_LINE();
+          STATIC_ITEM("I will guide you");
+          STATIC_ITEM("through the initial");
+          STATIC_ITEM("printer setup.");
+          break;
+        case self_test_hotend_init: 
+          strcpy(temp, "hotends.");
+          break;
+        case self_test_hotend_test: 
+          beevc_prepare_extruder_temp(temp);
+          STATIC_STRING(temp);
+          strcpy(temp, " heating test");
+          break;
+        case self_test_hotend_ok: 
+          beevc_prepare_extruder_temp(temp);
+          STATIC_STRING(temp);
+          strcpy(temp, "OK!");
+          break;  
+        case self_test_hotend_cooling:
+          beevc_prepare_extruder_temp(temp,false,true,40);
+          STATIC_STRING(temp); 
+          strcpy(temp, " cooling down");
+          break;
+        case self_test_error_hotend_timeout:
+        case self_test_error_hotend_sensor:
+        case self_test_error_hotend_swap:
+          beevc_prepare_extruder_error(temp);
+          STATIC_STRING(temp); 
+          break;
+        case self_test_bed_test: 
+          beevc_prepare_bed_temp(temp);
+          STATIC_STRING(temp); 
+          strcpy(temp, " heating test");
+          break;
+        case self_test_bed_ok: 
+          beevc_prepare_bed_temp(temp,true);
+          STATIC_STRING(temp);
+          strcpy(temp, "OK!");
+          break;  
+        case self_test_error_bed_timeout:
+        case self_test_error_bed_sensor:
+          beevc_prepare_bed_error(temp);
+          STATIC_STRING(temp); 
+          break;
+        case self_test_blower_init:
+          strcpy(temp, "blower fan.");
+          break;
+        case self_test_blower_ok:
+          STATIC_ITEM("Blower fan:        OK");
+          strcpy(temp, "OK!");
+          break;
+        case self_test_error_blower:
+          STATIC_ITEM("Blower fan:      ---%");
+          break;
+        case self_test_trinamic_init:
+          strcpy(temp, "trinamic");
+          break;
+        case self_test_trinamic_ok:
+          STATIC_ITEM("Trinamic drivers: OK!");
+          strcpy(temp, "OK!");
+          break;
+        case self_test_error_trinamic:
+          // X axis
+          if(!(trinamic_ok & 0x01))
+            STATIC_ITEM("X Stepper driver: NOK");
+
+          // Y axis
+          if(!(trinamic_ok & 0x02))
+            STATIC_ITEM("Y Stepper driver: NOK");
+
+          // Z axis
+          if(!(trinamic_ok & 0x04))
+            STATIC_ITEM("Z Stepper driver: NOK");
+
+          // E1 axis
+          if(!(trinamic_ok & 0x08))
+            STATIC_ITEM("E1 Stepper driver:NOK");
+
+          // E2 axis
+          if(!(trinamic_ok & 0x10))
+            STATIC_ITEM("E2 Stepper driver:NOK");
+          break;
+        case self_test_powerloss_init:
+          strcpy(temp, "powerloss");
+          break;
+        case self_test_powerloss_ok:
+          STATIC_ITEM("Powerloss:         OK");
+          strcpy(temp, "OK!");
+          break;
+        case self_test_error_powerloss:
+          STATIC_ITEM("Powerloss:        NOK");
+          break;
+        case self_test_sensorless_homing:
+          STATIC_ITEM("Sensorless-homing: XY");
+          strcpy(temp, "Homing XY");
+          break;
+        case self_test_sensorless_homing_ok:
+          STATIC_ITEM("Sensorless-homing: XY");
+          strcpy(temp, "OK!");
+          break;
+        case self_test_set_offset_home_ok:
+          STATIC_ITEM("Leveling done!");
+          STATIC_ITEM("Moving to calibration");
+          STATIC_ITEM("position");
+          break;
+        case self_test_set_offset_explain:
+          STATIC_ITEM("Please, adjust the Z");
+          STATIC_ITEM("height by turning the");
+          STATIC_ITEM("LCD knob.");
+          STATIC_ITEM("(scroll to read more)");
+          STATIC_EMPTY_LINE();
+          STATIC_ITEM("Place a paper sheet ");
+          STATIC_ITEM("between the nozzle ");
+          STATIC_ITEM("and the print surface");
+          STATIC_ITEM(". Adjust until the ");
+          STATIC_ITEM("paper is neither free");
+          STATIC_ITEM("nor completely stuck");
+          STATIC_EMPTY_LINE();
+          STATIC_ITEM("Please, check the");
+          STATIC_ITEM("\"Other Codes\" chapter");
+          STATIC_ITEM("on the User Manual ");
+          STATIC_ITEM("for more information.");
+          STATIC_EMPTY_LINE();
+          STATIC_ITEM("Proc. code: OC01");
+          STATIC_EMPTY_LINE();
+          break;
+        case self_test_set_offset_home:
+          STATIC_ITEM("Nozzle height: -----");
+          strcpy(temp, "finding mesh");
+          break;
+        case self_test_set_offset_moving:
+          STATIC_ITEM("Nozzle height: -----");
+          strcpy(temp, "moving");
+          break;
+        case self_test_set_offset_complete:
+          STATIC_EMPTY_LINE();
+          lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr42sign(zprobe_zoffset));
+          strcpy(temp, "OK!");
+          break;
+        case self_test_eeprom_updated:
+          STATIC_ITEM("EEPROM structure was");
+          STATIC_ITEM("updated, settings");
+          STATIC_ITEM("were reset.");
+          break;
+        case self_test_complete:
+          STATIC_ITEM("Self-test completed");
+          STATIC_ITEM("successfully.");
+          STATIC_EMPTY_LINE();
+          STATIC_ITEM("(scroll to read more)");
+          STATIC_EMPTY_LINE();
+          STATIC_ITEM("Extruder 1: OK");
+          STATIC_ITEM("Extruder 2: OK");
+          STATIC_ITEM("Heated bed: OK");
+          STATIC_ITEM("Blower Fan: OK");
+          STATIC_ITEM("Homing X:", false, false, i8tostr3(thermalManager.sg2_homing_x_calibration));
+          STATIC_ITEM("Homing Y:", false, false, i8tostr3(thermalManager.sg2_homing_y_calibration));
+          STATIC_ITEM("Homing Z: OK");
+          STATIC_ITEM("Nozzle height: ", false, false, ftostr42sign(zprobe_zoffset));
+          STATIC_EMPTY_LINE();
+          STATIC_ITEM("Click to exit.");
+          break;
+      }
+
+      // Middle
+      switch (screen_status){
+        case self_test_error_hotend_timeout:
+        case self_test_error_hotend_sensor:
+        case self_test_error_hotend_swap:
+        case self_test_error_bed_timeout:
+        case self_test_error_bed_sensor:
+        case self_test_error_blower:
+        case self_test_error_trinamic:
+        case self_test_error_powerloss:
+          lcd_self_test_wizard_prepare_error_codes(temp,true);
+          STATIC_STRING(temp);
+          STATIC_EMPTY_LINE();
+          STATIC_ITEM("(scroll to read more)");
+          STATIC_ITEM("A error occured");
+          STATIC_ITEM("during the self-test");
+          STATIC_ITEM("Please, check the");
+          STATIC_ITEM("\"Error Codes\" chapter");
+          STATIC_ITEM("on the User Manual.");
+          STATIC_EMPTY_LINE();
+          lcd_self_test_wizard_prepare_error_codes(temp);
+          STATIC_STRING(temp);
+          break;
+        case self_test_hotend_init:
+        case self_test_blower_init:
+        case self_test_trinamic_init:
+        case self_test_powerloss_init:
+          STATIC_ITEM("The machine will now");
+          STATIC_ITEM("test the ",false,false, temp);
+          if (screen_status == self_test_trinamic_init){
+            STATIC_ITEM("stepper drivers. ");
+          } 
+          else if (screen_status == self_test_powerloss_init){
+            STATIC_ITEM("detection board. ");
+          }
+          else{
+            STATIC_EMPTY_LINE();
+          }
+          break;
+        case self_test_hotend_test:
+        case self_test_hotend_ok:
+        case self_test_hotend_cooling:
+        case self_test_bed_test:
+        case self_test_bed_ok:
+        case self_test_trinamic_ok:
+        case self_test_powerloss_ok:
+        case self_test_sensorless_homing:
+        case self_test_sensorless_homing_ok:
+        case self_test_set_offset_home:
+        case self_test_set_offset_home_ok:
+        case self_test_set_offset_moving:
+        case self_test_set_offset_complete:
+          STATIC_ITEM("Status: ", false,false,temp);
+          STATIC_EMPTY_LINE();
+          break;
+        default:
+          break;
+      }
+
+
+      // Termination
+      switch (screen_status){
+        case self_test_init:
+        case self_test_hotend_ok:
+        case self_test_powerloss_init:
+        case self_test_powerloss_ok:
+        case self_test_sensorless_homing_ok:
+        case self_test_set_offset_explain:
+        case self_test_set_offset_complete:
+        case self_test_eeprom_updated:
+          STATIC_ITEM("Click to continue.");
+          break;
+        case self_test_hotend_cooling:
+        case self_test_hotend_test:
+        case self_test_sensorless_homing:
+        case self_test_set_offset_home:
+        case self_test_set_offset_moving:
+          STATIC_ITEM("Please wait.");
+          break;
+        case self_test_error_hotend_timeout:
+        case self_test_error_hotend_sensor:
+        case self_test_error_hotend_swap:
+        case self_test_error_bed_timeout:
+        case self_test_error_bed_sensor:
+        case self_test_error_blower:
+        case self_test_error_trinamic:
+        case self_test_error_powerloss:
+          STATIC_EMPTY_LINE();
+          STATIC_ITEM("Please shutdown the");
+          STATIC_ITEM("printer, fix the");
+          STATIC_ITEM("issue and try again.");
+          break;
+        default:
+          break;
+      }
+      
+      END_SCREEN();
+    }
   }
 
-  void beevc_machine_setup_screen_hotend_start() {
-    MACHINE_SETUP_TITLE;
-    STATIC_ITEM(_UxGT("The machine will now"));
-    STATIC_ITEM(_UxGT("test the hotends."));
-    MACHINE_SETUP_END;
-  }
-
-  void beevc_machine_setup_screen_hotend() {
-    MACHINE_SETUP_TITLE;
-
-    LCD_PRINT_EXT_TEMP();
-
-    STATIC_ITEM(_UxGT("Status:  heating test"));
-    STATIC_ITEM(_UxGT(" "));
-    STATIC_ITEM(_UxGT("Please wait."));
-
-    MACHINE_SETUP_END;
-  }
-
-void beevc_machine_setup_screen_hotend_ok() {
-    MACHINE_SETUP_TITLE;
-
-    LCD_PRINT_EXT_TEMP_STABLE();
-
-    STATIC_ITEM(_UxGT("Status: OK!"), false,false );
-    STATIC_ITEM(_UxGT(" "));
-    STATIC_ITEM(_UxGT("Click to continue."));
-
-    MACHINE_SETUP_END;
-  }
-
-void beevc_machine_setup_screen_hotend_cooling() {
-  MACHINE_SETUP_TITLE;
-
-  STATIC_ITEM(_UxGT(" "));
-
-  u8g.setPrintPos(0, 26);
-  u8g.print("Extruder ");
-  u8g.print(active_extruder+1);
-  u8g.print(": ");
-  if(round(thermalManager.degHotend(active_extruder)) <100)
-    u8g.print(" ");
-  u8g.print(round(thermalManager.degHotend(active_extruder)));
-  u8g.print("/");
-  u8g.print(round(40));;
-  lcd_printPGM(PSTR(LCD_STR_DEGREE));
-  u8g.print("C");
-
-  STATIC_ITEM(_UxGT("Status:  cooling down"));
-  STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Please wait."));
-
-  MACHINE_SETUP_END;
+void lcd_self_test_wizard_show_screen(const self_test message){
+  screen_status = message;
+  lcd_goto_screen(lcd_self_test_wizard_screens);
 }
 
-void beevc_machine_setup_screen_hotbed_ok() {
-  MACHINE_SETUP_TITLE;
-
-  STATIC_ITEM(_UxGT(" "));
-
-  u8g.setPrintPos(0, 26);
-  u8g.print("Heated bed:   ");
-  u8g.print(50);
-  u8g.print("/");
-  u8g.print(50);
-  lcd_printPGM(PSTR(LCD_STR_DEGREE));
-  u8g.print("C");
-
-  STATIC_ITEM(_UxGT("Status: OK!"));
-  STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Click to continue."));
-
-  MACHINE_SETUP_END;
+void lcd_self_test_wizard_blower_ok(){
+  lcd_self_test_wizard_show_screen(self_test_blower_ok);
 }
 
-void beevc_machine_setup_screen_hotbed() {
-  MACHINE_SETUP_TITLE;
-
-  STATIC_ITEM(_UxGT(" "));
-
-  u8g.setPrintPos(0, 26);
-  u8g.print("Heated bed:   ");
-  u8g.print(round(thermalManager.degBed()));
-  u8g.print("/");
-  u8g.print(round(thermalManager.degTargetBed()));
-  lcd_printPGM(PSTR(LCD_STR_DEGREE));
-  u8g.print("C");
-
-  STATIC_ITEM(_UxGT("Status:  heating test"));
-  STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Please wait."));
-
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_error_hotend_hot() {
-MACHINE_SETUP_TITLE;
-
-STATIC_ITEM(_UxGT("Extruder already reading as hot"));
-STATIC_ITEM(_UxGT("Please verify the"));
-STATIC_ITEM(_UxGT("thermistor and"));
-STATIC_ITEM(_UxGT("extruder output by"));
-MACHINE_SETUP_CHECK_MANUAL;
-STATIC_ITEM(_UxGT("XX"));
-MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_error_hotend_timeout() {
-  MACHINE_SETUP_TITLE;
-
-  char string_to_print[25];
-  strcpy(string_to_print, "Extruder ");
-  strcat(string_to_print, i8tostr1(active_extruder+1));
-  strcat(string_to_print, ":  xx/100\x09\u0043");
-  STATIC_ITEM("", false,false, string_to_print);
-
-  if(active_extruder){
-    STATIC_ITEM(_UxGT("Status: EC23 - ERROR!"));
-  }
-  else{
-    STATIC_ITEM(_UxGT("Status: EC13 - ERROR!"));
-  }
-
-  MACHINE_SETUP_CHECK_MANUAL;
-
-  if(active_extruder){
-    STATIC_ITEM(_UxGT("Error code: EC23"));
-  }
-  else{
-    STATIC_ITEM(_UxGT("Error code: EC13"));
-  }
-
-  MACHINE_SETUP_SHUTDOWN;
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_error_hotend_sensor() {
-  MACHINE_SETUP_TITLE;
-
-  char string_to_print[25];
-  strcpy(string_to_print, "Extruder ");
-  strcat(string_to_print, i8tostr1(active_extruder+1));
-  strcat(string_to_print, ":  xx/100\x09\u0043");
-  STATIC_ITEM("", false,false, string_to_print);
-
-  if(active_extruder){
-    STATIC_ITEM(_UxGT("Status: EC21 - ERROR!"));
-  }
-  else{
-    STATIC_ITEM(_UxGT("Status: EC11 - ERROR!"));
-  }
-
-  MACHINE_SETUP_CHECK_MANUAL;
-
-  if(active_extruder){
-    STATIC_ITEM(_UxGT("Error code: EC21"));
-  }
-  else{
-    STATIC_ITEM(_UxGT("Error code: EC11"));
-  }
-
-  MACHINE_SETUP_SHUTDOWN;
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_error_hotend_sensor_swaped() {
-  MACHINE_SETUP_TITLE;
-
-  char string_to_print[25];
-  strcpy(string_to_print, "Extruder ");
-  strcat(string_to_print, i8tostr1(active_extruder+1));
-  strcat(string_to_print, ":  xx/100\x09\u0043");
-  STATIC_ITEM("", false,false, string_to_print);
-
-  if(active_extruder){
-    STATIC_ITEM(_UxGT("Status: EC22 - ERROR!"));
-  }
-  else{
-    STATIC_ITEM(_UxGT("Status: EC12 - ERROR!"));
-  }
-
-  MACHINE_SETUP_CHECK_MANUAL;
-
-  if(active_extruder){
-    STATIC_ITEM(_UxGT("Error code: EC22"));
-  }
-  else{
-    STATIC_ITEM(_UxGT("Error code: EC12"));
-  }
-
-  MACHINE_SETUP_SHUTDOWN;
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_error_hotbed_hot() {
-MACHINE_SETUP_TITLE;
-STATIC_ITEM(_UxGT("Hotbed already reading as hot"));
-STATIC_ITEM(_UxGT("Please verify the"));
-STATIC_ITEM(_UxGT("thermistor and"));
-STATIC_ITEM(_UxGT("hotbed output by"));
-MACHINE_SETUP_CHECK_MANUAL;
-STATIC_ITEM(_UxGT("XX"));
-MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_error_hotbed_timeout() {
-  MACHINE_SETUP_TITLE;
-
-  STATIC_ITEM("Heated bed:    xx/50\x09\u0043");
-
-  STATIC_ITEM(_UxGT("Status: EC33 - ERROR!"));
-
-  MACHINE_SETUP_CHECK_MANUAL;
-
-  STATIC_ITEM(_UxGT("Error code: EC33"));
-
-  MACHINE_SETUP_SHUTDOWN;
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_error_hotbed_sensor() {
-  MACHINE_SETUP_TITLE;
-
-  STATIC_ITEM("Heated bed:    xx/50\x09\u0043");
-
-  STATIC_ITEM(_UxGT("Status: EC31 - ERROR!"));
-
-  MACHINE_SETUP_CHECK_MANUAL;
-
-  STATIC_ITEM(_UxGT("Error code: EC31"));
-
-  MACHINE_SETUP_SHUTDOWN;
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_blower_start() {
-  MACHINE_SETUP_TITLE;
-  STATIC_ITEM(_UxGT("The machine will now"));
-  STATIC_ITEM(_UxGT("test the blower fan."));
-  STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Click to continue."));
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_blower_test_ok() {
-  // Sets test flag as complete
-  beevc_continue = true ;
-
-  MACHINE_SETUP_TITLE;
-
-  STATIC_ITEM(_UxGT("Blower fan:        OK"));
-  STATIC_ITEM(_UxGT("Status: OK!"));
-  STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Click to continue."));
-
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_error_blower() {
-  MACHINE_SETUP_TITLE;
-
-  STATIC_ITEM(_UxGT("Blower fan:      ---%"));
-  STATIC_ITEM(_UxGT("Status: EC41 - ERROR!"));
-
-  MACHINE_SETUP_CHECK_MANUAL;
-
-  STATIC_ITEM(_UxGT("Error code: EC41"));
-
-  MACHINE_SETUP_SHUTDOWN;
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_blower_test() {
-  MACHINE_SETUP_TITLE_CHOICE;
-  STATIC_ITEM(_UxGT("Is the blower active?"));
-  MENU_ITEM_MIX(submenu, _UxGT(" - Yes"), beevc_machine_setup_screen_blower_test_ok);
-  MENU_ITEM_MIX(submenu, _UxGT(" - No"), beevc_machine_setup_screen_error_blower);
-  END_SCREEN();
-}
-
-void beevc_machine_setup_screen_trinamic_start() {
-  MACHINE_SETUP_TITLE;
-  STATIC_ITEM(_UxGT("The machine will now"));
-  STATIC_ITEM(_UxGT("test the trinamic"));
-  STATIC_ITEM(_UxGT("stepper drivers. "));
-  STATIC_ITEM(_UxGT("Click to continue."));
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_trinamic_ok() {
-  MACHINE_SETUP_TITLE;
-
-  STATIC_ITEM(_UxGT("Trinamic drivers: OK!"));
-  STATIC_ITEM(_UxGT("Status: OK!"));
-  STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Click to continue."));
-
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_trinamic_error() {
-  MACHINE_SETUP_TITLE;
-
-  // X axis
-  if(!(trinamic_ok & 0x01)){
-    STATIC_ITEM(_UxGT("X Stepper driver: NOK"));
-  }
-
-  // Y axis
-  if(!(trinamic_ok & 0x02)){
-    STATIC_ITEM(_UxGT("Y Stepper driver: NOK"));
-  }
-
-  // Z axis
-  if(!(trinamic_ok & 0x04)){
-    STATIC_ITEM(_UxGT("Z Stepper driver: NOK"));
-  }
-
-  // E1 axis
-  if(!(trinamic_ok & 0x08)){
-    STATIC_ITEM(_UxGT("E1 Stepper driver:NOK"));
-  }
-
-  // E2 axis
-  if(!(trinamic_ok & 0x10)){
-    STATIC_ITEM(_UxGT("E2 Stepper driver:NOK"));
-  }
-
-
-  STATIC_ITEM(_UxGT("Status: EC51 - ERROR!"));
-
-  MACHINE_SETUP_CHECK_MANUAL;
-
-  STATIC_ITEM(_UxGT("Error code: EC51"));
-
-  MACHINE_SETUP_SHUTDOWN;
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_powerloss_start() {
-  MACHINE_SETUP_TITLE;
-  STATIC_ITEM(_UxGT("The machine will now"));
-  STATIC_ITEM(_UxGT("test the powerloss"));
-  STATIC_ITEM(_UxGT("detection board. "));
-  STATIC_ITEM(_UxGT("Click to continue."));
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_powerloss_ok() {
-  MACHINE_SETUP_TITLE;
-
-  STATIC_ITEM(_UxGT("Powerloss:         OK"));
-  STATIC_ITEM(_UxGT("Status: OK!"));
-  STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Click to continue."));
-
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_powerloss_error() {
-  MACHINE_SETUP_TITLE;
-
-  STATIC_ITEM(_UxGT("Powerloss:        NOK"));
-
-  STATIC_ITEM(_UxGT("Status: EC61 - ERROR!"));
-
-  MACHINE_SETUP_CHECK_MANUAL;
-
-  STATIC_ITEM(_UxGT("Error code: EC61"));
-
-  MACHINE_SETUP_SHUTDOWN;
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_sensorless_homing(){
-  MACHINE_SETUP_TITLE;
-
-  STATIC_ITEM(_UxGT("Sensorless-homing: XY"));
-  STATIC_ITEM(_UxGT("Status: Homing XY"));
-  STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Please wait."));
-
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_sensorless_homing_complete(){
-  MACHINE_SETUP_TITLE;
-
-  STATIC_ITEM(_UxGT("Sensorless-homing: XY"));
-  STATIC_ITEM(_UxGT("Status: OK!"));
-  STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Click to continue."));
-
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_set_offset_home_complete(){
-  MACHINE_SETUP_TITLE;
-  STATIC_ITEM(_UxGT("Leveling done!"));
-  STATIC_ITEM(_UxGT("Moving to calibration"));
-  STATIC_ITEM(_UxGT("position"));
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_set_offset_explain(){
-  MACHINE_SETUP_TITLE;
-  STATIC_ITEM(_UxGT("Please, adjust the Z"));
-  STATIC_ITEM(_UxGT("height by turning the"));
-  STATIC_ITEM(_UxGT("LCD knob."));
-  STATIC_ITEM(_UxGT("(scroll to read more)"));
-  STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Place a paper sheet "));
-  STATIC_ITEM(_UxGT("between the nozzle "));
-  STATIC_ITEM(_UxGT("and the print surface"));
-  STATIC_ITEM(_UxGT(". Adjust until the "));
-  STATIC_ITEM(_UxGT("paper is neither free"));
-  STATIC_ITEM(_UxGT("nor completely stuck"));
-  STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Please, check the"));
-  STATIC_ITEM(_UxGT("\"Other Codes\" chapter"));
-  STATIC_ITEM(_UxGT("on the User Manual"));
-  STATIC_ITEM(_UxGT("for more information."));
-  STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Proc. code: OC01"));
-  STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Click to continue."));
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_set_offset_homing(){
-  MACHINE_SETUP_TITLE;
-  STATIC_ITEM(_UxGT("Nozzle height: -----"));
-  STATIC_ITEM(_UxGT("Status: finding mesh"));
-  STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Please wait."));
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_set_offset_moving(){
-  MACHINE_SETUP_TITLE;
-  STATIC_ITEM(_UxGT("Nozzle height: -----"));
-  STATIC_ITEM(_UxGT("Status: moving"));
-  STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Please wait."));
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_set_offset_complete(){
-  MACHINE_SETUP_TITLE;
-  STATIC_ITEM(_UxGT(" "));
-  lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr42sign(zprobe_zoffset));
-  STATIC_ITEM(_UxGT("Status: OK!"));
-  STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Click to continue."));
-  MACHINE_SETUP_END;
-}
-
-void beevc_machine_setup_screen_complete(){
-  MACHINE_SETUP_TITLE;
-
-  STATIC_ITEM(_UxGT("Self-test completed"));
-  STATIC_ITEM(_UxGT("successfully."));
-  STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("(scroll to read more)"));
-  STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Extruder 1: OK"));
-  STATIC_ITEM(_UxGT("Extruder 2: OK"));
-  STATIC_ITEM(_UxGT("Heated bed: OK"));
-  STATIC_ITEM(_UxGT("Blower Fan: OK"));
-  STATIC_ITEM(_UxGT("Homing X:"), false, false, i8tostr3(thermalManager.sg2_homing_x_calibration));
-  STATIC_ITEM(_UxGT("Homing Y:"), false, false, i8tostr3(thermalManager.sg2_homing_y_calibration));
-  STATIC_ITEM(_UxGT("Homing Z: OK"));
-  STATIC_ITEM(_UxGT("Nozzle height: "), false, false, ftostr42sign(zprobe_zoffset));
-  STATIC_ITEM(_UxGT(" "));
-  STATIC_ITEM(_UxGT("Click to exit."));
-  MACHINE_SETUP_END;
+void lcd_self_test_wizard_blower_error(){
+  lcd_self_test_wizard_show_screen(self_test_error_blower);
 }
 
 void beevc_machine_setup_screen_set_offset_calibrate(){
@@ -6490,7 +6472,7 @@ void beevc_machine_setup_screen_set_offset_calibrate(){
       zprobe_zoffset = (current_position[Z_AXIS] + zprobe_zoffset);
       lcd_completion_feedback(settings.save());
       z_offset_finished = true;
-      lcd_goto_screen(beevc_machine_setup_screen_set_offset_complete);
+      lcd_self_test_wizard_show_screen(self_test_set_offset_complete);
     }
 
   ENCODER_DIRECTION_NORMAL();
@@ -6515,13 +6497,12 @@ void beevc_machine_setup_screen_set_offset_calibrate(){
     lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
   }
   if (lcdDrawUpdate) {
-    MACHINE_SETUP_TITLE;
-
+    START_SCREEN();
+    STATIC_ITEM(_UxGT("Self-test wizard"), true, true);
     lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr42sign((current_position[Z_AXIS] + zprobe_zoffset)));
     lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
     lcd_implementation_drawmenu_static(4,PSTR("Click to save.       "));
-
-    MACHINE_SETUP_END;
+    END_SCREEN();
   }
 }
 
@@ -6529,7 +6510,7 @@ void beevc_machine_setup_sensorless_homing (){
   beevc_buzz();
 
   // Show info screen
-  lcd_goto_screen(beevc_machine_setup_screen_sensorless_homing);
+  lcd_self_test_wizard_show_screen(self_test_sensorless_homing);
 
   // Waits for click or timeout
   beevc_wait(1000);
@@ -6542,7 +6523,7 @@ void beevc_machine_setup_sensorless_homing (){
   gcode_M918();
 
   //Display sensorless homing ok screen
-  lcd_goto_screen(beevc_machine_setup_screen_sensorless_homing_complete);
+  lcd_self_test_wizard_show_screen(self_test_sensorless_homing_ok);
 
   //Beep
   beevc_buzz();
@@ -6559,7 +6540,7 @@ void beevc_machine_setup_set_offset(){
   z_offset_finished = false;
 
   // Show finding mesh screen
-  lcd_goto_screen(beevc_machine_setup_screen_set_offset_homing);
+  lcd_self_test_wizard_show_screen(self_test_set_offset_home);
 
   // Waits for click or timeout
   beevc_wait(1000);
@@ -6571,7 +6552,7 @@ void beevc_machine_setup_set_offset(){
   gcode_G29();
 
   // Show moving screen
-  lcd_goto_screen(beevc_machine_setup_screen_set_offset_moving);
+  lcd_self_test_wizard_show_screen(self_test_set_offset_moving);
 
   // Moves the carriage and bed to the offset adjust position
   do_blocking_move_to_xy(((X_BED_SIZE) / 2),((Y_BED_SIZE) / 2), 120);
@@ -6588,11 +6569,14 @@ void beevc_machine_setup_set_offset(){
   }
 
   // Shows the help screen
-  lcd_goto_screen(beevc_machine_setup_screen_set_offset_explain);
+  lcd_self_test_wizard_show_screen(self_test_set_offset_explain);
   beevc_wait(20000);
 
   // Shows the leveling screen
   lcd_goto_screen(beevc_machine_setup_screen_set_offset_calibrate);
+
+  // Force screen update
+  beevc_force_screen_update();
 
   // Waits for conclusion of Adjustment
   while(!z_offset_finished){
@@ -6614,7 +6598,7 @@ void beevc_machine_setup_test_hotend (uint8_t extruder){
 
   // Check for disconnected thermistor
   if(thermalManager.degHotend(active_extruder) <= -14){
-    lcd_goto_screen(beevc_machine_setup_screen_error_hotend_sensor);
+    lcd_self_test_wizard_show_screen(self_test_error_hotend_sensor);
     while(1){
       idle(true);
     }
@@ -6625,7 +6609,7 @@ void beevc_machine_setup_test_hotend (uint8_t extruder){
   duration = millis();
   // Blower on to help cooling
   fanSpeeds[0] = 255;
-  lcd_goto_screen(beevc_machine_setup_screen_hotend_cooling);
+  lcd_self_test_wizard_show_screen(self_test_hotend_cooling);
   while(thermalManager.degHotend(active_extruder) > 40){
     lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
     idle(true);
@@ -6643,7 +6627,7 @@ void beevc_machine_setup_test_hotend (uint8_t extruder){
   //Sets a timeout of 60sec
   timeout = duration + 60000;
 
-  lcd_goto_screen(beevc_machine_setup_screen_hotend);
+  lcd_self_test_wizard_show_screen(self_test_hotend_test);
 
   // Stores idle temperature for the other extruder
   uint16_t idle_temp = thermalManager.degHotend(extruder == 0 ? 1 : 0)+10;
@@ -6652,7 +6636,7 @@ void beevc_machine_setup_test_hotend (uint8_t extruder){
 
     // Checks for swapped hotend sensor/resistors
       if (thermalManager.degHotend(extruder == 1 ? 1 : 0) > idle_temp){
-        lcd_goto_screen(beevc_machine_setup_screen_error_hotend_sensor_swaped);
+        lcd_self_test_wizard_show_screen(self_test_error_hotend_swap);
 
         // Disable heating
         thermalManager.setTargetHotend(0, active_extruder);
@@ -6670,25 +6654,21 @@ void beevc_machine_setup_test_hotend (uint8_t extruder){
     idle(true);
 
     if (millis() > timeout){
-      lcd_goto_screen(beevc_machine_setup_screen_error_hotend_timeout);
+      lcd_self_test_wizard_show_screen(self_test_error_hotend_timeout);
       while(1){
         idle(true);
       }
     }
   }
 
-
   //Beep
   beevc_buzz();
 
   //Display Hotbed ok screen
-  lcd_goto_screen(beevc_machine_setup_screen_hotend_ok);
+  lcd_self_test_wizard_show_screen(self_test_hotend_ok);
 
   //Wait for 5sec or click
   beevc_wait(5000);
-
-  //Disable E heating
-  thermalManager.setTargetHotend(0, active_extruder);
 
   //Disable E heating
   thermalManager.setTargetHotend(0, active_extruder);
@@ -6701,7 +6681,7 @@ void beevc_machine_setup_test_hotbed (){
 
   // Check for disconnected thermistor
   if(thermalManager.degBed() <= -14){
-    lcd_goto_screen(beevc_machine_setup_screen_error_hotbed_sensor);
+    lcd_self_test_wizard_show_screen(self_test_error_bed_sensor);
     while(1){
       idle(true);
     }
@@ -6713,14 +6693,14 @@ void beevc_machine_setup_test_hotbed (){
   //Sets a timeout of 180sec
   timeout = duration + 180000;
 
-    lcd_goto_screen(beevc_machine_setup_screen_hotbed);
+    lcd_self_test_wizard_show_screen(self_test_bed_test);
 
   while(thermalManager.degBed() < (thermalManager.degTargetBed()-2)){
     lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
     idle(true);
 
     if (millis() > timeout){
-      lcd_goto_screen(beevc_machine_setup_screen_error_hotbed_timeout);
+      lcd_self_test_wizard_show_screen(self_test_error_bed_timeout);
       while(1){
         idle(true);
       }
@@ -6734,20 +6714,20 @@ void beevc_machine_setup_test_hotbed (){
   beevc_buzz();
 
   //Display Hotbed ok screen
-  lcd_goto_screen(beevc_machine_setup_screen_hotbed_ok);
+  lcd_self_test_wizard_show_screen(self_test_bed_ok);
 
   //Wait for 5sec or click
   beevc_wait(5000);
 }
 
 void beevc_machine_setup_test_blower (){
-    lcd_goto_screen(beevc_machine_setup_screen_blower_start);
+    lcd_self_test_wizard_show_screen(self_test_blower_init);
 
     beevc_wait(5000);
     fanSpeeds[0] = 255;
     beevc_continue = 0;
 
-    lcd_goto_screen(beevc_machine_setup_screen_blower_test);
+    lcd_self_test_wizard_show_screen(self_test_blower_test);
 
     while(!beevc_continue){
       idle(true);
@@ -6764,7 +6744,7 @@ void beevc_machine_setup_test_blower (){
 
 void beevc_machine_setup_test_trinamic (){
     // Displays Trinamic test start screen
-    lcd_goto_screen(beevc_machine_setup_screen_trinamic_start);
+    lcd_self_test_wizard_show_screen(self_test_trinamic_init);
 
     // Waits for 5s or click
     beevc_wait(5000);
@@ -6839,7 +6819,7 @@ void beevc_machine_setup_test_trinamic (){
 
     // If any axis failed display error screen
     if (trinamic_ok != 0x1F){
-      lcd_goto_screen(beevc_machine_setup_screen_trinamic_error);
+      lcd_self_test_wizard_show_screen(self_test_error_trinamic);
       while(1){
         idle(true);
       }
@@ -6849,22 +6829,22 @@ void beevc_machine_setup_test_trinamic (){
     beevc_buzz();
 
     // Display ok screen
-    lcd_goto_screen(beevc_machine_setup_screen_trinamic_ok);
+    lcd_self_test_wizard_show_screen(self_test_trinamic_ok);
 
     //Wait for 5sec or click
     beevc_wait(5000);
 }
 
 void beevc_machine_setup_test_powerloss (){
-    // Displays Trinamic test start screen
-    lcd_goto_screen(beevc_machine_setup_screen_powerloss_start);
+    // Displays powerloss test start screen
+    lcd_self_test_wizard_show_screen(self_test_powerloss_init);
 
     // Waits for 5s or click
     beevc_wait(5000);
 
     // Tests if the powerloss pin is ofline as it should be
     if (digitalRead(11) != 0){
-      lcd_goto_screen(beevc_machine_setup_screen_powerloss_error);
+      lcd_self_test_wizard_show_screen(self_test_error_powerloss);
       while(1){
         idle(true);
       }
@@ -6874,7 +6854,7 @@ void beevc_machine_setup_test_powerloss (){
     beevc_buzz();
 
     // Display ok screen
-    lcd_goto_screen(beevc_machine_setup_screen_powerloss_ok);
+    lcd_self_test_wizard_show_screen(self_test_powerloss_ok);
 
     //Wait for 5sec or click
     beevc_wait(5000);
@@ -6891,7 +6871,7 @@ void beevc_machine_setup_test_powerloss (){
 
     // Shows EEPROM updated screen
     if(toCalibrate == 1) {
-      lcd_goto_screen(beevc_machine_setup_EEPROM_updated);
+      lcd_self_test_wizard_show_screen(self_test_eeprom_updated);
       beevc_wait_click();
     }
 
@@ -6909,13 +6889,16 @@ void beevc_machine_setup_test_powerloss (){
 
     // Start screen
 
-    lcd_goto_screen(beevc_machine_setup_screen_start);
+    lcd_self_test_wizard_show_screen(self_test_init);
 
     // Wait for click
     beevc_wait_click();
 
     // Verify Hotend connections
-    lcd_goto_screen(beevc_machine_setup_screen_hotend_start);
+    lcd_self_test_wizard_show_screen(self_test_hotend_init);
+
+    // Force screen update
+    beevc_force_screen_update();
 
     // Wait for while to allow the user to read the message
     beevc_wait(5000);
@@ -6963,7 +6946,7 @@ void beevc_machine_setup_test_powerloss (){
     enqueue_and_echo_commands_P(PSTR("G28 X Y"));
 
     // Shows complete screen
-    lcd_goto_screen(beevc_machine_setup_screen_complete);
+    lcd_self_test_wizard_show_screen(self_test_complete);
 
     // Waits for click
     beevc_wait_click();
@@ -8325,7 +8308,7 @@ void beevc_machine_setup_test_powerloss (){
       STATIC_ITEM(MSG_FILAMENT_CHANGE_MINTEMP STRINGIFY(EXTRUDE_MINTEMP) ".");
       MENU_BACK(MSG_BACK);
       #if LCD_HEIGHT > 4
-        STATIC_ITEM(" ");
+        STATIC_EMPTY_LINE();
       #endif
       HOTEND_STATUS_ITEM();
       END_MENU();
@@ -8349,25 +8332,25 @@ void beevc_machine_setup_test_powerloss (){
       else                      {STATIC_ITEM("Change filament", true, true);}
       LCD_PRINT_EXT_TEMP();
 
-      switch (pause_status){
+      switch (screen_status){
         case pause_init:
           STATIC_ITEM("Status: moving");               
-          STATIC_ITEM(" ");
+          STATIC_EMPTY_LINE();
           STATIC_ITEM("Please wait.");
           break;
         case pause_unload:
           STATIC_ITEM("Status: unloading");               
-          STATIC_ITEM(" ");
+          STATIC_EMPTY_LINE();
           STATIC_ITEM("Please wait.");
           break;
         case pause_wait:
           STATIC_ITEM("Status: heating");               
-          STATIC_ITEM(" ");
+          STATIC_EMPTY_LINE();
           STATIC_ITEM("Please wait.");
           break;
         case pause_heatup:
           STATIC_ITEM("Status: standby");               
-          STATIC_ITEM(" ");
+          STATIC_EMPTY_LINE();
           STATIC_ITEM("Click to reheat.");
           break;
         case pause_insert:
@@ -8377,17 +8360,17 @@ void beevc_machine_setup_test_powerloss (){
           break;
         case pause_load:
           STATIC_ITEM("Status: loading");               
-          STATIC_ITEM(" ");
+          STATIC_EMPTY_LINE();
           STATIC_ITEM("Please wait.");
           break;
         case pause_extrude:
           STATIC_ITEM("Status: extruding");               
-          STATIC_ITEM(" ");
+          STATIC_EMPTY_LINE();
           STATIC_ITEM("Please wait.");
           break;
         case pause_resume:
           STATIC_ITEM("Status: resuming");               
-          STATIC_ITEM(" ");
+          STATIC_EMPTY_LINE();
           STATIC_ITEM("Please wait.");
           break;
       }
@@ -8402,42 +8385,42 @@ void beevc_machine_setup_test_powerloss (){
       switch (message) {
         case ADVANCED_PAUSE_MESSAGE_INIT:
           ADVANCED_PAUSE_SETUP;
-          pause_status = pause_init;
+          screen_status = pause_init;
           lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_UNLOAD:
           ADVANCED_PAUSE_SETUP;
-          pause_status = pause_unload;
+          screen_status = pause_unload;
           lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_INSERT:
           ADVANCED_PAUSE_SETUP;
-          pause_status = pause_insert;
+          screen_status = pause_insert;
           lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_LOAD:
           ADVANCED_PAUSE_SETUP;
-          pause_status = pause_load;
+          screen_status = pause_load;
           lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_EXTRUDE:
           ADVANCED_PAUSE_SETUP;
-          pause_status = pause_extrude;
+          screen_status = pause_extrude;
           lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_CLICK_TO_HEAT_NOZZLE:
           ADVANCED_PAUSE_SETUP;
-          pause_status = pause_heatup;
+          screen_status = pause_heatup;
           lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_WAIT_FOR_NOZZLES_TO_HEAT:
           ADVANCED_PAUSE_SETUP;
-          pause_status = pause_wait;
+          screen_status = pause_wait;
           lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_RESUME:
           ADVANCED_PAUSE_SETUP;
-          pause_status = pause_resume;
+          screen_status = pause_resume;
           lcd_goto_screen(lcd_advanced_pause_screens);
           break;
         case ADVANCED_PAUSE_MESSAGE_OPTION:
