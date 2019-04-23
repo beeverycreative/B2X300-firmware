@@ -94,7 +94,7 @@
         if (hotend == 0){
             // Handle exceptions first 
             if (serial == 1212400076)
-                PIDReturn(info,85.49,7.67,238.12)
+                PIDReturn(info,607.85,83.37,1107.97)
 
             // Pre release
             if (serial < BEEVC_B2X300_PROD1_SN)
@@ -104,8 +104,7 @@
                 PIDReturn(info,85.49,7.67,238.12)
             // Latest - Series 3 forward
             else 
-                PIDReturn(info,85.49,7.67,238.12)
-                
+                PIDReturn(info,607.85,83.37,1107.97)
         }
         // Extruder 1
         if (hotend == 1){
