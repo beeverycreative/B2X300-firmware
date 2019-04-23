@@ -1081,9 +1081,13 @@ uint16_t max_display_update_time = 0;
   }
 
   void beevc_prepare_bed_temp(char *text, bool stable = false ,bool useCap = false, uint16_t Cap = 0){
-    strcpy(text,"Heated bed:   ");
-    if(stable)
-      strcat(text,itostr3(round(thermalManager.degTargetBed())));
+    strcpy(text,"Heated bed: ");
+    if(stable){
+      if(useCap)
+        strcat(text,itostr3(Cap));
+      else
+        strcat(text,itostr3(round(thermalManager.degTargetBed())));
+    }
     else
       strcat(text,itostr3(round(thermalManager.degBed())));
     strcat(text,"/");
@@ -1205,9 +1209,10 @@ void beevc_set_serial_screens (){
     switch(screen_status){
       case serial_screen_start:
         STATIC_ITEM("Serial number not");
-        STATIC_ITEM("detected.");
+        STATIC_ITEM("found.");
         STATIC_EMPTY_LINE();
         STATIC_ITEM("(scroll to read more)");
+        STATIC_EMPTY_LINE();
         STATIC_ITEM("Please insert the");
         STATIC_ITEM("serial number present");
         STATIC_ITEM("on the sticker on the");
@@ -1251,6 +1256,7 @@ void beevc_set_serial_screens (){
         STATIC_ITEM("Click to continue.");
         break;
       case serial_screen_adjust:
+        STATIC_EMPTY_LINE();
         STATIC_EMPTY_LINE();
         STATIC_ITEM("Please insert SN.");
         break;
@@ -6228,6 +6234,7 @@ void kill_screen(const char* lcd_msg) {
         break;
       case self_test_error_hotend_swap:
         strcat(text, (active_extruder == 0 ? "12" : "22"));
+        break;
       case self_test_error_bed_timeout:
         strcat(text, "33");
         break;
@@ -6247,7 +6254,7 @@ void kill_screen(const char* lcd_msg) {
         break;
     }
 
-    if(error)
+    if(!error)
       strcat(text, " - ERROR!");
   }
 
@@ -6280,6 +6287,7 @@ void kill_screen(const char* lcd_msg) {
           STATIC_ITEM("I will guide you");
           STATIC_ITEM("through the initial");
           STATIC_ITEM("printer setup.");
+          STATIC_EMPTY_LINE();
           break;
         case self_test_hotend_init: 
           strcpy(temp, "hotends.");
@@ -6311,7 +6319,7 @@ void kill_screen(const char* lcd_msg) {
           strcpy(temp, " heating test");
           break;
         case self_test_bed_ok: 
-          beevc_prepare_bed_temp(temp,true);
+          beevc_prepare_bed_temp(temp,true,true,50);
           STATIC_STRING(temp);
           strcpy(temp, "OK!");
           break;  
@@ -6416,7 +6424,7 @@ void kill_screen(const char* lcd_msg) {
           strcpy(temp, "OK!");
           break;
         case self_test_eeprom_updated:
-          STATIC_ITEM("EEPROM structure was");
+          STATIC_ITEM("Memory structure was");
           STATIC_ITEM("updated, settings");
           STATIC_ITEM("were reset.");
           break;
@@ -6483,6 +6491,7 @@ void kill_screen(const char* lcd_msg) {
         case self_test_hotend_cooling:
         case self_test_bed_test:
         case self_test_bed_ok:
+        case self_test_blower_ok:
         case self_test_trinamic_ok:
         case self_test_powerloss_ok:
         case self_test_sensorless_homing:
@@ -6498,11 +6507,16 @@ void kill_screen(const char* lcd_msg) {
           break;
       }
 
-
       // Termination
       switch (screen_status){
         case self_test_init:
+        case self_test_hotend_init:
         case self_test_hotend_ok:
+        case self_test_bed_ok:
+        case self_test_blower_init:
+        case self_test_blower_ok:
+        case self_test_trinamic_init:
+        case self_test_trinamic_ok:
         case self_test_powerloss_init:
         case self_test_powerloss_ok:
         case self_test_sensorless_homing_ok:
@@ -6513,6 +6527,8 @@ void kill_screen(const char* lcd_msg) {
           break;
         case self_test_hotend_cooling:
         case self_test_hotend_test:
+        case self_test_bed_test:
+        case self_test_blower_test:
         case self_test_sensorless_homing:
         case self_test_set_offset_home:
         case self_test_set_offset_moving:
@@ -6540,11 +6556,19 @@ void kill_screen(const char* lcd_msg) {
   }
 
 void lcd_self_test_wizard_show_screen(const self_test message){
+  // Self test status value
   screen_status = message;
+
+  // Forces the update on change to new screen
+  currentScreen = lcd_status_screen;
+  // Change to new screen
   lcd_goto_screen(lcd_self_test_wizard_screens);
 }
 
 void lcd_self_test_wizard_blower_ok(){
+  // Sets test flag as complete
+  beevc_continue = true ;
+  
   lcd_self_test_wizard_show_screen(self_test_blower_ok);
 }
 
