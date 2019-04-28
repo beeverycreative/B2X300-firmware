@@ -1127,6 +1127,10 @@ uint16_t max_display_update_time = 0;
       u8g.print(' ');
   }
 
+  void beevc_empty_screen(){
+   idle();
+  }
+
 #endif
 
  #define LCD_PRINT_EXT_TEMP() \
@@ -6560,7 +6564,8 @@ void lcd_self_test_wizard_show_screen(const self_test message){
   screen_status = message;
 
   // Forces the update on change to new screen
-  currentScreen = lcd_status_screen;
+  currentScreen = beevc_empty_screen;
+
   // Change to new screen
   lcd_goto_screen(lcd_self_test_wizard_screens);
 }
@@ -6626,8 +6631,7 @@ void beevc_machine_setup_sensorless_homing (){
   beevc_wait(1000);
 
   // Starts variables to force calibration
-  calibrating_sensorless_homing_x = true;
-  calibrating_sensorless_homing_y = true;
+  calibrating_sensorless_homing = true;
 
   // Start sensorless homing calibration procedure
   gcode_M918();
@@ -7873,8 +7877,7 @@ void beevc_machine_setup_test_powerloss (){
    */
    void lcd_trinamic_sensorless_auto_adjust(){
      // Starts variables to force calibration
-     calibrating_sensorless_homing_x = true;
-     calibrating_sensorless_homing_y = true;
+     calibrating_sensorless_homing = true;
 
      // Sensorless homing auto calibration
      gcode_M918();
@@ -8492,7 +8495,7 @@ void beevc_machine_setup_test_powerloss (){
         case ADVANCED_PAUSE_MESSAGE_STATUS:
           beevc_screen_constant_update = false;
           lcd_return_to_status();
-          beevc_force_screen_update();
+          //beevc_force_screen_update();
           break;
 
     // BEEVC - Sensorless homing auto calibration

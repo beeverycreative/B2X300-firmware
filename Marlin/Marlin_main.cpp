@@ -773,7 +773,7 @@ inline float home_dir(AxisEnum axis){
 
 ////////////     Sensorless homing     //////////////
 #ifdef HAVE_TMC2130
-	bool calibrating_sensorless_homing_x = 0, calibrating_sensorless_homing_y = 0;
+	bool calibrating_sensorless_homing = 0;
   uint8_t sensorless_homing_progress = 0;
 #endif
 ///////////////////////////////////////////////////////
@@ -11894,7 +11894,7 @@ inline void gcode_M502() {
     #endif
 
     #if (ENABLED(X_IS_TMC2130) && ENABLED(Y_IS_TMC2130))
-      if (parser.seen('A') || calibrating_sensorless_homing_x)
+      if (parser.seen('A') || calibrating_sensorless_homing)
       {
         // Show homing screen
         lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_HOMING);
@@ -11926,8 +11926,10 @@ inline void gcode_M502() {
     SERIAL_ECHOPAIR("\nX axis sensorless homing calibration  :", thermalManager.sg2_homing_x_calibration);
     SERIAL_ECHOPAIR("\nY axis sensorless homing calibration  :", thermalManager.sg2_homing_y_calibration);
 
+
     // Show status screen
-    lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_STATUS);
+    if(!calibrating_sensorless_homing) // Does not show on self test wizard, caused printer to loop
+      lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_STATUS);
   }
   #endif  //BEEVC_TMC2130READSG
 

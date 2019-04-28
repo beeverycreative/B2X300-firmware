@@ -73,7 +73,7 @@ void manage_inactivity(bool ignore_stepper_queue = false);
 
 ////////////     Sensorless homing     //////////////
 #ifdef HAVE_TMC2130
-	extern bool calibrating_sensorless_homing_x, calibrating_sensorless_homing_y;
+	extern bool calibrating_sensorless_homing;
   extern uint8_t sensorless_homing_progress;
 #endif
 ///////////////////////////////////////////////////////
