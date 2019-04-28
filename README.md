@@ -8,6 +8,40 @@ For support, please visit https://beeverycreative.com/forum
 ## Changelog
 
 #### `B2X300-20190313`
+- Improved force screen update, and removed unnecessary variable
+- Implemented specific BEEVC EEPROM access to improve readability and address consistency
+- Power restore only works if there is no Self-test wizard set for launch and if bed temperature is within expected limits
+- Solved "Home Z first" messages on LCD
+- Implemented Serial Number system
+- Implemented Serial number Gcode "M800"
+- SN can now be viewed on "About" screen
+- Bed PWM can now be viewer on "About" screen
+- Improvement to manual extrusion
+- Improves LCD reactivity in SD card list and durint print
+- Corrections to Serial debug on EEPROM and sensorless homing
+- Improved sensorless homing autocalibration gcode "M918 A" for much faster calibration and higher stability
+- Improvements to Trinamic status gcode "M122" debug messages
+- Corrected erroneous step reset for E2
+- Corrected X and Y sensorless homing EEPROM load and reset
+- Reserved space on EEPROM for future features
+- Updated Bed PWM for new bed PCB
+- Status screen fan speed is now mapped to correct percentage as requested
+- Corrected bug that caused printer with invalid SN to bootloop
+- Severe reduction of size of LCD screens for Serial setup and Self test wizard
+- About screen now does trinamic stepper driver test
+- Updated Hotbed PID for latest PCB revision
+- Corrected self test wizard screens
+- Further improvements to sensorless homing code
+- Corrected operation of Self-test sensorless homing calibration
+- Various bugfixes and improvements
+
+**NEW FEATURES**: 
+- LCD screen will no longer get unreactive, allowing adjustments and monitoring of temperatures during print
+- LCD updates faster and its menus are more reactive
+- The printer will now store its Serial Number to allow automatic configuration of settings to best fit your specific machine
+- Sensorless homing now has a better consistency for detection force and its calibration is more precise, resulting in less noises during homing and improving powerloss recovery XY precision.
+
+#### `B2X300-20190313`
 - Bugfix sensorless homing and level bed Z probe
 - Introduced function to allow screen with menu and static text
 - Corrected Blower test screen on Self-Test Wizard
