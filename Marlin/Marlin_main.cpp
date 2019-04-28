@@ -730,10 +730,28 @@ FORCE_INLINE signed char pgm_read_any(const signed char *p) { return pgm_read_by
 
 XYZ_CONSTS_FROM_CONFIG(float, base_min_pos,   MIN_POS);
 XYZ_CONSTS_FROM_CONFIG(float, base_max_pos,   MAX_POS);
-XYZ_CONSTS_FROM_CONFIG(float, base_home_pos,  HOME_POS);
+//XYZ_CONSTS_FROM_CONFIG(float, base_home_pos,  HOME_POS);
 XYZ_CONSTS_FROM_CONFIG(float, max_length,     MAX_LENGTH);
 XYZ_CONSTS_FROM_CONFIG(float, home_bump_mm,   HOME_BUMP_MM);
-XYZ_CONSTS_FROM_CONFIG(signed char, home_dir, HOME_DIR);
+//XYZ_CONSTS_FROM_CONFIG(signed char, home_dir, HOME_DIR);
+
+inline float base_home_pos(AxisEnum axis){
+  if(axis == X_AXIS)         // X AXIS
+    return X_HOME_POS;
+  else if (axis == Y_AXIS)   // Y AXIS
+    return Y_HOME_POS;
+  else                       // Z_AXIS
+    return Z_HOME_POS;
+}
+
+inline float home_dir(AxisEnum axis){
+  if(axis == X_AXIS)         // X AXIS
+    return X_HOME_DIR;
+  else if (axis == Y_AXIS)   // Y AXIS
+    return Y_HOME_DIR;
+  else                       // Z_AXIS
+    return Z_HOME_DIR;
+}
 
 ////////////   Power recovery feature    //////////////
 #ifdef BEEVC_Restore
@@ -832,9 +850,10 @@ void report_current_position_detail();
     sensorless_homeaxis(X_AXIS);                                    \
     sensorless_homeaxis(Y_AXIS)
 
-  #define STALLGUARDTRIGGERENDSTOPS(axis, enable)                   \
+    #define STALLGUARDTRIGGERENDSTOPS(axis, enable)                   \
     if (axis == X_AXIS)   thermalManager.sg2_x_limit_hit = !enable; \
     else                  thermalManager.sg2_y_limit_hit = !enable
+  
 
 
   static void sensorless_homeaxis_prepare_stepper(const AxisEnum axis, bool *stealthchop_restore, uint16_t *old_current){
@@ -868,8 +887,10 @@ void report_current_position_detail();
     thermalManager.sg2_polling_wait_cycles = 0;
 
     // if X
-    if (axis == X_AXIS)   thermalManager.sg2_x_limit_hit = 0;
-    else                  thermalManager.sg2_y_limit_hit = 0;
+    if (axis == X_AXIS)
+      thermalManager.sg2_x_limit_hit = 0; 
+    else                  
+      thermalManager.sg2_y_limit_hit = 0;
   }
 
   static void sensorless_homeaxis_restore_stepper(const AxisEnum axis, bool *stealthchop_restore, uint16_t *old_current){
@@ -887,6 +908,7 @@ void report_current_position_detail();
     
     // Stores required stepper in variable
     TMC2130Stepper st = ( axis == X_AXIS? stepperX : stepperY);
+    
 
     st.rms_current(*old_current,HOLD_MULTIPLIER,R_SENSE);
 
@@ -906,24 +928,30 @@ void report_current_position_detail();
     // Allows stallGuard reading from triggering endstop
     STALLGUARDTRIGGERENDSTOPS(axis,true);
 
-    // Equivalent to homeaxis(axis) but leaner
+    // Equivalent to homeaxis(axis) but much leaner
+      // Sets movement to the axis size and moves there
+      current_position[axis] = max_length(axis) * home_dir(axis);
       // Resets planner axis position to zero
       planner.set_position_mm(axis,0);
-      // Sets movement to 1.5 times the axis size and moves there
-      current_position[axis] = 1.5 * max_length(axis) * home_dir(axis);
-
+      // Buffer movement on planner
+      planner.buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], homing_feedrate(axis), active_extruder);
+    
     // Starts counting time
     *homeduration = millis();
 
-      planner.buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], homing_feedrate(axis), active_extruder);
-      // Loop untill collision or timeout
-      stepper.synchronize();
-
+      // Loop waiting for colision
+      while (planner.blocks_queued()) idle();
+      
     // Stops counting time
     *homeduration = millis()- *homeduration;
 
+    // Ensures planner has finished clearing the buffer
+    stepper.synchronize();
+
     // Set the axis to its home position
     current_position[axis] = base_home_pos(axis);
+
+    // Sets axis as homed with known position
     axis_known_position[axis] = axis_homed[axis] = true;
     planner.set_position_mm(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
     set_destination_from_current();
@@ -931,36 +959,33 @@ void report_current_position_detail();
     // Stops stallGuard reading from triggering endstop
     STALLGUARDTRIGGERENDSTOPS(axis,false);
 
-    #ifdef SERIAL_DEBUG
-      SERIAL_ECHOLNPAIR("Homing duration: ", *homeduration);
-    #endif
+    SERIAL_DEBUG_MESSAGE_VALUE("Homing duration: ", *homeduration);
   }
 
   static void sensorless_homeaxis_move_away(const AxisEnum axis){
     // Stops stallGuard reading from triggering endstop
     STALLGUARDTRIGGERENDSTOPS(axis,false);
 
-    // Moves axis sligtly away from wall to allow new measurement
-    // If moving X
-      if (axis == X_AXIS)
-      #ifdef BEEVC_TMC2130HOMEXREVERSE
-        // Homes X to the right
-        do_blocking_move_to_xy((current_position[X_AXIS] >= (X_MIN_POS + abs(X_MIN_POS)) ? current_position[X_AXIS]-abs(X_MIN_POS) : current_position[X_AXIS]),current_position[Y_AXIS],25);
-      #else
-        // Homes X to the left
-        do_blocking_move_to_xy((current_position[X_AXIS] < (X_MAX_POS - abs(Y_MIN_POS)) ? current_position[X_AXIS]+abs(Y_MIN_POS) : current_position[X_AXIS]),current_position[Y_AXIS],25);
-      #endif //BEEVC_TMC2130HOMEXREVERSE
+    // Resets planner axis position to zero
+    planner.set_position_mm(axis,0);
 
-    // If moving Y
-      else
-        do_blocking_move_to_xy(current_position[X_AXIS],(current_position[Y_AXIS] >= (Y_MIN_POS + abs(Y_MIN_POS)) ? current_position[Y_AXIS]-abs(Y_MIN_POS) : current_position[Y_AXIS]),25);
+    // Moves axis sligtly away from wall to allow new measurement
+    current_position[axis] = -home_dir(axis) * 15;
+
+    SERIAL_DEBUG_MESSAGE_VALUE("Movement : ", current_position[axis]);
+
+    // Execute the motion
+    planner.buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], 25, active_extruder);
+    stepper.synchronize();
   }
+
+
 
   static void sensorless_homeaxis_loop(const AxisEnum axis){
     // Forces a movement away from homing direction on first loop
     uint16_t homeduration  = 11;
 
-    while (homeduration < 250) {
+    while (homeduration < 245) {
       // Only acts if the duration is bigger than 10 to avoid loop on frame hit
       if(homeduration > 10)
         sensorless_homeaxis_move_away(axis);
@@ -1010,18 +1035,28 @@ void report_current_position_detail();
 
   static void sensoless_homeaxis_calibration_prepare_stepper(const AxisEnum axis){
     //Reset default calibration values
-    if(axis == X_AXIS)
+    if(axis == X_AXIS){
       thermalManager.sg2_homing_x_calibration = 5;
+    }
     else
       thermalManager.sg2_homing_y_calibration = 20; 
   }
 
-  static void sensorless_homeaxis_raise_sensitivity (const AxisEnum axis, uint8_t *calibration_value){
+  static void sensorless_homeaxis_raise_sensitivity (const AxisEnum axis){
     // Decreasing SGT increases the sensitivity of stallGuard
 
     // Stores required stepper in variable
     TMC2130Stepper *st;
-    st = ( axis == X_AXIS? &stepperX : &stepperY);
+    uint8_t *calibration_value;
+    if(axis == X_AXIS){
+          st = &stepperX;
+          calibration_value = &thermalManager.sg2_homing_x_calibration;
+    }
+    else{
+      st = &stepperY;
+      calibration_value = &thermalManager.sg2_homing_y_calibration;
+    }
+      
 
     if(*calibration_value <= 95)
       // Tries raising the calibration value
@@ -1038,23 +1073,37 @@ void report_current_position_detail();
     SERIAL_DEBUG_MESSAGE_VALUE("SGT is               : ", st->sgt());
   }
 
-  static void sensorless_homeaxis_lower_sensitivity (const AxisEnum axis, uint8_t *calibration_value){
+  static void sensorless_homeaxis_lower_sensitivity (const AxisEnum axis){
     // Increasing SGT decreases the sensitivity of stallGuard
 
     // Stores required stepper in variable
     TMC2130Stepper *st;
-    st = ( axis == X_AXIS? &stepperX : &stepperY);
+    uint8_t *calibration_value;
+    if(axis == X_AXIS){
+          st = &stepperX;
+          calibration_value = &thermalManager.sg2_homing_x_calibration;
+    }
+    else{
+      st = &stepperY;
+      calibration_value = &thermalManager.sg2_homing_y_calibration;
+    }
 
-    if(*calibration_value >= 5)
+    if(*calibration_value >= 5){
+      SERIAL_DEBUG_MESSAGE("Lowering calibration value");
       // Tries raising the calibration value
       *calibration_value -= 5;
-    else
+    }
+      
+    else{
+      SERIAL_DEBUG_MESSAGE("Lowering sgt");
+      SERIAL_DEBUG_MESSAGE_VALUE("SGT is                : ", st->sgt());   
       // If it can't, change the StallGuard treshold
       if (st->sgt() < 10){
         st->sgt(st->sgt()+1);
         // Reset calibration midvalue
         *calibration_value = 25;
       }
+    }
 
     SERIAL_DEBUG_MESSAGE_VALUE("Lowered sensitivity to: ", *calibration_value);
     SERIAL_DEBUG_MESSAGE_VALUE("SGT is                : ", st->sgt());   
@@ -1064,11 +1113,10 @@ void report_current_position_detail();
     bool to_calibrate = true;
     uint16_t home_duration_sum = 0;
     uint16_t home_duration = 0;
-    const uint16_t home_duration_expected = (axis == X_AXIS ?270 : 280);
+    const uint16_t home_duration_expected = 245; //(axis == X_AXIS ?250 : 270);
     const uint16_t home_duration_limit = home_duration_expected + 10 ;
     const uint16_t home_duration_adjust_threshold_bottom = home_duration_expected -20;
-    const uint16_t home_duration_adjust_threshold_top = home_duration_expected +50;
-    uint8_t *calibration_value = (axis == X_AXIS ? &thermalManager.sg2_homing_x_calibration: &thermalManager.sg2_homing_y_calibration);
+    const uint16_t home_duration_adjust_threshold_top = home_duration_expected +20;
     uint8_t count = 0;
 
     //Loop while testing new values until a good calibration value is found for axis
@@ -1078,31 +1126,30 @@ void report_current_position_detail();
         // Moves away to allow detection
         sensorless_homeaxis_move_away(axis);
 
-        // Measures duration till contact
+        // Measures and stores duration till contact
         sensorless_homeaxis_measure_duration(axis,&home_duration);
+        home_duration_sum += home_duration;
 
+        // Makes sure the result never leads to false positives
         // Speeds up finding the correct value by making adjustment if measure is too far off
         if (home_duration < home_duration_adjust_threshold_bottom){
-          sensorless_homeaxis_lower_sensitivity(axis,calibration_value);
-          // Restart the loop
-          k=-1;
-          home_duration_sum = 0;
-          home_duration = 0;
+          // Ensures no false homing adjust the signal
+          if(home_duration > 10){
+            sensorless_homeaxis_lower_sensitivity(axis);
+            // Restart the loop
+            k=-1;
+            home_duration_sum = 0;
+            home_duration = 0;
+          }
         }
           
-        
         if (home_duration > home_duration_adjust_threshold_top){
-          sensorless_homeaxis_raise_sensitivity(axis,calibration_value);
+          sensorless_homeaxis_raise_sensitivity(axis);
           // Restart the loop
           k=-1;
           home_duration_sum = 0;
           home_duration = 0;
         }
-          
-        
-        // Makes sure the result never leads to false positives
-        if (home_duration > home_duration_adjust_threshold_bottom)
-          home_duration_sum += home_duration;
 
         // Advance the progress on screen
         if(++sensorless_homing_progress > 3)
@@ -1129,10 +1176,10 @@ void report_current_position_detail();
       // Verifies if the homing values appear good if so exits, otherwise adjusts calibration
       if (home_duration_result > home_duration_limit)
         // If it takes too long to detect means sensitivity is too low
-        sensorless_homeaxis_raise_sensitivity(axis,calibration_value);
+        sensorless_homeaxis_raise_sensitivity(axis);
       else if (home_duration_result < home_duration_expected)
         // If it takes less time than expected means false positives, hence sensitivity is too high
-        sensorless_homeaxis_lower_sensitivity(axis,calibration_value);
+        sensorless_homeaxis_lower_sensitivity(axis);
       else
         // Expected value has been reached
         to_calibrate = false;
@@ -11849,19 +11896,13 @@ inline void gcode_M502() {
     #if (ENABLED(X_IS_TMC2130) && ENABLED(Y_IS_TMC2130))
       if (parser.seen('A') || calibrating_sensorless_homing_x)
       {
-        // Stores old acceleration and sets the correct acceleration for leveling/ homing
-        float old_acceleration = planner.travel_acceleration;
-        planner.travel_acceleration = 750;
-
         // Show homing screen
         lcd_advanced_pause_show_message(SENSORLESS_HOMING_CALIBRATION_HOMING);
 
-        stepperX.push();
-        stepperY.push();
         // Raise Z
         do_blocking_move_to_z(current_position[Z_AXIS]+ Z_CLEARANCE_DEPLOY_PROBE);
 
-        //Homes XY
+        //Homes XY with default settings
         SENSORLESSHOMEAXISXY();
 
         // Show X calibration screen
@@ -11875,17 +11916,11 @@ inline void gcode_M502() {
 
         // Execute autocalibration of sensorless homing on the Y axis
         sensorless_autocalibration(Y_AXIS);
-        stepperX.push();
-        stepperY.push();
-
-        // Restores old acceleration settings
-        planner.travel_acceleration = old_acceleration;
       }
     #endif //(ENABLED(X_IS_TMC2130) && ENABLED(Y_IS_TMC2130))
 
     // Store the values to eeprom
-    BEEVC_WRITE_EEPROM(X_CAL,thermalManager.sg2_homing_x_calibration);
-    BEEVC_WRITE_EEPROM(Y_CAL,thermalManager.sg2_homing_y_calibration);
+    settings.save();
 
     // Prints current value
     SERIAL_ECHOPAIR("\nX axis sensorless homing calibration  :", thermalManager.sg2_homing_x_calibration);
