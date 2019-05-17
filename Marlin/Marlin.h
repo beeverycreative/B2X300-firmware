@@ -73,7 +73,7 @@ void manage_inactivity(bool ignore_stepper_queue = false);
 
 ////////////     Sensorless homing     //////////////
 #ifdef HAVE_TMC2130
-	extern bool calibrating_sensorless_homing_x, calibrating_sensorless_homing_y;
+	extern bool calibrating_sensorless_homing;
   extern uint8_t sensorless_homing_progress;
 #endif
 ///////////////////////////////////////////////////////
@@ -87,6 +87,12 @@ void manage_inactivity(bool ignore_stepper_queue = false);
 ////////////     Better autoleveling     //////////////
 #ifdef BEEVC_B2X300
 	extern bool G28_stow;
+#endif
+///////////////////////////////////////////////////////
+
+////////////     Serial number     //////////////
+#ifdef BEEVC_B2X300
+	extern uint32_t serialNumber;
 #endif
 ///////////////////////////////////////////////////////
 

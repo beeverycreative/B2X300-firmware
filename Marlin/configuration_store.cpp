@@ -36,25 +36,56 @@
  *
  */
 
-#define EEPROM_VERSION "B01"
 
-/* B01 EEPROM map byte adress
-      * 0-3     Z position
-      * 4-7     X position
-      * 8-11    Y position
-      * 12      Active Extruder,Extruder mode, acceleration
-      * 13-16   E position
-      * 17-18   Fan Speed (reduce to 8 bit??)
-      * 19-20   E0 temp
-      * 21-22   E1 temp
-      * 23-24   Bed temp (reduce to 8 bit??)
-      * 25-28   Sdcard file byte
-      * 29-98   SD File path
-      * 99      Startup wizard flag
-      */
+/**
+ * EEPROM Versions history
+ * B01 - First BEEVC specific EEPROM structure
+ *  B01 EEPROM map byte address
+ *  0-3     Z position
+ *  4-7     X position
+ *  8-11    Y position
+ *  12      Active Extruder,Extruder mode, acceleration
+ *  13-16   E position
+ *  17-18   Fan Speed (reduce to 8 bit??)
+ *  19-20   E0 temp
+ *  21-22   E1 temp
+ *  23-24   Bed temp (reduce to 8 bit??)
+ *  25-28   Sdcard file byte
+ *  29-98   SD File path
+ *  99      Startup wizard flag
+ * 
+ * B02 - Added support for SN storage, and corrected SD card file name storage, changed offset to 150
+ *  B02 EEPROM map byte address
+ *  Adress  Bytes   Type      Description
+ *  0       4       float     SN
+ *  4       4       float     Z position
+ *  8       4       float     X position
+ *  12      4       float     Y position
+ *  16      1       uint8_t   Active Extruder,Extruder mode, acceleration
+ *  17      1       bool      Extruder mode
+ *  18      4       uint32_t  Acceleration
+ *  22      4       float     E position
+ *  26      2       uint16_t  Fan Speed
+ *  28      2       uint16_t  E0 temp
+ *  30      2       uint16_t  E1 temp
+ *  32      2       uint16_t  Bed temp
+ *  34      4       uint32_t  Sdcard file adress
+ *  38      70                SD File path
+ *  108     1       uint8_t   X sensorless homing calibration
+ *  109     1       uint8_t   Y sensorless homing calibration
+ *  110     1       uint8_t   Startup wizard flag
+ *  111     1       uint8_t   Reserved
+ *  112     1       uint8_t   Reserved
+ *  113     37                Free space
+ * 
+ */
+#define EEPROM_VERSION "B02"
+
+/** 
+ */
 
 // Change EEPROM version if these are changed:
-#define EEPROM_OFFSET 100
+#define EEPROM_OFFSET 150
 
 /**
  * V47 EEPROM Layout:
@@ -213,6 +244,8 @@ MarlinSettings settings;
 #include "ultralcd.h"
 #include "stepper.h"
 #include "gcode.h"
+#include "BEEVC_B2X300_SN.h"
+#include "BEEVC_EEPROM.h"
 
 #if ENABLED(MESH_BED_LEVELING)
   #include "mesh_bed_leveling.h"
@@ -338,34 +371,7 @@ void MarlinSettings::postprocess() {
   }
 
   // NON CRC Version
-
-  // Necessary to write to eeprom
-inline void EEPROM_write(int &pos, const uint8_t *value, uint16_t size) {
-   while (size--) {
-     uint8_t * const p = (uint8_t * const)pos;
-     uint8_t v = *value;
-     // EEPROM has only ~100,000 write cycles,
-     // so only write bytes that have changed!
-     if (v != eeprom_read_byte(p)) {
-       eeprom_write_byte(p, v);
-       if (eeprom_read_byte(p) != v) {
-         SERIAL_ECHO_START();
-         SERIAL_ECHOLNPGM(MSG_ERR_EEPROM_WRITE);
-         return;
-       }
-     }
-     pos++;
-     value++;
-   };
- }
- inline void EEPROM_read(int &pos, uint8_t* value, uint16_t size) {
-   do {
-     uint8_t c = eeprom_read_byte((unsigned char*)pos);
-     *value = c;
-     pos++;
-     value++;
-   } while (--size);
- }
+  // Included in BEEVC_EEPROM
 
   /**
    * M500 - Store Configuration
@@ -722,10 +728,8 @@ inline void EEPROM_write(int &pos, const uint8_t *value, uint16_t size) {
     EEPROM_WRITE(thrs);
 
     // SPI Sensorless homing extra calibration
-    int temp_index = 50;
-    EEPROM_write(temp_index, (uint8_t*)&thermalManager.sg2_homing_x_calibration, sizeof(thermalManager.sg2_homing_x_calibration));
-    EEPROM_write(temp_index, (uint8_t*)&thermalManager.sg2_homing_y_calibration, sizeof(thermalManager.sg2_homing_y_calibration));
-
+    BEEVC_WRITE_EEPROM(X_CAL,thermalManager.sg2_homing_x_calibration);
+    BEEVC_WRITE_EEPROM(Y_CAL,thermalManager.sg2_homing_y_calibration);
 
     //
     // Linear Advance
@@ -806,18 +810,65 @@ inline void EEPROM_write(int &pos, const uint8_t *value, uint16_t size) {
    * M501 - Retrieve Configuration
    */
   bool MarlinSettings::load() {
+
+    ////////////     Serial number     //////////////
+    #ifdef BEEVC_B2X300
+      BEEVC_READ_EEPROM(SN,serialNumber);
+    #endif
+
+    // If serial is invalid forces self-test wizard and printer reset
+    if (!validateSerial(serialNumber)){
+
+      // Only sets flag and resets if setup wizard isn't set
+      uint8_t temp = 0;
+      BEEVC_READ_EEPROM(W_FLAG,temp);
+      if (temp > 2){
+        // Sets Setup Wizard flag
+      gcode_M720();
+
+      // Restarts the firmware
+      asm volatile ("  jmp 0");
+      }
+      
+    }
+    ///////////////////////////////////////////////////////
     uint16_t working_crc = 0;
 
     EEPROM_START();
 
     char stored_ver[4];
+
+    // Ensures there is no leftover data from last EEPROM version
+    eeprom_index = 100;
+    EEPROM_READ(stored_ver);
+    // If there is the old version still stored
+    if((strncmp("B00", stored_ver, 3) == 0) ||  (strncmp("B01", stored_ver, 3) == 0)){
+      // Deletes flag to avoid problems on downgrade
+      eeprom_index = 100;
+      strcpy(stored_ver, "ERR");
+      EEPROM_WRITE(stored_ver);
+
+      // Corrupts current version flag to force reset
+      eeprom_index = EEPROM_OFFSET;
+      EEPROM_WRITE(stored_ver);
+    }
+
+    // Resets everything to default status and continues load
+    working_crc = 0;
+    eeprom_index = EEPROM_OFFSET;
+
     EEPROM_READ(stored_ver);
 
     uint16_t stored_crc;
     EEPROM_READ(stored_crc);
 
+    SERIAL_ECHOPAIR("EEPROM=", stored_ver);
+    SERIAL_ECHOLNPGM(" Marlin=" EEPROM_VERSION);
+
     // Version has to match or defaults are used
     if (strncmp(version, stored_ver, 3) != 0) {
+      SERIAL_ECHOPGM("EEPROM version mismatch ");
+      serialNumber = 1212300001;
       if (stored_ver[0] != 'B') {
         stored_ver[0] = '?';
         stored_ver[1] = '\0';
@@ -839,6 +890,9 @@ inline void EEPROM_write(int &pos, const uint8_t *value, uint16_t size) {
       asm volatile ("  jmp 0");
     }
     else {
+      // BEEVC loads bed PWM
+      BEEVC_READ_EEPROM(BED_PWM,thermalManager.bed_pwm); 
+
       float dummy = 0;
       #if DISABLED(AUTO_BED_LEVELING_UBL) || DISABLED(FWRETRACT)
         bool dummyb;
@@ -1214,9 +1268,8 @@ inline void EEPROM_write(int &pos, const uint8_t *value, uint16_t size) {
       #endif
 
       // Extra sensorless homing calibration
-      int sensorless_index = 50;
-      EEPROM_read(sensorless_index, (uint8_t*)&thermalManager.sg2_homing_x_calibration, sizeof(thermalManager.sg2_homing_x_calibration));
-      EEPROM_read(sensorless_index, (uint8_t*)&thermalManager.sg2_homing_y_calibration, sizeof(thermalManager.sg2_homing_y_calibration));
+      BEEVC_READ_EEPROM(X_CAL,thermalManager.sg2_homing_x_calibration);
+      BEEVC_READ_EEPROM(Y_CAL,thermalManager.sg2_homing_y_calibration);
 
       //
       // Linear Advance
@@ -1437,10 +1490,21 @@ inline void EEPROM_write(int &pos, const uint8_t *value, uint16_t size) {
  * M502 - Reset Configuration
  */
 void MarlinSettings::reset() {
-  static const float tmp1[] PROGMEM = DEFAULT_AXIS_STEPS_PER_UNIT, tmp2[] PROGMEM = DEFAULT_MAX_FEEDRATE;
+  // Reset and store Bed PWM
+  thermalManager.bed_pwm = getBedPWM(serialNumber);
+  BEEVC_WRITE_EEPROM(BED_PWM,thermalManager.bed_pwm); 
+
+  #ifndef BEEVC_B2X300
+    static const float tmp1[] PROGMEM = DEFAULT_AXIS_STEPS_PER_UNIT;
+  #endif
+  static const float tmp2[] PROGMEM = DEFAULT_MAX_FEEDRATE;
   static const uint32_t tmp3[] PROGMEM = DEFAULT_MAX_ACCELERATION;
   LOOP_XYZE_N(i) {
-    planner.axis_steps_per_mm[i]          = pgm_read_float(&tmp1[i < COUNT(tmp1) ? i : COUNT(tmp1) - 1]);
+    #ifdef BEEVC_B2X300
+      planner.axis_steps_per_mm[i]          = getSteps((AxisEnum)i,serialNumber);
+    #else
+      planner.axis_steps_per_mm[i]          = pgm_read_float(&tmp1[i < COUNT(tmp1) ? i : COUNT(tmp1) - 1]);
+    #endif
     planner.max_feedrate_mm_s[i]          = pgm_read_float(&tmp2[i < COUNT(tmp2) ? i : COUNT(tmp2) - 1]);
     planner.max_acceleration_mm_per_s2[i] = pgm_read_dword_near(&tmp3[i < COUNT(tmp3) ? i : COUNT(tmp3) - 1]);
   }
@@ -1551,9 +1615,16 @@ void MarlinSettings::reset() {
       HOTEND_LOOP()
     #endif
     {
-      PID_PARAM(Kp, e) = DEFAULT_Kp;
-      PID_PARAM(Ki, e) = scalePID_i(DEFAULT_Ki);
-      PID_PARAM(Kd, e) = scalePID_d(DEFAULT_Kd);
+      #ifdef BEEVC_B2X300
+        PID_PARAM(Kp, e) = getPID(e+1,serialNumber,'P');
+        PID_PARAM(Ki, e) = scalePID_i(getPID(e+1,serialNumber,'I'));
+        PID_PARAM(Kd, e) = scalePID_d(getPID(e+1,serialNumber,'D'));
+      #else
+        PID_PARAM(Kp, e) = DEFAULT_Kp;
+        PID_PARAM(Ki, e) = scalePID_i(DEFAULT_Ki);
+        PID_PARAM(Kd, e) = scalePID_d(DEFAULT_Kd);
+      #endif
+      
       #if ENABLED(PID_EXTRUSION_SCALING)
         PID_PARAM(Kc, e) = DEFAULT_Kc;
       #endif
@@ -1564,9 +1635,15 @@ void MarlinSettings::reset() {
   #endif // PIDTEMP
 
   #if ENABLED(PIDTEMPBED)
-    thermalManager.bedKp = DEFAULT_bedKp;
-    thermalManager.bedKi = scalePID_i(DEFAULT_bedKi);
-    thermalManager.bedKd = scalePID_d(DEFAULT_bedKd);
+    #ifdef BEEVC_B2X300
+      thermalManager.bedKp = getPID(0,serialNumber,'P');
+      thermalManager.bedKi = scalePID_i(getPID(0,serialNumber,'I'));
+      thermalManager.bedKd = scalePID_d(getPID(0,serialNumber,'D'));
+    #else
+      thermalManager.bedKp = DEFAULT_bedKp;
+      thermalManager.bedKi = scalePID_i(DEFAULT_bedKi);
+      thermalManager.bedKd = scalePID_d(DEFAULT_bedKd);
+    #endif
   #endif
 
   #if HAS_LCD_CONTRAST

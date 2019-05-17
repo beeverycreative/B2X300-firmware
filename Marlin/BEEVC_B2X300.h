@@ -103,3 +103,14 @@
   #define BEEVC_SG2_DEBUG_HALF_SAMPLES (BEEVC_SG2_DEBUG_SAMPLES/2)
   #define BEEVC_SG2_DEBUG_SAMPLES 300
 #endif
+
+// Utility defines that allow easy integration of debug messages
+#ifdef SERIAL_DEBUG
+    #define SERIAL_DEBUG_MESSAGE(str)             SERIAL_PROTOCOLLN(str)
+    #define SERIAL_DEBUG_MESSAGE_VALUE(str, val)  SERIAL_PROTOCOLLNPAIR(str, val)
+    #define SERIAL_DEBUG_RUN(funct)               funct
+  #else
+    #define SERIAL_DEBUG_MESSAGE(str) 
+    #define SERIAL_DEBUG_MESSAGE_VALUE(str, val)
+    #define SERIAL_DEBUG_RUN(funct)
+  #endif

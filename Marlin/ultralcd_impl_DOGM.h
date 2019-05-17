@@ -562,7 +562,16 @@ static void lcd_implementation_status_screen() {
     #if HAS_FAN0
       if (PAGE_CONTAINS(20, 27)) {
         // Fan
-        const int16_t per = ((fanSpeeds[0] + 1) * 100) / 256;
+        // Maps per to correct ammount        
+        const int16_t speed = map(fanSpeeds[0],B2X300_MIN_FAN,255,0,255);
+
+        // Calculate percentage
+        int8_t per = ((speed + 1) * 100) / 256;
+
+        // Caps percentage to a value from 0 to 100
+        NOMORE(per,100);
+        NOLESS(per,0);
+        
         if (per) {
           u8g.setPrintPos(104, 27);
           lcd_print(itostr3(per));
@@ -872,6 +881,31 @@ static void lcd_implementation_status_screen() {
     }
     while (n-- > 0) u8g.print(' ');
   }
+
+  // Draw a static string
+  static void lcd_implementation_drawmenu_string(const uint8_t row, const char* valstr=NULL) {
+
+    row_y1 = row * row_height + 1;
+    row_y2 = row_y1 + row_height - 1;
+
+    u8g.setPrintPos((START_COL) * (DOG_CHAR_WIDTH), row_y2);
+
+    if (!PAGE_CONTAINS(row_y1, row_y2)) return;
+
+    int8_t n = LCD_WIDTH - (START_COL);
+
+    if(valstr){
+      char c;
+      while (n > 0 && (c = *valstr)) {
+        n -= lcd_print_and_count(c);
+        valstr++;
+      }
+    }
+    
+    while (n-- > 0) u8g.print(' ');
+  }
+
+  
 
   // Draw a generic menu item
   static void lcd_implementation_drawmenu_generic(const bool isSelected, const uint8_t row, const char* pstr, const char pre_char, const char post_char) {
