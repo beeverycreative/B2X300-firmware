@@ -7,7 +7,7 @@ For support, please visit https://beeverycreative.com/forum
 
 ## Changelog
 
-#### `B2X300-20190313`
+#### `B2X300-20190517`
 - Improved force screen update, and removed unnecessary variable
 - Implemented specific BEEVC EEPROM access to improve readability and address consistency
 - Power restore only works if there is no Self-test wizard set for launch and if bed temperature is within expected limits
