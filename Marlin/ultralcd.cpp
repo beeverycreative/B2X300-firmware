@@ -3556,8 +3556,9 @@ void kill_screen(const char* lcd_msg) {
       //Sets the host keepalive to NOT_BUSY
       KEEPALIVE_STATE(NOT_BUSY);
 
-      // Enables return to status on standby
-      defer_return_to_status = false;
+      // Enables return to status on standby if unloading
+      if(!manual_extrude && !unload_load)
+        defer_return_to_status = false;
 
       // Goes back to the action selection
       lcd_goto_screen(lcd_filament_change_choose_action);
