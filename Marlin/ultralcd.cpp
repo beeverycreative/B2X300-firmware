@@ -3355,19 +3355,32 @@ void kill_screen(const char* lcd_msg) {
     void lcd_filament_change_move_e() {
         defer_return_to_status = true;
         beevc_screen_constant_update = true;
+        
         ENCODER_DIRECTION_NORMAL();
         if (encoderPosition) {
-          float diff = float((int32_t)encoderPosition) * 10;
+          int16_t diff = (int32_t)encoderPosition *10 ;
           NOMORE(diff,5);
           NOLESS(diff,-5);
 
           current_position[E_AXIS] += diff;
-          planner.buffer_line_kinematic(current_position, 2, active_extruder);
+
+          // Only add lines if the planner isn't full
+          if(!planner.is_full())
+            planner.buffer_line_kinematic(current_position, 2, active_extruder);
+          // If planner is full the acomulated extruder position will be fed once it is clear
+          else
+            beevc_continue = true;
 
           lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
           encoderPosition = 0;
         }
 
+        // If the planner is empty feed next queued movement
+        if(planner.movesplanned() == 0 && beevc_continue){
+          planner.buffer_line_kinematic(current_position, 2, active_extruder);
+          beevc_continue = false;
+        }
+          
         if (lcdDrawUpdate) 
           lcd_filament_change_move_e_screen();
     }
