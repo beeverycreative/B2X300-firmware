@@ -2835,33 +2835,38 @@ void kill_screen(const char* lcd_msg) {
       strcat(about_string, i8tostr3(thermalManager.bed_pwm));
       STATIC_STRING(about_string);
 
-      // Only runs test once
-      if(trinamic_ok == 0){
-        beevc_trinamic_test();
+      // Trinamic axis test
+      // Only executes the test if still
+      if(!(planner.movesplanned() || IS_SD_PRINTING || IS_SD_FILE_OPEN)){
+        // Only runs test once
+        if(trinamic_ok == 0){
+          beevc_trinamic_test();
+        }
+        // Only show space if error exists
+        if (trinamic_ok != 0x1F){
+          // X axis
+          if(!(trinamic_ok & 0x01)){
+            STATIC_ITEM("X Stepper driver: NOK");
+          }          
+          // Y axis
+          if(!(trinamic_ok & 0x02)){
+            STATIC_ITEM("Y Stepper driver: NOK");
+          }          
+          // Z axis
+          if(!(trinamic_ok & 0x04)){
+            STATIC_ITEM("Z Stepper driver: NOK");
+          }
+          // E1 axis
+          if(!(trinamic_ok & 0x08)){
+            STATIC_ITEM("E1 Stepper driver:NOK");
+          }
+          // E2 axis
+          if(!(trinamic_ok & 0x10)){
+            STATIC_ITEM("E2 Stepper driver:NOK");
+          }
+        }
       }
-      // Only show space if error exists
-      if (trinamic_ok != 0x1F){
-        // X axis
-        if(!(trinamic_ok & 0x01)){
-          STATIC_ITEM("X Stepper driver: NOK");
-        }          
-        // Y axis
-        if(!(trinamic_ok & 0x02)){
-          STATIC_ITEM("Y Stepper driver: NOK");
-        }          
-        // Z axis
-        if(!(trinamic_ok & 0x04)){
-          STATIC_ITEM("Z Stepper driver: NOK");
-        }
-        // E1 axis
-        if(!(trinamic_ok & 0x08)){
-          STATIC_ITEM("E1 Stepper driver:NOK");
-        }
-        // E2 axis
-        if(!(trinamic_ok & 0x10)){
-          STATIC_ITEM("E2 Stepper driver:NOK");
-        }
-      }
+      
 
       END_SCREEN();
     }
