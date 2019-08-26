@@ -2835,33 +2835,38 @@ void kill_screen(const char* lcd_msg) {
       strcat(about_string, i8tostr3(thermalManager.bed_pwm));
       STATIC_STRING(about_string);
 
-      // Only runs test once
-      if(trinamic_ok == 0){
-        beevc_trinamic_test();
+      // Trinamic axis test
+      // Only executes the test if still
+      if(!(planner.movesplanned() || IS_SD_PRINTING || IS_SD_FILE_OPEN)){
+        // Only runs test once
+        if(trinamic_ok == 0){
+          beevc_trinamic_test();
+        }
+        // Only show space if error exists
+        if (trinamic_ok != 0x1F){
+          // X axis
+          if(!(trinamic_ok & 0x01)){
+            STATIC_ITEM("X Stepper driver: NOK");
+          }          
+          // Y axis
+          if(!(trinamic_ok & 0x02)){
+            STATIC_ITEM("Y Stepper driver: NOK");
+          }          
+          // Z axis
+          if(!(trinamic_ok & 0x04)){
+            STATIC_ITEM("Z Stepper driver: NOK");
+          }
+          // E1 axis
+          if(!(trinamic_ok & 0x08)){
+            STATIC_ITEM("E1 Stepper driver:NOK");
+          }
+          // E2 axis
+          if(!(trinamic_ok & 0x10)){
+            STATIC_ITEM("E2 Stepper driver:NOK");
+          }
+        }
       }
-      // Only show space if error exists
-      if (trinamic_ok != 0x1F){
-        // X axis
-        if(!(trinamic_ok & 0x01)){
-          STATIC_ITEM("X Stepper driver: NOK");
-        }          
-        // Y axis
-        if(!(trinamic_ok & 0x02)){
-          STATIC_ITEM("Y Stepper driver: NOK");
-        }          
-        // Z axis
-        if(!(trinamic_ok & 0x04)){
-          STATIC_ITEM("Z Stepper driver: NOK");
-        }
-        // E1 axis
-        if(!(trinamic_ok & 0x08)){
-          STATIC_ITEM("E1 Stepper driver:NOK");
-        }
-        // E2 axis
-        if(!(trinamic_ok & 0x10)){
-          STATIC_ITEM("E2 Stepper driver:NOK");
-        }
-      }
+      
 
       END_SCREEN();
     }
@@ -3355,19 +3360,32 @@ void kill_screen(const char* lcd_msg) {
     void lcd_filament_change_move_e() {
         defer_return_to_status = true;
         beevc_screen_constant_update = true;
+        
         ENCODER_DIRECTION_NORMAL();
         if (encoderPosition) {
-          float diff = float((int32_t)encoderPosition) * 10;
+          int16_t diff = (int32_t)encoderPosition *10 ;
           NOMORE(diff,5);
           NOLESS(diff,-5);
 
           current_position[E_AXIS] += diff;
-          planner.buffer_line_kinematic(current_position, 2, active_extruder);
+
+          // Only add lines if the planner isn't full
+          if(!planner.is_full())
+            planner.buffer_line_kinematic(current_position, 2, active_extruder);
+          // If planner is full the acomulated extruder position will be fed once it is clear
+          else
+            beevc_continue = true;
 
           lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
           encoderPosition = 0;
         }
 
+        // If the planner is empty feed next queued movement
+        if(planner.movesplanned() == 0 && beevc_continue){
+          planner.buffer_line_kinematic(current_position, 2, active_extruder);
+          beevc_continue = false;
+        }
+          
         if (lcdDrawUpdate) 
           lcd_filament_change_move_e_screen();
     }
@@ -3556,8 +3574,9 @@ void kill_screen(const char* lcd_msg) {
       //Sets the host keepalive to NOT_BUSY
       KEEPALIVE_STATE(NOT_BUSY);
 
-      // Enables return to status on standby
-      defer_return_to_status = false;
+      // Enables return to status on standby if unloading
+      if(!manual_extrude && !unload_load)
+        defer_return_to_status = false;
 
       // Goes back to the action selection
       lcd_goto_screen(lcd_filament_change_choose_action);

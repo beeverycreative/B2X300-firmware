@@ -7,6 +7,13 @@ For support, please visit https://beeverycreative.com/forum
 
 ## Changelog
 
+#### `B2X300-20190813`
+- Corrected restart on manual extrusion
+- Corrected stepper driver destruction on manual extrusion
+- Change filament now only times out when unloading
+- Filament runout is now more resistant to false detections
+- About screen trinamic test only runs when still to avoid step loss
+
 #### `B2X300-20190517`
 - Improved force screen update, and removed unnecessary variable
 - Implemented specific BEEVC EEPROM access to improve readability and address consistency

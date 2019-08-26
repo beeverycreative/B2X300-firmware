@@ -10804,6 +10804,28 @@ inline void gcode_M502() {
    */
   inline void gcode_M600() {
 
+    pause_filament_runout = parser.seen('F');
+
+    // Ensures the filament runout is still valid, 
+    // false detection can happen in two conditions:
+    // 1) if printing with E2 and it changes to E1 momentarily for processes (G28, G29, etc...) 
+    //    if E1 has no filament, irregardless of E2 having filament or not.
+    // 2) When starting a print, printer always assumes E1, if it has no filament it will trigger filament runout
+    //    ignore filament runout until leveling is complete.
+    if (pause_filament_runout){
+      // ignore filament runout until leveling is complete, aka still in start gcode
+      if(!planner.leveling_active){
+        SERIAL_PROTOCOLLNPGM("False filament runout detected. In start Gcode");
+        return;
+      }
+
+      // 
+      if ((READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING)  && (active_extruder == 1) && !(READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING)){
+        SERIAL_PROTOCOLLNPGM("False E2 filament runout detected");
+        return;
+      }     
+    }
+
     point_t park_point = NOZZLE_PARK_POINT;
 
     #if ENABLED(HOME_BEFORE_FILAMENT_CHANGE)
@@ -10857,8 +10879,6 @@ inline void gcode_M502() {
     );
 
     const bool job_running = print_job_timer.isRunning();
-
-    pause_filament_runout = parser.seen('F');
 
     if (pause_print(retract, park_point, unload_length, beep_count, true)) {
       wait_for_filament_reload(beep_count);
