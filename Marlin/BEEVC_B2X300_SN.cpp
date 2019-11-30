@@ -193,6 +193,10 @@
         if (serial >= BEEVC_B2X300_PROD3_SN && serial < BEEVC_B2X300_PROD3_SN+54)
             return true;
 
+        // Check if within fourth production
+        if (serial >= BEEVC_B2X300_PROD4_SN_START && serial < BEEVC_B2X300_PROD4_SN_END)
+            return true;
+
         return false;
     }
 

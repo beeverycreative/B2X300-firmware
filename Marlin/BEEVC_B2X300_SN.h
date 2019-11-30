@@ -21,6 +21,7 @@
  * 1212300000-1212300050|   First production series
  * 1212400051-1212400095|   Second production series
  * 1212400096-1212400150|   Third production series
+ * 1212500000-1212500299|   Fourth production series
  * 
  * Revision history
  *      SN              |   Changes
@@ -29,6 +30,7 @@
  * 1212300000-1212300050|   New extruder hobbed gear, release bed
  * 1212400051-1212400095|   None
  * 1212400096-1212400150|   New heated bed PCB
+ * 1212500000-1212500299|   Motherboard changed to MKS gen 1.4
  */
 
 #include "enum.h"
@@ -47,7 +49,9 @@
     #define BEEVC_B2X300_PROD1_SN       1212300001   
     #define BEEVC_B2X300_PROD2_SN       1212400051
     #define BEEVC_B2X300_PROD3_SN       1212400096
-    #define BEEVC_B2X300_LATEST_SN BEEVC_B2X300_PROD3_SN
+    #define BEEVC_B2X300_PROD4_SN_START 1212500000
+    #define BEEVC_B2X300_PROD4_SN_END   1212500299
+    #define BEEVC_B2X300_LATEST_SN BEEVC_B2X300_PROD4_SN_END
 
     /**
      * getSteps: return the steps/mm for a given axis and serial number
