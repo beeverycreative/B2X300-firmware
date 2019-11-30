@@ -7,6 +7,9 @@ For support, please visit https://beeverycreative.com/forum
 
 ## Changelog
 
+#### `B2X300-20191130`
+- Included new serial numbers configurations 
+
 #### `B2X300-20190813`
 - Corrected restart on manual extrusion
 - Corrected stepper driver destruction on manual extrusion
