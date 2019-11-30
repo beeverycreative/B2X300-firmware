@@ -2821,7 +2821,7 @@ static void clean_up_after_endstop_or_probe_move() {
         SERIAL_ECHOLN(" ");
       #endif //SERIAL_DEBUG
 
-      // Return the average value of all probes witout the farthest outlier
+      // Return the average value of all probes without the farthest outlier
       return (result * (1.0 / (MULTIPLE_PROBING-1)));
 
       // Return the average value of all probes
