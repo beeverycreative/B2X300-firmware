@@ -7,6 +7,9 @@ For support, please visit https://beeverycreative.com/forum
 
 ## Changelog
 
+#### `B2X300-20191202`
+- Corrected some errors wth serial number identification
+
 #### `B2X300-20191130`
 - Included new serial numbers configurations 
 
