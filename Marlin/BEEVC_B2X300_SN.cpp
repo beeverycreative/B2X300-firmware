@@ -41,7 +41,7 @@
             return 1600.0;
         else if (axis >= E_AXIS){
             // Pre- Release
-            if (serial < BEEVC_B2X300_PROD1_SN) //PRE- RELEASE
+            if (serial < BEEVC_B2X300_PROD1_SN_START) //PRE- RELEASE
                 return 100;
             // Release 1
             else
@@ -97,10 +97,10 @@
                 PIDReturn(info,607.85,83.37,1107.97)
 
             // Pre release
-            if (serial < BEEVC_B2X300_PROD1_SN)
+            if (serial < BEEVC_B2X300_PROD1_SN_START)
                 PIDReturn(info,300,5,350)
             // Release prior to series 3
-            else if (serial < BEEVC_B2X300_PROD3_SN)
+            else if (serial < BEEVC_B2X300_PROD3_SN_START)
                 PIDReturn(info,85.49,7.67,238.12)
             // Latest - Series 3 forward
             else 
@@ -150,10 +150,10 @@
             return 255;
         
         // Pre release
-        if (serial < BEEVC_B2X300_PROD1_SN)
+        if (serial < BEEVC_B2X300_PROD1_SN_START)
             return 255;
         // Release prior to series 3
-        else if (serial < BEEVC_B2X300_PROD3_SN)
+        else if (serial < BEEVC_B2X300_PROD3_SN_START)
             return 205;
         // Latest - Series 3 forward
         else 
@@ -170,31 +170,31 @@
     bool validateSerial(uint32_t serial){
         
         // Check if within BETA units
-        if (serial >= BEEVC_B2X300_BETA_SN && serial < BEEVC_B2X300_BETA_SN+5)
+        if (serial >= BEEVC_B2X300_BETA_SN_START && serial <= BEEVC_B2X300_BETA_SN_END)
             return true;
 
         // Check if within first internal units
-        if (serial >= BEEVC_B2X300_INTERNAL1_SN && serial < BEEVC_B2X300_INTERNAL1_SN+5)
+        if (serial >= BEEVC_B2X300_INTERNAL1_SN_START && serial <= BEEVC_B2X300_INTERNAL1_SN_END)
             return true;
     
         // Check if within second internal units
-        if (serial >= BEEVC_B2X300_INTERNAL2_SN && serial < BEEVC_B2X300_INTERNAL2_SN+10)
+        if (serial >= BEEVC_B2X300_INTERNAL2_SN_START && serial <= BEEVC_B2X300_INTERNAL2_SN_END)
             return true;
 
         // Check if within first production
-        if (serial >= BEEVC_B2X300_PROD1_SN && serial < BEEVC_B2X300_PROD1_SN+50)
+        if (serial >= BEEVC_B2X300_PROD1_SN_START && serial <= BEEVC_B2X300_PROD1_SN_END)
             return true;
 
         // Check if within second production
-        if (serial >= BEEVC_B2X300_PROD2_SN && serial < BEEVC_B2X300_PROD2_SN+50)
+        if (serial >= BEEVC_B2X300_PROD2_SN_START && serial <= BEEVC_B2X300_PROD2_SN_END)
             return true;
 
         // Check if within third production
-        if (serial >= BEEVC_B2X300_PROD3_SN && serial < BEEVC_B2X300_PROD3_SN+54)
+        if (serial >= BEEVC_B2X300_PROD3_SN_START && serial <= BEEVC_B2X300_PROD3_SN_END)
             return true;
 
         // Check if within fourth production
-        if (serial >= BEEVC_B2X300_PROD4_SN_START && serial < BEEVC_B2X300_PROD4_SN_END)
+        if (serial >= BEEVC_B2X300_PROD4_SN_START && serial <= BEEVC_B2X300_PROD4_SN_END)
             return true;
 
         return false;
