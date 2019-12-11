@@ -10813,6 +10813,7 @@ inline void gcode_M502() {
     // 2) When starting a print, printer always assumes E1, if it has no filament it will trigger filament runout
     //    ignore filament runout until leveling is complete.
     if (pause_filament_runout){
+      filament_ran_out = false;
       // ignore filament runout until leveling is complete, aka still in start gcode
       if(!planner.leveling_active){
         SERIAL_PROTOCOLLNPGM("False filament runout detected. In start Gcode");
