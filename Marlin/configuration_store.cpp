@@ -1826,6 +1826,7 @@ void MarlinSettings::reset() {
      * Announce current units, in case inches are being displayed
      */
     CONFIG_ECHO_START;
+      SERIAL_ECHOLNPGM("Global settings:");
     #if ENABLED(INCH_MODE_SUPPORT)
       #define LINEAR_UNIT(N) (float(N) / parser.linear_unit_factor)
       #define VOLUMETRIC_UNIT(N) (float(N) / (parser.volumetric_enabled ? parser.volumetric_unit_factor : parser.linear_unit_factor))
@@ -1857,7 +1858,7 @@ void MarlinSettings::reset() {
 
     #endif
 
-    SERIAL_EOL();
+    //SERIAL_EOL();
 
     #if DISABLED(NO_VOLUMETRICS)
 
