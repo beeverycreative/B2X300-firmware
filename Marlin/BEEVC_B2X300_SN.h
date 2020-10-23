@@ -30,8 +30,8 @@
  * 1212300000-1212300050|   New extruder hobbed gear, release bed
  * 1212400051-1212400095|   None
  * 1212400096-1212400150|   New heated bed PCB
- * 1212500151-1212500299|   Motherboard changed to MKS gen 1.4
- * 1212500300-1212500500|   New extruder stepper drivers
+ * 1212500151-1212500323|   Motherboard changed to MKS gen 1.4
+ * 1212500324-1212500500|   New extruder stepper drivers
  */
 
 #include "enum.h"
@@ -62,9 +62,9 @@
     #define BEEVC_B2X300_PROD3_SN_END       1212400150
 
     #define BEEVC_B2X300_PROD4_SN_START     1212500151
-    #define BEEVC_B2X300_PROD4_SN_END       1212500299
+    #define BEEVC_B2X300_PROD4_SN_END       1212500323
 
-    #define BEEVC_B2X300_PROD5_SN_START     1212500300
+    #define BEEVC_B2X300_PROD5_SN_START     1212500324
     #define BEEVC_B2X300_PROD5_SN_END       1212500500
 
     #define BEEVC_B2X300_LATEST_SN BEEVC_B2X300_PROD4_SN_END
