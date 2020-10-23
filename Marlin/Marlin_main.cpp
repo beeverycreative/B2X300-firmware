@@ -12738,10 +12738,12 @@ inline void gcode_M999() {
       z_lift = false;
     }
 
-    // Caps extruder temperatures to avoid dripping while heating bed
+    // Caps extruder temperatures to avoid dripping while heating bed only if hotends aren't already hot
     float E1_temp = thermalManager.target_temperature[0];
     float E2_temp = thermalManager.target_temperature[1];
-    NOMORE(thermalManager.target_temperature[0], 100);
+    if(E1_temp < 100)
+      NOMORE(thermalManager.target_temperature[0], 100);
+    if(E2_temp < 100)
     NOMORE(thermalManager.target_temperature[1], 100);
 
     //Heats up bed to avoid the print from lifting
@@ -12770,7 +12772,7 @@ inline void gcode_M999() {
       }
       // Ensures the loop does't try heating up to low temperatures or cooling down if hot enough
       else {
-        if(thermalManager.degTargetHotend(0) <30 || thermalManager.degTargetHotend(0) > 100 ) break;
+        if(thermalManager.degTargetHotend(0) <30 || thermalManager.degHotend(0) > 100 ) break;
         else idle();
       }
     }
@@ -12782,8 +12784,9 @@ inline void gcode_M999() {
         now = millis()+1000;
         thermalManager.print_heaterstates();
       }
+      // Ensures the loop does't try heating up to low temperatures or cooling down if hot enough
       else{
-        if(thermalManager.degTargetHotend(1) <30 || thermalManager.degTargetHotend(1) > 100 ) break;
+        if(thermalManager.degTargetHotend(1) <30 || thermalManager.degHotend(1) > 100 ) break;
         else idle();
       }
     }
