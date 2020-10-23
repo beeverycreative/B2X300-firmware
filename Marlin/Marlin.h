@@ -71,6 +71,12 @@ void manage_inactivity(bool ignore_stepper_queue = false);
 #endif
 ///////////////////////////////////////////////////////
 
+////////////    Trinamic test on boot    //////////////
+#ifdef HAVE_TMC2130
+	extern bool boot_test_trinamic;
+#endif
+///////////////////////////////////////////////////////
+
 ////////////     Sensorless homing     //////////////
 #ifdef HAVE_TMC2130
 	extern bool calibrating_sensorless_homing;

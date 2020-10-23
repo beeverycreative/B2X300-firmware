@@ -255,6 +255,12 @@ uint16_t max_display_update_time = 0;
 	#endif // BEEVC_Restore
 	///////////////////////////////////////////////////////
 
+  ////////////    Trinamic test on boot    //////////////
+  #ifdef HAVE_TMC2130
+    void beevc_trinamic_warning_screen();
+  #endif
+  ///////////////////////////////////////////////////////
+
   ////////////   Self-test Wizard    //////////////
 	#ifdef BEEVC_B2X300
 		void beevc_machine_setup();
@@ -2016,6 +2022,14 @@ void lcd_status_screen() {
     beevc_machine_setup();
   }
 
+  // Runs trinamic test and shows screen with warning if any problem is found
+  if (boot_test_trinamic){
+    beevc_trinamic_test();
+
+    if(trinamic_ok != 0x1F)
+      beevc_trinamic_warning_screen();
+  }
+
   // If there is a print to restore and the bed temperature target (previously set when loading the flag)
   // is less than 5 degree away from current bed temperature or 0, starts the recovery on it's own
   if (toRecoverNow){
@@ -2723,6 +2737,58 @@ void kill_screen(const char* lcd_msg) {
       // Clicked so restore is canceled
       beevc_recover_screen_no();
     }
+  }
+
+  void beevc_trinamic_warning_screen_display(){
+    START_SCREEN();
+    STATIC_ITEM(_UxGT("Trinamic Fault"), true, true);
+    STATIC_ITEM(_UxGT("TMC stepper driver"));
+    STATIC_ITEM(_UxGT("communication error:"));
+
+    if(!(trinamic_ok & 0x01)){
+      STATIC_ITEM("X stepper fault!");
+    }
+    
+    if(!(trinamic_ok & 0x02)){
+      STATIC_ITEM("Y stepper fault!");
+    }
+
+    if(!(trinamic_ok & 0x04)){
+      STATIC_ITEM("Z stepper fault!");
+    }
+
+    if(!(trinamic_ok & 0x08)){
+      STATIC_ITEM("E1 stepper fault!");
+    }
+
+    if(!(trinamic_ok & 0x10)){
+      STATIC_ITEM("E2 stepper fault!");
+    }
+
+    STATIC_EMPTY_LINE();
+    STATIC_ITEM(_UxGT("Please contact"));
+    STATIC_ITEM(_UxGT("customer service!"));
+    STATIC_EMPTY_LINE();
+    STATIC_ITEM(_UxGT("Click to continue."));
+    END_SCREEN();
+  }
+
+  void beevc_trinamic_warning_screen(){
+    boot_test_trinamic = false;
+
+    // Disabes return to status on timeout
+    defer_return_to_status = true;
+
+    // Shows screen
+    lcd_goto_screen(beevc_trinamic_warning_screen_display);
+
+    // Wait for click
+    beevc_wait_click();
+
+    lcd_return_to_status();
+
+    // Enables return to status on timeout
+    defer_return_to_status = false;
   }
 
   /**

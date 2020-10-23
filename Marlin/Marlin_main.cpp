@@ -759,6 +759,12 @@ inline float home_dir(AxisEnum axis){
 #endif
 ///////////////////////////////////////////////////////
 
+////////////    Trinamic test on boot    //////////////
+#ifdef HAVE_TMC2130
+	bool boot_test_trinamic = true;
+#endif
+///////////////////////////////////////////////////////
+
 ////////////   Startup wizard   //////////////
 #ifdef BEEVC_B2X300
 	uint8_t toCalibrate = 0;
