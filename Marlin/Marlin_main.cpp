@@ -12682,13 +12682,20 @@ inline void gcode_M999() {
     //Stores part cooling fan speed
     BEEVC_READ_EEPROM(FAN,fanSpeeds[0]);
   
-    //Stores extruder temps
+    //Stores extruder temps if thermistors are ok (otherwise causes bootloop)
+    int16_t temperature_store = 0;
     // E0
-    BEEVC_READ_EEPROM(T_E0,thermalManager.target_temperature[0]);
+    BEEVC_READ_EEPROM(T_E0,temperature_store);
+    if(thermalManager.current_temperature[0] > -10)
+      thermalManager.target_temperature[0] = temperature_store;
     // E1
-    BEEVC_READ_EEPROM(T_E1,thermalManager.target_temperature[1]);
+    BEEVC_READ_EEPROM(T_E1,temperature_store);
+    if(thermalManager.current_temperature[1] > -10)
+      thermalManager.target_temperature[1] = temperature_store;
     // BED
-    BEEVC_READ_EEPROM(T_BED,thermalManager.target_temperature_bed);
+    BEEVC_READ_EEPROM(T_BED,temperature_store);
+    if(thermalManager.target_temperature_bed > -10)
+      thermalManager.target_temperature_bed = temperature_store;
 
     //Stores SD card position
     uint32_t tempSdpos = 0;
@@ -16941,15 +16948,21 @@ void setup() {
 			toRecover = true;
 			lcd_setstatus("Powerloss-print saved");
 
-      // Restores bed temperature to avoid printed parts from releasing
-      BEEVC_READ_EEPROM(T_BED,thermalManager.target_temperature_bed);
+      // Read destination bed temp
+      int16_t bed_target = 0;
+      BEEVC_READ_EEPROM(T_BED,bed_target);
 
-      if(abs(thermalManager.target_temperature_bed - thermalManager.current_temperature_bed) < 5){
+      // Restores bed temperature to avoid printed parts from releasing
+      // If bed thermistor is off (temp < -10ºc) do not try heating
+      if(thermalManager.current_temperature_bed > -10)
+        thermalManager.target_temperature_bed = bed_target;
+
+      if(abs(bed_target - thermalManager.current_temperature_bed) < 5){
         toRecoverNow = true;
       }
 
       // If the bed temperature exceeds the max temperature, something has gone wrong hence disable heating and restore
-      if(thermalManager.target_temperature_bed > BED_MAXTEMP){
+      if(bed_target > BED_MAXTEMP){
         thermalManager.target_temperature_bed = 0;
         toRecover = false;
         toRecoverNow = false;
