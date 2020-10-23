@@ -96,6 +96,18 @@ void manage_inactivity(bool ignore_stepper_queue = false);
 #endif
 ///////////////////////////////////////////////////////
 
+////////////        TMC2209/2226         //////////////
+#ifdef BEEVC_B2X300
+	extern uint8_t tmc_spi_disabled;
+  #define X_SPI_DISABLED    0x01<<4
+  #define Y_SPI_DISABLED    0x01<<3
+  #define Z_SPI_DISABLED    0x01<<2
+  #define E1_SPI_DISABLED   0x01<<1
+  #define E2_SPI_DISABLED   0x01
+  #define ANY_SPI_DISABLED  0x1F
+#endif
+///////////////////////////////////////////////////////
+
 
 #if ENABLED(DUAL_X_CARRIAGE) || ENABLED(DUAL_NOZZLE_DUPLICATION_MODE)
   extern bool extruder_duplication_enabled;

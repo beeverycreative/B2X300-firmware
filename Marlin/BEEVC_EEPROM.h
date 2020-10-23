@@ -1,7 +1,7 @@
 /** 
  * This file stores different defines for the B2X300 EEPROM access
  * 
- * B02 EEPROM map byte address
+ * B03 EEPROM map byte address
  *  Adress  Bytes   Type      Description
  *  0       4       float     SN
  *  4       4       float     Z position
@@ -23,12 +23,15 @@
  *  111     1       uint8_t   Reserved
  *  112     1       uint8_t   Reserved
  *  113     1       uint8_t   Bed PWM max
- *  114     36                Free space
+ *  114     1       uint8_t   8 bit boolean Non spi flag (NA NA NA X Y Z E1 E2)
+ *  115     35                Free space
  * 
  */
 
 #ifndef BEEVC_EEPROM_H
 #define BEEVC_EEPROM_H
+
+    #include "language.h"
     
     // Variable size defines
     #define SIZE_SN         4
@@ -50,6 +53,7 @@
     #define SIZE_W_FLAG     1
     #define SIZE_RESERVED   1
     #define SIZE_BED_PWM    1
+    #define SIZE_STP_SPI    1
     
     // Variable EEPROM address defines
     #define ADDRESS_SN         0
@@ -69,9 +73,10 @@
     #define ADDRESS_X_CAL      ADDRESS_SD_PATH+ SIZE_SD_PATH
     #define ADDRESS_Y_CAL      ADDRESS_X_CAL+ SIZE_X_CAL
     #define ADDRESS_W_FLAG     ADDRESS_Y_CAL+ SIZE_Y_CAL
-    #define ADDRESS_RESERVED1  ADDRESS_W_FLAG+ SIZE_RESERVED
+    #define ADDRESS_RESERVED1  ADDRESS_W_FLAG+ SIZE_W_FLAG
     #define ADDRESS_RESERVED2  ADDRESS_RESERVED1+ SIZE_RESERVED
-    #define ADDRESS_BED_PWM    ADDRESS_RESERVED2+ SIZE_BED_PWM
+    #define ADDRESS_BED_PWM    ADDRESS_RESERVED2+ SIZE_RESERVED
+    #define ADDRESS_STP_SPI    ADDRESS_BED_PWM+ SIZE_BED_PWM
 
     // NON CRC Version
     // Necessary to write to eeprom

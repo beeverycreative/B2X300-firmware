@@ -1054,6 +1054,11 @@
     #define Y_IS_TMC2130
   #endif
 
+  #ifdef BEEVC_TMC_EXTRUDER_NON_SPI
+    #undef E0_IS_TMC2130
+    #undef E1_IS_TMC2130
+  #endif
+
   // CHOOSE YOUR MOTORS HERE, THIS IS MANDATORY
   //#define X_IS_TMC2130
   //#define X2_IS_TMC2130
@@ -1200,10 +1205,15 @@
    *   stepperY.interpolate(0); \
    * }
    */
-  #define  TMC_ADV() {                  \
-    stepperE0.stealthChop(1);           \
-    stepperE1.stealthChop(1);           \
+  #if ENABLED(E0_IS_TMC2130) && ENABLED(E1_IS_TMC2130)
+    #define  TMC_ADV() {                  \
+      stepperE0.stealthChop(1);           \
+      stepperE1.stealthChop(1);           \
     }
+  #else
+    #define  TMC_ADV() {                  \
+      }
+  #endif
 
 #endif // TMC2130 || TMC2208
 

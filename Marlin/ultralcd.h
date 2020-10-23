@@ -59,6 +59,10 @@
 	extern bool pause_filament_runout;
 	///////////////////////////////////////////////////////
 
+  ////////////   Pause/Filament runout   //////////////
+	extern bool tmc_non_spi[5];
+	///////////////////////////////////////////////////////
+
   extern uint8_t lcdDrawUpdate;
   inline void lcd_refresh() { lcdDrawUpdate = LCDVIEW_CLEAR_CALL_REDRAW; }
 

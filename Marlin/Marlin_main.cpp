@@ -791,6 +791,12 @@ inline float home_dir(AxisEnum axis){
 #endif
 ///////////////////////////////////////////////////////
 
+////////////        TMC2209/2226         //////////////
+#ifdef BEEVC_B2X300
+	uint8_t tmc_spi_disabled = 0;
+#endif
+///////////////////////////////////////////////////////
+
 /**
  * ***************************************************************************
  * ******************************** FUNCTIONS ********************************
@@ -11210,31 +11216,36 @@ inline void gcode_M502() {
 
     static void tmc_debug_loop(const TMC_debug_enum i) {
       #if X_IS_TRINAMIC
-        tmc_status(stepperX, TMC_X, i, planner.axis_steps_per_mm[X_AXIS]);
+        if (!(tmc_spi_disabled & X_SPI_DISABLED))
+          tmc_status(stepperX, TMC_X, i, planner.axis_steps_per_mm[X_AXIS]);
       #endif
       #if X2_IS_TRINAMIC
         tmc_status(stepperX2, TMC_X2, i, planner.axis_steps_per_mm[X_AXIS]);
       #endif
 
       #if Y_IS_TRINAMIC
-        tmc_status(stepperY, TMC_Y, i, planner.axis_steps_per_mm[Y_AXIS]);
+        if (!(tmc_spi_disabled & Y_SPI_DISABLED))
+          tmc_status(stepperY, TMC_Y, i, planner.axis_steps_per_mm[Y_AXIS]);
       #endif
       #if Y2_IS_TRINAMIC
         tmc_status(stepperY2, TMC_Y2, i, planner.axis_steps_per_mm[Y_AXIS]);
       #endif
 
       #if Z_IS_TRINAMIC
-        tmc_status(stepperZ, TMC_Z, i, planner.axis_steps_per_mm[Z_AXIS]);
+        if (!(tmc_spi_disabled & Z_SPI_DISABLED))
+          tmc_status(stepperZ, TMC_Z, i, planner.axis_steps_per_mm[Z_AXIS]);
       #endif
       #if Z2_IS_TRINAMIC
         tmc_status(stepperZ2, TMC_Z2, i, planner.axis_steps_per_mm[Z_AXIS]);
       #endif
 
       #if E0_IS_TRINAMIC
-        tmc_status(stepperE0, TMC_E0, i, planner.axis_steps_per_mm[E_AXIS]);
+        if (!(tmc_spi_disabled & E1_SPI_DISABLED))
+          tmc_status(stepperE0, TMC_E0, i, planner.axis_steps_per_mm[E_AXIS]);
       #endif
       #if E1_IS_TRINAMIC
-        tmc_status(stepperE1, TMC_E1, i, planner.axis_steps_per_mm[E_AXIS+1]);
+        if (!(tmc_spi_disabled & E2_SPI_DISABLED))
+          tmc_status(stepperE1, TMC_E1, i, planner.axis_steps_per_mm[E_AXIS+1]);
       #endif
       #if E2_IS_TRINAMIC
         tmc_status(stepperE2, TMC_E2, i, planner.axis_steps_per_mm[E_AXIS+2]);
@@ -11251,31 +11262,36 @@ inline void gcode_M502() {
 
     static void drv_status_loop(const TMC_drv_status_enum i) {
       #if X_IS_TRINAMIC
-        tmc_parse_drv_status(stepperX, TMC_X, i);
+        if (!(tmc_spi_disabled & X_SPI_DISABLED))
+          tmc_parse_drv_status(stepperX, TMC_X, i);
       #endif
       #if X2_IS_TRINAMIC
         tmc_parse_drv_status(stepperX2, TMC_X2, i);
       #endif
 
       #if Y_IS_TRINAMIC
-        tmc_parse_drv_status(stepperY, TMC_Y, i);
+        if (!(tmc_spi_disabled & Y_SPI_DISABLED))
+          tmc_parse_drv_status(stepperY, TMC_Y, i);
       #endif
       #if Y2_IS_TRINAMIC
         tmc_parse_drv_status(stepperY2, TMC_Y2, i);
       #endif
 
       #if Z_IS_TRINAMIC
-        tmc_parse_drv_status(stepperZ, TMC_Z, i);
+        if (!(tmc_spi_disabled & Z_SPI_DISABLED))
+          tmc_parse_drv_status(stepperZ, TMC_Z, i);
       #endif
       #if Z2_IS_TRINAMIC
         tmc_parse_drv_status(stepperZ2, TMC_Z2, i);
       #endif
 
       #if E0_IS_TRINAMIC
-        tmc_parse_drv_status(stepperE0, TMC_E0, i);
+        if (!(tmc_spi_disabled & E1_SPI_DISABLED))
+          tmc_parse_drv_status(stepperE0, TMC_E0, i);
       #endif
       #if E1_IS_TRINAMIC
-        tmc_parse_drv_status(stepperE1, TMC_E1, i);
+        if (!(tmc_spi_disabled & E2_SPI_DISABLED))
+          tmc_parse_drv_status(stepperE1, TMC_E1, i);
       #endif
       #if E2_IS_TRINAMIC
         tmc_parse_drv_status(stepperE2, TMC_E2, i);
@@ -11299,7 +11315,7 @@ inline void gcode_M502() {
           report_tmc_status = false;
       } else {
         SERIAL_ECHOPGM("\t");                 tmc_debug_loop(TMC_CODES);
-        SERIAL_ECHOPGM("Enabled");          tmc_debug_loop(TMC_ENABLED);
+        SERIAL_ECHOPGM("Enabled\t");          tmc_debug_loop(TMC_ENABLED);
         SERIAL_ECHOPGM("Set current");        tmc_debug_loop(TMC_CURRENT);
         SERIAL_ECHOPGM("RMS current");        tmc_debug_loop(TMC_RMS_CURRENT);
         //SERIAL_ECHOPGM("MAX current");        tmc_debug_loop(TMC_MAX_CURRENT);

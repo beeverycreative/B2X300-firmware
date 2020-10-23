@@ -76,10 +76,36 @@
  *  110     1       uint8_t   Startup wizard flag
  *  111     1       uint8_t   Reserved
  *  112     1       uint8_t   Reserved
- *  113     37                Free space
+ *  113     1       uint8_t   Bed PWM max
+ *  114     36                Free space
  * 
+ *  B03 - Added support for SN storage, and corrected SD card file name storage, changed offset to 150
+ *  B03 EEPROM map byte address
+ *  Adress  Bytes   Type      Description
+ *  0       4       float     SN
+ *  4       4       float     Z position
+ *  8       4       float     X position
+ *  12      4       float     Y position
+ *  16      1       uint8_t   Active Extruder,Extruder mode, acceleration
+ *  17      1       bool      Extruder mode
+ *  18      4       uint32_t  Acceleration
+ *  22      4       float     E position
+ *  26      2       uint16_t  Fan Speed
+ *  28      2       uint16_t  E0 temp
+ *  30      2       uint16_t  E1 temp
+ *  32      2       uint16_t  Bed temp
+ *  34      4       uint32_t  Sdcard file adress
+ *  38      70                SD File path
+ *  108     1       uint8_t   X sensorless homing calibration
+ *  109     1       uint8_t   Y sensorless homing calibration
+ *  110     1       uint8_t   Startup wizard flag
+ *  111     1       uint8_t   Reserved
+ *  112     1       uint8_t   Reserved
+ *  113     1       uint8_t   Bed PWM max
+ *  114     1       uint8_t   8 bit boolean Non spi flag (NA NA NA X Y Z E1 E2)
+ *  115     35                Free space
  */
-#define EEPROM_VERSION "B02"
+#define EEPROM_VERSION "B03"
 
 /** 
  */
@@ -865,26 +891,43 @@ void MarlinSettings::postprocess() {
     SERIAL_ECHOPAIR("EEPROM=", stored_ver);
     SERIAL_ECHOLNPGM(" Marlin=" EEPROM_VERSION);
 
-    // Version has to match or defaults are used
+    // Check if EEPROM version is different than expected
     if (strncmp(version, stored_ver, 3) != 0) {
-      SERIAL_ECHOPGM("EEPROM version mismatch ");
-      serialNumber = 1212300001;
-      if (stored_ver[0] != 'B') {
-        stored_ver[0] = '?';
-        stored_ver[1] = '\0';
+
+      // Upgrade from version B02 to version B03
+      if (strncmp("B02",stored_ver, 3) == 0){
+        SERIAL_ECHOLNPGM("Updating EEPROM version B02 -> B03");
+
+        // Reconfigures TMC SPI settings according to current SN
+        updateTrinamicSPI();
+
+        // Update EEPROM version
+        strcpy(stored_ver, "B03");
+        eeprom_index = EEPROM_OFFSET;
+        EEPROM_WRITE(stored_ver);
       }
-      #if ENABLED(EEPROM_CHITCHAT)
-        SERIAL_ECHO_START();
+
+      // Not and upgradable version
+      else{
         SERIAL_ECHOPGM("EEPROM version mismatch ");
-        SERIAL_ECHOPAIR("(EEPROM=", stored_ver);
-        SERIAL_ECHOLNPGM(" Marlin=" EEPROM_VERSION ")");
-      #endif
-      reset();
+        serialNumber = 1212300001;
+        if (stored_ver[0] != 'B') {
+          stored_ver[0] = '?';
+          stored_ver[1] = '\0';
+        }
+        #if ENABLED(EEPROM_CHITCHAT)
+          SERIAL_ECHO_START();
+          SERIAL_ECHOPGM("EEPROM version mismatch ");
+          SERIAL_ECHOPAIR("(EEPROM=", stored_ver);
+          SERIAL_ECHOLNPGM(" Marlin=" EEPROM_VERSION ")");
+        #endif
+        reset();
 
-      save();
+        save();
 
-      // Sets Setup Wizard flag with EEPROM upgraded flag
-      gcode_M722();
+        // Sets Setup Wizard flag with EEPROM upgraded flag
+        gcode_M722();
+      }
 
       // Restarts the firmware
       asm volatile ("  jmp 0");
@@ -892,6 +935,9 @@ void MarlinSettings::postprocess() {
     else {
       // BEEVC loads bed PWM
       BEEVC_READ_EEPROM(BED_PWM,thermalManager.bed_pwm); 
+
+      // BEEVC load non spi driver info
+      BEEVC_READ_EEPROM(STP_SPI,tmc_spi_disabled);
 
       float dummy = 0;
       #if DISABLED(AUTO_BED_LEVELING_UBL) || DISABLED(FWRETRACT)
@@ -1493,6 +1539,9 @@ void MarlinSettings::reset() {
   // Reset and store Bed PWM
   thermalManager.bed_pwm = getBedPWM(serialNumber);
   BEEVC_WRITE_EEPROM(BED_PWM,thermalManager.bed_pwm); 
+
+  // Update TMC SPI config deppending on SN
+  updateTrinamicSPI();
 
   #ifndef BEEVC_B2X300
     static const float tmp1[] PROGMEM = DEFAULT_AXIS_STEPS_PER_UNIT;
@@ -2271,6 +2320,35 @@ void MarlinSettings::reset() {
         SERIAL_ECHOPAIR(" Y2 ", stepperY2.sgt());
       #endif
       SERIAL_EOL();
+    #endif
+
+    /**
+     * TMC non SPI
+     */
+    #ifdef BEEVC_B2X300
+      if(!forReplay){
+        if(tmc_spi_disabled & ANY_SPI_DISABLED)
+          SERIAL_ECHO("TMC non SPI: ");
+        
+        if(tmc_spi_disabled & X_SPI_DISABLED)
+          SERIAL_ECHO("X ");
+        
+        if(tmc_spi_disabled & Y_SPI_DISABLED)
+          SERIAL_ECHO("Y ");
+        
+        if(tmc_spi_disabled & Z_SPI_DISABLED)
+          SERIAL_ECHO("Z ");
+        
+        if(tmc_spi_disabled & E1_SPI_DISABLED)
+          SERIAL_ECHO("E1 ");
+
+        if(tmc_spi_disabled & E1_SPI_DISABLED)
+          SERIAL_ECHO("E2 ");
+
+        SERIAL_ECHO("|Binary:");
+        SERIAL_ECHO_BIN8(tmc_spi_disabled);
+        SERIAL_ECHOLN(" ");
+      }
     #endif
 
     /**

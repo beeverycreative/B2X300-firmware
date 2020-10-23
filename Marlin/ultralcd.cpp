@@ -266,51 +266,99 @@ uint16_t max_display_update_time = 0;
       // Temporary variable to store default data
       uint32_t trinamic_data = 0;
 
-      // Tests each axis one at a time storing the result if positive
+      // Only test axis that are SPI tests each axis that is TMC one at a time storing the result if positive
+      bool testX = !(tmc_spi_disabled & X_SPI_DISABLED);
+      bool testY = !(tmc_spi_disabled & Y_SPI_DISABLED);
+      bool testZ = !(tmc_spi_disabled & Z_SPI_DISABLED);
+      bool testE1 = !(tmc_spi_disabled & E1_SPI_DISABLED);
+      bool testE2 = !(tmc_spi_disabled & E2_SPI_DISABLED);
+
       // X
-        trinamic_data = stepperX.GCONF(); 
-        stepperX.GCONF(0b101010101010101010);
-        if(stepperX.GCONF() == 0b101010101010101010){
-          stepperX.GCONF(trinamic_data);
-          if(stepperX.GCONF() == trinamic_data)
-            trinamic_ok |= 0x01;
+      #if ENABLED(X_IS_TMC2130)
+        if(testX){
+          trinamic_data = stepperX.GCONF(); 
+          stepperX.GCONF(0b101010101010101010);
+          if(stepperX.GCONF() == 0b101010101010101010){
+            stepperX.GCONF(trinamic_data);
+            if(stepperX.GCONF() == trinamic_data)
+              trinamic_ok |= 0x01;
+          }
         }
+        else
+          trinamic_ok|= 0x01;
+        
+      #else
+        trinamic_ok |= 0x01;
+      #endif 
 
       // Y
-        trinamic_data = stepperY.GCONF(); 
-        stepperY.GCONF(0b101010101010101010);
-        if(stepperY.GCONF() == 0b101010101010101010){
-          stepperY.GCONF(trinamic_data);
-          if(stepperY.GCONF() == trinamic_data)
-            trinamic_ok |= 0x02;
+      #if ENABLED(Y_IS_TMC2130)
+        if(testY){
+          trinamic_data = stepperY.GCONF(); 
+          stepperY.GCONF(0b101010101010101010);
+          if(stepperY.GCONF() == 0b101010101010101010){
+            stepperY.GCONF(trinamic_data);
+            if(stepperY.GCONF() == trinamic_data)
+              trinamic_ok |= 0x02;
+          }
         }
+        else
+          trinamic_ok |= 0x02;
+      #else
+        trinamic_ok |= 0x02;
+      #endif 
 
       // Z
-        trinamic_data = stepperZ.GCONF(); 
-        stepperZ.GCONF(0b101010101010101010);
-        if(stepperZ.GCONF() == 0b101010101010101010){
-          stepperZ.GCONF(trinamic_data);
-          if(stepperZ.GCONF() == trinamic_data)
-            trinamic_ok |= 0x04;
+      #if ENABLED(Z_IS_TMC2130)
+        if(testZ){
+          trinamic_data = stepperZ.GCONF(); 
+          stepperZ.GCONF(0b101010101010101010);
+          if(stepperZ.GCONF() == 0b101010101010101010){
+            stepperZ.GCONF(trinamic_data);
+            if(stepperZ.GCONF() == trinamic_data)
+              trinamic_ok |= 0x04;
+          }
         }
+        else
+          trinamic_ok |= 0x04;
+      #else
+        trinamic_ok |= 0x04;
+      #endif  
 
+    
       // E0
-        trinamic_data = stepperE0.GCONF(); 
-        stepperE0.GCONF(0b101010101010101010);
-        if(stepperE0.GCONF() == 0b101010101010101010){
-          stepperE0.GCONF(trinamic_data);
-          if(stepperE0.GCONF() == trinamic_data)
-            trinamic_ok |= 0x08;
+      #if ENABLED(E0_IS_TMC2130)
+        if(testE1){
+          trinamic_data = stepperE0.GCONF(); 
+          stepperE0.GCONF(0b101010101010101010);
+          if(stepperE0.GCONF() == 0b101010101010101010){
+            stepperE0.GCONF(trinamic_data);
+            if(stepperE0.GCONF() == trinamic_data)
+              trinamic_ok |= 0x08;
+          }
         }
+        else 
+          trinamic_ok |= 0x08;
+      #else
+        trinamic_ok |= 0x08;
+      #endif
 
       // E1
-        trinamic_data = stepperE1.GCONF(); 
-        stepperE1.GCONF(0b101010101010101010);
-        if(stepperE1.GCONF() == 0b101010101010101010){
-          stepperE1.GCONF(trinamic_data);
-          if(stepperE1.GCONF() == trinamic_data)
-            trinamic_ok |= 0x10;
+      #if ENABLED(E1_IS_TMC2130)
+        if(testE2){
+          trinamic_data = stepperE1.GCONF(); 
+          stepperE1.GCONF(0b101010101010101010);
+          if(stepperE1.GCONF() == 0b101010101010101010){
+            stepperE1.GCONF(trinamic_data);
+            if(stepperE1.GCONF() == trinamic_data)
+              trinamic_ok |= 0x10;
+          }
         }
+        else 
+          trinamic_ok |= 0x10;
+      #else
+        trinamic_ok |= 0x10;
+      #endif
     }
 	#endif // BEEVC_B2X300
 	///////////////////////////////////////////////////////
@@ -358,6 +406,10 @@ uint16_t max_display_update_time = 0;
   void beevc_set_serial_no();
 	///////////////////////////////////////////////////////
 
+  #ifdef BEEVC_B2X300
+    bool tmc_non_spi[5] = {0,0,0,0,0};
+  #endif
+
   ////////////   Self test wizard   //////////////
   enum self_test {
     self_test_init,
@@ -377,6 +429,7 @@ uint16_t max_display_update_time = 0;
     self_test_blower_ok,
     self_test_error_blower,
     self_test_trinamic_init,
+    self_test_trinamic_updated,
     self_test_trinamic_ok,
     self_test_error_trinamic,
     self_test_powerloss_init,
@@ -394,6 +447,8 @@ uint16_t max_display_update_time = 0;
   };
   void lcd_self_test_wizard_blower_ok();
   void lcd_self_test_wizard_blower_error();
+  void lcd_self_test_wizard_trinamic_updated();
+  void lcd_self_test_wizard_continue();
 	///////////////////////////////////////////////////////
 
   //////////////////   Cold pull   //////////////////////
@@ -2814,17 +2869,35 @@ void kill_screen(const char* lcd_msg) {
 
       STATIC_ITEM(_UxGT("Nozzle height: "), false, false, ftostr42sign(zprobe_zoffset));
 
-      strcpy(about_string,"Curr. X/Y: ");
-      strncat(about_string, itostr4sign(stepperX.getCurrent()),4);
-      strcat(about_string, "/");
-      strncat(about_string, itostr4sign(stepperY.getCurrent()),5);
-      STATIC_STRING(about_string);
+      #if ENABLED(X_IS_TMC2130) && ENABLED(Y_IS_TMC2130)
+        strcpy(about_string,"Curr. X/Y: ");
+        strncat(about_string, itostr4sign(stepperX.getCurrent()),4);
+        strcat(about_string, "/");
+        strncat(about_string, itostr4sign(stepperY.getCurrent()),5);
+        STATIC_STRING(about_string);
+      #endif
 
-      strcpy(about_string,"Curr. Z/E: ");
-      strncat(about_string, itostr4sign(stepperZ.getCurrent()),4);
-      strcat(about_string, "/");
-      strncat(about_string, itostr4sign(stepperE0.getCurrent()),5);
-      STATIC_STRING(about_string);
+      #if ENABLED(Z_IS_TMC2130) && ENABLED(E0_IS_TMC2130)
+        bool tmc_extruder_non_spi_enabled = (tmc_spi_disabled & E1_SPI_DISABLED) || (tmc_spi_disabled & E2_SPI_DISABLED);
+        if(tmc_extruder_non_spi_enabled)
+          strcpy(about_string,"Curr. Z:");
+        else
+          strcpy(about_string,"Curr. Z/E: ");
+
+        strncat(about_string, itostr4sign(stepperZ.getCurrent()),4);
+
+        if(!tmc_extruder_non_spi_enabled){
+          strcat(about_string, "/");
+          strncat(about_string, itostr4sign(stepperE0.getCurrent()),5);
+        }
+        
+        STATIC_STRING(about_string);
+        
+      #elif ENABLED(Z_IS_TMC2130)
+        strcpy(about_string,"Curr. Z: ");
+        strncat(about_string, itostr4sign(stepperZ.getCurrent()),4);
+        STATIC_STRING(about_string);
+      #endif
 
       char serial[11];
       sprintf(serial, "%lu", serialNumber);
@@ -6291,6 +6364,15 @@ void kill_screen(const char* lcd_msg) {
       MENU_ITEM_MIX(submenu, (" - No"), lcd_self_test_wizard_blower_error);
       END_SCREEN();
     }
+    else if(screen_status == self_test_trinamic_updated){
+      START_MENU();
+      STATIC_ITEM("Self-test wizard", true, true);
+      STATIC_ITEM("Were the Ext stepper");
+      STATIC_ITEM("drivers updated?");
+      MENU_ITEM_MIX(submenu, (" - Yes"), lcd_self_test_wizard_trinamic_updated);
+      MENU_ITEM_MIX(submenu, (" - No"), lcd_self_test_wizard_continue);
+      END_SCREEN();
+    }
     else{
       START_SCREEN();
       
@@ -6600,6 +6682,28 @@ void lcd_self_test_wizard_blower_error(){
   lcd_self_test_wizard_show_screen(self_test_error_blower);
 }
 
+void lcd_self_test_wizard_continue(){
+  // Sets test flag as complete
+  beevc_continue = true ;
+}
+
+void lcd_self_test_wizard_trinamic_updated(){
+  uint8_t SPI_FLAG;
+  BEEVC_READ_EEPROM(STP_SPI, SPI_FLAG);
+
+  // Set extruders as non SPI
+  SPI_FLAG |= 0x03;
+
+  // Update internal flag
+  tmc_spi_disabled = SPI_FLAG;
+
+  BEEVC_WRITE_EEPROM(STP_SPI,tmc_spi_disabled);
+
+  lcd_self_test_wizard_continue(); 
+}
+
+
+
 void beevc_machine_setup_screen_set_offset_calibrate(){
   if (lcd_clicked)
     {
@@ -6681,6 +6785,10 @@ void beevc_machine_setup_set_offset(){
   // Clears parser data to avoid unexpected variables entering the home/leveling gcodes
   parser.reset();
 
+  // Raise Z 20mm for probe safety
+  current_position[Z_AXIS] += (float)20;
+  manual_move_to_current(Z_AXIS,0);
+
   // Homes and autoleves axes
   gcode_G29();
 
@@ -6715,6 +6823,16 @@ void beevc_machine_setup_set_offset(){
   while(!z_offset_finished){
     idle(true);
   }
+
+  // Show moving screen
+  lcd_self_test_wizard_show_screen(self_test_set_offset_moving);
+
+  // Force screen update
+  beevc_force_screen_update();
+
+  // Lift Z 20mm
+  current_position[Z_AXIS] += (float)20;
+  manual_move_to_current(Z_AXIS,0);
 
   //Beep
   beevc_buzz();
@@ -6882,6 +7000,17 @@ void beevc_machine_setup_test_trinamic (){
     // Waits for 5s or click
     beevc_wait(5000);
 
+    // Ask if extruder stepper drivers were updated if the SN is prior to stepper update
+    BEEVC_READ_EEPROM(SN,serialNumber);
+    if(serialNumber < BEEVC_B2X300_PROD5_SN_START){
+      beevc_continue = 0;
+      lcd_self_test_wizard_show_screen(self_test_trinamic_updated);
+
+      while(!beevc_continue){
+        idle(true);
+      }
+    }
+
     beevc_trinamic_test();
 
     #ifdef SERIAL_DEBUG
@@ -6904,6 +7033,12 @@ void beevc_machine_setup_test_trinamic (){
     if (trinamic_ok != 0x1F){
       lcd_self_test_wizard_show_screen(self_test_error_trinamic);
       while(1){
+        // Allow skip if error on E1 or E2
+        if((trinamic_ok & 0x07) == 0x07){
+          beevc_wait_click();
+          return;
+        }    
+
         idle(true);
       }
     }
@@ -6992,7 +7127,7 @@ void beevc_machine_setup_test_powerloss (){
 
     // Verify E2 connection
       // Test E2
-      beevc_machine_setup_test_hotend(2);
+      //beevc_machine_setup_test_hotend(2);
 
     // Verify hotbed connections
     beevc_machine_setup_test_hotbed();
@@ -7944,6 +8079,49 @@ void beevc_machine_setup_test_powerloss (){
    END_MENU();
     }
 
+    /**
+    *
+    * "Control" > "Trinamic Settings" > "Non SPI TMC driver" submenu
+    *
+    */
+    void tmc_update_spi_drivers(){
+      for(uint8_t k=0; k<5;k++){
+        if (tmc_non_spi[k])
+          tmc_spi_disabled |= (0x01 << k);
+        else
+          tmc_spi_disabled &= ~(0x01 << k);
+      }
+
+      //Store to EEPROM
+      BEEVC_WRITE_EEPROM(STP_SPI,tmc_spi_disabled);
+    }
+
+    void tmc_get_current_spi_drivers(){
+      for(uint8_t k=0; k<5;k++){
+        tmc_non_spi[k] = tmc_spi_disabled & (0x01 << k);
+      }
+    }
+
+    void beevc_trinamic_non_spi_menu() {
+      START_MENU();
+      MENU_BACK(_UxGT("Trinamic Settings"));
+
+      tmc_get_current_spi_drivers();
+      // X
+      //MENU_ITEM_EDIT_CALLBACK(bool, "X non SPI", &tmc_non_spi[4], tmc_update_spi_drivers);
+      // Y
+      //MENU_ITEM_EDIT_CALLBACK(bool, "Y non SPI", &tmc_non_spi[3], tmc_update_spi_drivers);
+      // Z
+      MENU_ITEM_EDIT_CALLBACK(bool, "Z non SPI", &tmc_non_spi[2], tmc_update_spi_drivers);
+      // E1
+      MENU_ITEM_EDIT_CALLBACK(bool, "E1 non SPI", &tmc_non_spi[1], tmc_update_spi_drivers);
+      // E2
+      MENU_ITEM_EDIT_CALLBACK(bool, "E2 non SPI", &tmc_non_spi[0], tmc_update_spi_drivers);
+
+      END_MENU();
+    }
+
+
 
 
   /**
@@ -7965,6 +8143,10 @@ void beevc_machine_setup_test_powerloss (){
       // Only shown if X, Y or E are TMC2130 otherwise stallguard measure aren't useful
       #if (ENABLED(X_IS_TMC2130) || ENABLED(Y_IS_TMC2130) || ENABLED(E0_IS_TMC2130) || ENABLED(E1_IS_TMC2130))
         MENU_ITEM(submenu, _UxGT("Stallguard2 settings"), lcd_trinamic_stallguard2);
+      #endif
+
+      #if (ENABLED(X_IS_TMC2130) || ENABLED(Y_IS_TMC2130) || ENABLED(E0_IS_TMC2130) || ENABLED(E1_IS_TMC2130))
+        MENU_ITEM(submenu, _UxGT("Non SPI TMC driver"), beevc_trinamic_non_spi_menu);
       #endif
 
       MENU_ITEM(function, _UxGT("Reset default"), lcd_trinamic_reset);
@@ -8715,7 +8897,7 @@ void beevc_machine_setup_test_powerloss (){
   /**
    *
    * Menu actions
-   *
+   *0
    */
   void _menu_action_back() { lcd_goto_previous_menu(); beevc_screen_constant_update = false; }
   void menu_action_submenu(screenFunc_t func) { lcd_save_previous_screen(); lcd_goto_screen(func); }
