@@ -457,6 +457,11 @@ uint16_t max_display_update_time = 0;
     self_test_powerloss_init,
     self_test_powerloss_ok,
     self_test_error_powerloss,
+    self_test_z_axis_init,
+    self_test_z_axis_moving,
+    self_test_z_axis_test,
+    self_test_z_axis_ok,
+    self_test_error_z_axis,
     self_test_servo_init,
     self_test_servo_test,
     self_test_servo_ok,
@@ -473,6 +478,9 @@ uint16_t max_display_update_time = 0;
   };
   void lcd_self_test_wizard_blower_ok();
   void lcd_self_test_wizard_blower_error();
+  void lcd_self_test_wizard_z_axis_do_test();
+  void lcd_self_test_wizard_z_axis_ok();
+  void lcd_self_test_wizard_z_axis_error();
   void lcd_self_test_wizard_servo_ok();
   void lcd_self_test_wizard_servo_error();
   void lcd_self_test_wizard_trinamic_updated();
@@ -6654,6 +6662,9 @@ void kill_screen(const char* lcd_msg) {
       case self_test_error_servo:
         strcat(text,"71");
         break;
+      case self_test_error_z_axis:
+        strcat(text,"81");
+        break;
       default:
         break;
     }
@@ -6678,6 +6689,15 @@ void kill_screen(const char* lcd_msg) {
       STATIC_ITEM("Is leveling arm open?");
       MENU_ITEM_MIX(submenu, (" - Yes"), lcd_self_test_wizard_servo_ok);
       MENU_ITEM_MIX(submenu, (" - No"), lcd_self_test_wizard_servo_error);
+      END_SCREEN();
+    }
+    else if(screen_status == self_test_z_axis_test){
+      START_MENU();
+      STATIC_ITEM("Self-test wizard", true, true);
+      STATIC_ITEM("Was Z motion smooth?");
+      MENU_ITEM_MIX(submenu, (" - Repeat test"), lcd_self_test_wizard_z_axis_do_test);
+      MENU_ITEM_MIX(submenu, (" - Yes"), lcd_self_test_wizard_z_axis_ok);
+      MENU_ITEM_MIX(submenu, (" - No"), lcd_self_test_wizard_z_axis_error);
       END_SCREEN();
     }
     else if(screen_status == self_test_trinamic_updated){
@@ -6798,6 +6818,18 @@ void kill_screen(const char* lcd_msg) {
           STATIC_ITEM("Powerloss:        NOK");
           break;
 
+        // Z axis test
+        case self_test_z_axis_init:
+          strcpy(temp, "z axis");
+          break;
+        case self_test_z_axis_ok:
+          STATIC_ITEM("Z axis motion:     OK");
+          strcpy(temp, "OK!");
+          break;
+        case self_test_error_z_axis:
+          STATIC_ITEM("Z axis motion:    NOK");
+          break;
+
         // Servo test
         case self_test_servo_init:
           strcpy(temp, "servo motor");
@@ -6852,6 +6884,10 @@ void kill_screen(const char* lcd_msg) {
           STATIC_ITEM("Nozzle height: -----");
           strcpy(temp, "moving");
           break;
+        case self_test_z_axis_moving:
+          STATIC_ITEM("Z axis test:  -----");
+          strcpy(temp, "moving");
+          break;
         case self_test_set_offset_complete:
           STATIC_EMPTY_LINE();
           lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr42sign(zprobe_zoffset));
@@ -6891,6 +6927,7 @@ void kill_screen(const char* lcd_msg) {
         case self_test_error_blower:
         case self_test_error_trinamic:
         case self_test_error_powerloss:
+        case self_test_error_z_axis:
         case self_test_error_servo:
           lcd_self_test_wizard_prepare_error_codes(temp,true);
           STATIC_STRING(temp);
@@ -6909,6 +6946,7 @@ void kill_screen(const char* lcd_msg) {
         case self_test_blower_init:
         case self_test_trinamic_init:
         case self_test_powerloss_init:
+        case self_test_z_axis_init:
         case self_test_servo_init:
           STATIC_ITEM("The machine will now");
           STATIC_ITEM("test the ",false,false, temp);
@@ -6930,12 +6968,14 @@ void kill_screen(const char* lcd_msg) {
         case self_test_blower_ok:
         case self_test_trinamic_ok:
         case self_test_powerloss_ok:
+        case self_test_z_axis_ok:
         case self_test_servo_ok:
         case self_test_sensorless_homing:
         case self_test_sensorless_homing_ok:
         case self_test_set_offset_home:
         case self_test_set_offset_home_ok:
         case self_test_set_offset_moving:
+        case self_test_z_axis_moving:
         case self_test_set_offset_complete:
           STATIC_ITEM("Status: ", false,false,temp);
           STATIC_EMPTY_LINE();
@@ -6956,6 +6996,8 @@ void kill_screen(const char* lcd_msg) {
         case self_test_trinamic_ok:
         case self_test_powerloss_init:
         case self_test_powerloss_ok:
+        case self_test_z_axis_init:
+        case self_test_z_axis_ok:
         case self_test_servo_init:
         case self_test_servo_ok:
         case self_test_sensorless_homing_ok:
@@ -6971,6 +7013,7 @@ void kill_screen(const char* lcd_msg) {
         case self_test_sensorless_homing:
         case self_test_set_offset_home:
         case self_test_set_offset_moving:
+        case self_test_z_axis_moving:
           STATIC_ITEM("Please wait.");
           break;
         case self_test_error_hotend_timeout:
@@ -6981,6 +7024,7 @@ void kill_screen(const char* lcd_msg) {
         case self_test_error_blower:
         case self_test_error_trinamic:
         case self_test_error_powerloss:
+        case self_test_error_z_axis:
         case self_test_error_servo:
           STATIC_EMPTY_LINE();
           STATIC_ITEM("Please shutdown the");
@@ -7006,15 +7050,42 @@ void lcd_self_test_wizard_show_screen(const self_test message){
   lcd_goto_screen(lcd_self_test_wizard_screens);
 }
 
-void lcd_self_test_wizard_blower_ok(){
+// Blower
+  void lcd_self_test_wizard_blower_ok(){
+    // Sets test flag as complete
+    beevc_continue = true ;
+    
+    lcd_self_test_wizard_show_screen(self_test_blower_ok);
+  }
+
+  void lcd_self_test_wizard_blower_error(){
+    lcd_self_test_wizard_show_screen(self_test_error_blower);
+  }
+
+// Z axis test
+void lcd_self_test_wizard_z_axis_do_test(){
+  // Show moving screen
+  lcd_self_test_wizard_show_screen(self_test_z_axis_moving);
+
+  // Lift Z axis 
+  beevc_move_axis_blocking(Z_AXIS,20,6);
+
+  // Lower Z axis
+  beevc_move_axis_blocking(Z_AXIS,-20,6);
+
+  // Move to ask screen
+  lcd_self_test_wizard_show_screen(self_test_z_axis_test);
+}
+
+void lcd_self_test_wizard_z_axis_ok(){
   // Sets test flag as complete
   beevc_continue = true ;
   
-  lcd_self_test_wizard_show_screen(self_test_blower_ok);
+  lcd_self_test_wizard_show_screen(self_test_z_axis_ok);
 }
 
-void lcd_self_test_wizard_blower_error(){
-  lcd_self_test_wizard_show_screen(self_test_error_blower);
+void lcd_self_test_wizard_z_axis_error(){
+  lcd_self_test_wizard_show_screen(self_test_error_z_axis);
 }
 
 // Servo motor 
@@ -7425,6 +7496,32 @@ void beevc_machine_setup_test_powerloss (){
     beevc_wait(5000);
 }
 
+void beevc_machine_setup_test_z_axis (){
+  // Displays powerloss test start screen
+  lcd_self_test_wizard_show_screen(self_test_z_axis_init);
+
+  // Waits for 5s or click
+  beevc_wait(5000);
+
+  // Perform test and wait for result
+  beevc_continue = 0;
+
+  lcd_self_test_wizard_z_axis_do_test();
+
+  while(!beevc_continue){
+    idle(true);
+  }
+
+  //Beep
+  beevc_buzz();
+
+  // Display ok screen
+  lcd_self_test_wizard_show_screen(self_test_z_axis_ok);
+
+  //Wait for 5sec or click
+  beevc_wait(5000);
+}
+
 void beevc_machine_setup_test_servo (){
   // Displays powerloss test start screen
   lcd_self_test_wizard_show_screen(self_test_servo_init);
@@ -7523,6 +7620,9 @@ void beevc_machine_setup_test_servo (){
 
     // Test powerloss detection pin
     beevc_machine_setup_test_powerloss();
+
+    // Test Z axis motion
+    beevc_machine_setup_test_z_axis();
 
     // Test servo operation
     beevc_machine_setup_test_servo();
