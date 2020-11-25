@@ -6827,6 +6827,8 @@ void kill_screen(const char* lcd_msg) {
           if(!(trinamic_ok & 0x10))
             STATIC_ITEM("E2 Stepper driver:NOK");
           break;
+
+        // Powerloss test
         case self_test_powerloss_init:
           strcpy(temp, "powerloss");
           break;
@@ -7227,7 +7229,7 @@ void beevc_machine_setup_set_offset(){
   current_position[Z_AXIS] += (float)20;
   manual_move_to_current(Z_AXIS,0);
 
-  // Homes and autoleves axes
+  // Homes and autolevels axes
   gcode_G29();
 
   // Show moving screen
@@ -7627,7 +7629,7 @@ void beevc_machine_setup_test_servo (){
 
     // Verify E2 connection
       // Test E2
-      //beevc_machine_setup_test_hotend(2);
+      beevc_machine_setup_test_hotend(2);
 
     // Verify hotbed connections
     beevc_machine_setup_test_hotbed();
@@ -7646,6 +7648,7 @@ void beevc_machine_setup_test_servo (){
 
     // Test servo operation
     beevc_machine_setup_test_servo();
+
     // Calibrate sensorless homing
     beevc_machine_setup_sensorless_homing();
 
@@ -7654,6 +7657,8 @@ void beevc_machine_setup_test_servo (){
 
     // Set Z offset
     beevc_machine_setup_set_offset();
+
+    // Optimize Leveling
 
     // Fine tune offset w/test print
 
