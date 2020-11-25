@@ -1035,7 +1035,7 @@ uint16_t max_display_update_time = 0;
   }
 
   static void beevc_load_filament(){
-    // Extrudes a small ammount to fluidify the tip of the filament
+    // Extrudes a small ammount to help guide the tip of the filament into PTFE
     beevc_move_axis_blocking(E_AXIS,15,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
 
     //Checks if Bowden to apply the correct 2 phase load process
@@ -1046,12 +1046,20 @@ uint16_t max_display_update_time = 0;
     #endif // BEEVC_Bowden
     
     // Load filament fast
+    
+    // Checks if flex material being loaded (temp 235ºC) and aplly a slower speed
+    if(thermalManager.target_temperature[active_extruder] == 235)
+      beevc_move_axis_blocking(E_AXIS,FILAMENT_CHANGE_LOAD_LENGTH,FILAMENT_CHANGE_LOAD_FEEDRATE/2);
+    else
       beevc_move_axis_blocking(E_AXIS,FILAMENT_CHANGE_LOAD_LENGTH,FILAMENT_CHANGE_LOAD_FEEDRATE);
   }
 
   static void beevc_extrude_filament(){
     // Extrude filament to get into hotend
-    beevc_move_axis_blocking(E_AXIS,ADVANCED_PAUSE_EXTRUDE_LENGTH,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+    if(thermalManager.target_temperature[active_extruder] == 235)
+      beevc_move_axis_blocking(E_AXIS,ADVANCED_PAUSE_EXTRUDE_LENGTH,ADVANCED_PAUSE_EXTRUDE_FEEDRATE/4);
+    else
+      beevc_move_axis_blocking(E_AXIS,ADVANCED_PAUSE_EXTRUDE_LENGTH,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
   }
 
   static void beevc_buzz(){
@@ -4016,6 +4024,13 @@ void kill_screen(const char* lcd_msg) {
       lcd_goto_screen(lcd_filament_change_choose_action);
     }
 
+    static void lcd_filament_change_flex ()
+    {
+      filament_change_temp = 235;
+      thermalManager.setTargetHotend(filament_change_temp, filament_change_extruder);
+      lcd_goto_screen(lcd_filament_change_choose_action);
+    }
+
     static void lcd_filament_change_abs ()
     {
       filament_change_temp = 240;
@@ -4037,10 +4052,11 @@ void kill_screen(const char* lcd_msg) {
       MENU_BACK(MSG_BACK);
 
       // \x09 is degree sign \x43 is 'C'
-      MENU_ITEM(submenu, _UxGT("PLA   210\x09\x43"), lcd_filament_change_pla); 
-      MENU_ITEM(submenu, _UxGT("PETG  230\x09\x43"), lcd_filament_change_petg);
-      MENU_ITEM(submenu, _UxGT("ABS   240\x09\x43"), lcd_filament_change_abs);
-      MENU_ITEM(submenu, _UxGT("PC    260\x09\x43"), lcd_filament_change_pc);
+      MENU_ITEM(submenu, _UxGT("PLA            210\x09\x43"), lcd_filament_change_pla); 
+      MENU_ITEM(submenu, _UxGT("PETG/NYLON     230\x09\x43"), lcd_filament_change_petg);
+      MENU_ITEM(submenu, _UxGT("TPU/FLEX       235\x09\x43"), lcd_filament_change_flex);
+      MENU_ITEM(submenu, _UxGT("ABS/ASA        240\x09\x43"), lcd_filament_change_abs);
+      MENU_ITEM(submenu, _UxGT("PC             260\x09\x43"), lcd_filament_change_pc);
 
       END_MENU();
     }
