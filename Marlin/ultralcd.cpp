@@ -457,6 +457,10 @@ uint16_t max_display_update_time = 0;
     self_test_powerloss_init,
     self_test_powerloss_ok,
     self_test_error_powerloss,
+    self_test_servo_init,
+    self_test_servo_test,
+    self_test_servo_ok,
+    self_test_error_servo,
     self_test_sensorless_homing,
     self_test_sensorless_homing_ok,
     self_test_set_offset_home_ok,
@@ -469,6 +473,8 @@ uint16_t max_display_update_time = 0;
   };
   void lcd_self_test_wizard_blower_ok();
   void lcd_self_test_wizard_blower_error();
+  void lcd_self_test_wizard_servo_ok();
+  void lcd_self_test_wizard_servo_error();
   void lcd_self_test_wizard_trinamic_updated();
   void lcd_self_test_wizard_continue();
 	///////////////////////////////////////////////////////
@@ -6645,6 +6651,9 @@ void kill_screen(const char* lcd_msg) {
       case self_test_error_powerloss:
         strcat(text, "61");
         break;
+      case self_test_error_servo:
+        strcat(text,"71");
+        break;
       default:
         break;
     }
@@ -6661,6 +6670,14 @@ void kill_screen(const char* lcd_msg) {
       STATIC_ITEM("Is the blower active?");
       MENU_ITEM_MIX(submenu, (" - Yes"), lcd_self_test_wizard_blower_ok);
       MENU_ITEM_MIX(submenu, (" - No"), lcd_self_test_wizard_blower_error);
+      END_SCREEN();
+    }
+    else if(screen_status == self_test_servo_test){
+      START_MENU();
+      STATIC_ITEM("Self-test wizard", true, true);
+      STATIC_ITEM("Is leveling arm open?");
+      MENU_ITEM_MIX(submenu, (" - Yes"), lcd_self_test_wizard_servo_ok);
+      MENU_ITEM_MIX(submenu, (" - No"), lcd_self_test_wizard_servo_error);
       END_SCREEN();
     }
     else if(screen_status == self_test_trinamic_updated){
@@ -6780,6 +6797,19 @@ void kill_screen(const char* lcd_msg) {
         case self_test_error_powerloss:
           STATIC_ITEM("Powerloss:        NOK");
           break;
+
+        // Servo test
+        case self_test_servo_init:
+          strcpy(temp, "servo motor");
+          break;
+        case self_test_servo_ok:
+          STATIC_ITEM("Servo motor:       OK");
+          strcpy(temp, "OK!");
+          break;
+        case self_test_error_servo:
+          STATIC_ITEM("Servo motor:      NOK");
+          break;
+
         case self_test_sensorless_homing:
           STATIC_ITEM("Sensorless-homing: XY");
           strcpy(temp, "Homing XY");
@@ -6861,6 +6891,7 @@ void kill_screen(const char* lcd_msg) {
         case self_test_error_blower:
         case self_test_error_trinamic:
         case self_test_error_powerloss:
+        case self_test_error_servo:
           lcd_self_test_wizard_prepare_error_codes(temp,true);
           STATIC_STRING(temp);
           STATIC_EMPTY_LINE();
@@ -6878,6 +6909,7 @@ void kill_screen(const char* lcd_msg) {
         case self_test_blower_init:
         case self_test_trinamic_init:
         case self_test_powerloss_init:
+        case self_test_servo_init:
           STATIC_ITEM("The machine will now");
           STATIC_ITEM("test the ",false,false, temp);
           if (screen_status == self_test_trinamic_init){
@@ -6898,6 +6930,7 @@ void kill_screen(const char* lcd_msg) {
         case self_test_blower_ok:
         case self_test_trinamic_ok:
         case self_test_powerloss_ok:
+        case self_test_servo_ok:
         case self_test_sensorless_homing:
         case self_test_sensorless_homing_ok:
         case self_test_set_offset_home:
@@ -6923,6 +6956,8 @@ void kill_screen(const char* lcd_msg) {
         case self_test_trinamic_ok:
         case self_test_powerloss_init:
         case self_test_powerloss_ok:
+        case self_test_servo_init:
+        case self_test_servo_ok:
         case self_test_sensorless_homing_ok:
         case self_test_set_offset_explain:
         case self_test_set_offset_complete:
@@ -6946,6 +6981,7 @@ void kill_screen(const char* lcd_msg) {
         case self_test_error_blower:
         case self_test_error_trinamic:
         case self_test_error_powerloss:
+        case self_test_error_servo:
           STATIC_EMPTY_LINE();
           STATIC_ITEM("Please shutdown the");
           STATIC_ITEM("printer, fix the");
@@ -6980,6 +7016,18 @@ void lcd_self_test_wizard_blower_ok(){
 void lcd_self_test_wizard_blower_error(){
   lcd_self_test_wizard_show_screen(self_test_error_blower);
 }
+
+// Servo motor 
+  void lcd_self_test_wizard_servo_ok(){
+    // Sets test flag as complete
+    beevc_continue = true ;
+
+    lcd_self_test_wizard_show_screen(self_test_servo_ok);
+  }
+
+  void lcd_self_test_wizard_servo_error(){
+    lcd_self_test_wizard_show_screen(self_test_error_servo);
+  }
 
 void lcd_self_test_wizard_continue(){
   // Sets test flag as complete
@@ -7377,6 +7425,42 @@ void beevc_machine_setup_test_powerloss (){
     beevc_wait(5000);
 }
 
+void beevc_machine_setup_test_servo (){
+  // Displays powerloss test start screen
+  lcd_self_test_wizard_show_screen(self_test_servo_init);
+
+  // Waits for 5s or click
+  beevc_wait(5000);
+
+  // Lift Z axis (enough space to open probing arm safely)
+  beevc_move_axis_blocking(Z_AXIS,20,6);
+
+  // Open servo motor to probe position
+  uint8_t servo_angle[2] = Z_SERVO_ANGLES;
+  servo[0].move(servo_angle[0]);
+
+  // Perform test and wait for result
+  beevc_continue = 0;
+
+  lcd_self_test_wizard_show_screen(self_test_servo_test);
+
+  while(!beevc_continue){
+    idle(true);
+  }
+
+  // Closer servo motor
+  servo[0].move(servo_angle[1]);
+
+  //Beep
+  beevc_buzz();
+
+  // Display ok screen
+  lcd_self_test_wizard_show_screen(self_test_servo_ok);
+
+  //Wait for 5sec or click
+  beevc_wait(5000);
+}
+
   /**
    *  BEEVC
    * "Machine settings" > "Self-test Wizard"
@@ -7440,6 +7524,8 @@ void beevc_machine_setup_test_powerloss (){
     // Test powerloss detection pin
     beevc_machine_setup_test_powerloss();
 
+    // Test servo operation
+    beevc_machine_setup_test_servo();
     // Calibrate sensorless homing
     beevc_machine_setup_sensorless_homing();
 
