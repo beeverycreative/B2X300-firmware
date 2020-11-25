@@ -2051,13 +2051,23 @@ void beevc_set_serial_run(){
         STATIC_ITEM("between the nozzle");
         STATIC_ITEM("and the print surface");
         STATIC_ITEM(". Adjust until the");
-        STATIC_ITEM("paper is neither free");
-        STATIC_ITEM("nor completely stuck");
+        
         if(!beevc_is_offset_screen)
         {
+          STATIC_ITEM("paper is barely");
+          STATIC_ITEM("touching the tip of");
+          STATIC_ITEM("the nozzle at each");
+          STATIC_ITEM("point.");
           STATIC_ITEM("Ensure a consistent");
           STATIC_ITEM("resistance between");
-          STATIC_ITEM("adjustment points!");
+          STATIC_ITEM("adjustment points,");
+          STATIC_ITEM("otherwise leveling");
+          STATIC_ITEM("quality decreases.");
+        }
+        else
+        {
+          STATIC_ITEM("paper is neither free");
+          STATIC_ITEM("nor completely stuck");
         }
         STATIC_EMPTY_LINE();
         STATIC_ITEM("Please, check the");
@@ -2199,16 +2209,26 @@ void beevc_set_serial_run(){
     settings.save();
   }
 
+  void beevc_calibrate_leveling_menu_advanced()
+  {
+    START_MENU();
+
+    MENU_BACK();
+    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(float52,"Front left", &beevc_bed_leveling_correction[0], -1, 1, beevc_save_eeprom);
+    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(float52,"Back left", &beevc_bed_leveling_correction[1], -1, 1, beevc_save_eeprom);
+    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(float52,"Back right", &beevc_bed_leveling_correction[2], -1, 1, beevc_save_eeprom);
+    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(float52,"Front right", &beevc_bed_leveling_correction[3], -1, 1, beevc_save_eeprom);
+  
+    END_MENU();
+  }
+
   void beevc_calibrate_leveling_menu()
   {
     START_MENU();
     MENU_BACK();
 
     MENU_ITEM(submenu, "Leveling adjust", beevc_calibrate_leveling);
-    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(float52,"Front left", &beevc_bed_leveling_correction[0], -1, 1, beevc_save_eeprom);
-    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(float52,"Back left", &beevc_bed_leveling_correction[1], -1, 1, beevc_save_eeprom);
-    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(float52,"Back right", &beevc_bed_leveling_correction[2], -1, 1, beevc_save_eeprom);
-    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(float52,"Front right", &beevc_bed_leveling_correction[3], -1, 1, beevc_save_eeprom);
+    MENU_ITEM(submenu, "Advanced settings", beevc_calibrate_leveling_menu_advanced);
     
     END_MENU();
   }
