@@ -3995,7 +3995,7 @@ void kill_screen(const char* lcd_msg) {
       // only moves if loading or manually extruding
       if (filament_change_load){
         // if not homed homes axis and lifts Z
-        if (!(axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS])){
+        if (!(axis_homed[X_AXIS] && axis_homed[Y_AXIS] && axis_homed[Z_AXIS]) || !(axis_known_position[X_AXIS] && axis_known_position[Y_AXIS] && axis_known_position[Z_AXIS] )){
           // Forces a home on all the axes
           axis_homed[X_AXIS] = axis_homed[Y_AXIS] = axis_homed[Z_AXIS] = false;
           // Home
