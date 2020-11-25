@@ -1195,7 +1195,7 @@ uint16_t max_display_update_time = 0;
 #endif
 
  #define LCD_PRINT_EXT_TEMP() \
-    STATIC_ITEM(_UxGT(" ")); \
+    STATIC_EMPTY_LINE(); \
     u8g.setPrintPos(0, 26);\
     u8g.print("Extruder ");\
     u8g.print(active_extruder+1);\
@@ -1207,7 +1207,7 @@ uint16_t max_display_update_time = 0;
     u8g.print("C")
 
   #define LCD_PRINT_EXT_TEMP_STABLE() \
-  STATIC_ITEM(_UxGT(" ")); \
+  STATIC_EMPTY_LINE(); \
   u8g.setPrintPos(0, 26);\
   u8g.print("Extruder ");\
   u8g.print(active_extruder+1);\
@@ -1567,9 +1567,9 @@ void beevc_set_serial_run(){
   void lcd_nozzle_z_offset_bed_status() {
 		START_SCREEN();
       STATIC_ITEM(_UxGT("Nozzle Z-offset test"), true, true);
-      STATIC_ITEM("  ", true, false);
+      STATIC_EMPTY_LINE();
       STATIC_ITEM(_UxGT("Status: heating bed"));
-      STATIC_ITEM("  ", true, false);
+      STATIC_EMPTY_LINE();
       #ifdef MSG_FILAMENT_CHANGE_HEATING_2
         STATIC_ITEM("Please wait. ");
       #endif
@@ -1609,8 +1609,9 @@ void beevc_set_serial_run(){
     START_SCREEN();
     STATIC_ITEM(_UxGT("Nozzle Z-offset test"), true, true);
     STATIC_ITEM(_UxGT("Status: finding mesh"));
-    STATIC_ITEM(_UxGT(" "));
-    STATIC_ITEM(_UxGT(" "));
+    
+    STATIC_EMPTY_LINE();
+    STATIC_EMPTY_LINE();
     STATIC_ITEM(_UxGT("Please wait."));
 
     END_SCREEN();
@@ -1620,8 +1621,8 @@ void beevc_set_serial_run(){
     START_SCREEN();
     STATIC_ITEM(_UxGT("Nozzle Z-offset test"), true, true);
     STATIC_ITEM(_UxGT("Status: printing"));
-    STATIC_ITEM(_UxGT(" "));
-    STATIC_ITEM(_UxGT(" "));
+    STATIC_EMPTY_LINE();
+    STATIC_EMPTY_LINE();
     STATIC_ITEM(_UxGT("Please wait."));
 
     END_SCREEN();
@@ -1648,13 +1649,13 @@ void beevc_set_serial_run(){
     STATIC_ITEM(_UxGT("Nozzles are not "));
     STATIC_ITEM(_UxGT("parallel to the bed!"));
     STATIC_ITEM(_UxGT("(scroll to read more)"));
-    STATIC_ITEM(_UxGT(" "));
+    STATIC_EMPTY_LINE();
     STATIC_ITEM(_UxGT("Please recalibrate "));
     STATIC_ITEM(_UxGT("according to the"));
     STATIC_ITEM(_UxGT("following procedure!"));
-    STATIC_ITEM(_UxGT(" "));
+    STATIC_EMPTY_LINE();
     STATIC_ITEM(_UxGT("Proc. code: OC02"));
-    STATIC_ITEM(_UxGT(" "));
+    STATIC_EMPTY_LINE();
     STATIC_ITEM(_UxGT("Click to exit."));
 
     END_SCREEN();
@@ -2703,8 +2704,8 @@ void kill_screen(const char* lcd_msg) {
     START_SCREEN();
     STATIC_ITEM(_UxGT("Powerloss detected"), true, true);
     STATIC_ITEM(_UxGT("Auto-recovering print"));
-    STATIC_ITEM(_UxGT(" "));
-    STATIC_ITEM(_UxGT(" "));
+    STATIC_EMPTY_LINE();
+    STATIC_EMPTY_LINE();
     STATIC_ITEM(_UxGT("Click to cancel."));
     END_SCREEN();
   }
@@ -3298,7 +3299,7 @@ void kill_screen(const char* lcd_msg) {
         STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
         STATIC_ITEM(_UxGT("Sensorless-homing: X"));
         STATIC_ITEM(_UxGT("Status: OK!"));
-        STATIC_ITEM(_UxGT(" "));
+        STATIC_EMPTY_LINE();
         STATIC_ITEM(_UxGT("Please wait."));
         END_SCREEN();
       }
@@ -3308,7 +3309,7 @@ void kill_screen(const char* lcd_msg) {
         STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
         STATIC_ITEM(_UxGT("Sensorless-homing: Y"));
         STATIC_ITEM(_UxGT("Status: OK!"));
-        STATIC_ITEM(_UxGT(" "));
+        STATIC_EMPTY_LINE();
         STATIC_ITEM(_UxGT("Please wait."));
         END_SCREEN();
       }
@@ -3318,7 +3319,7 @@ void kill_screen(const char* lcd_msg) {
         STATIC_ITEM(_UxGT("Self-test Wizard"), true, true);
         STATIC_ITEM(_UxGT("Sensorless-homing: XY"));
         STATIC_ITEM(_UxGT("Status: homing X+Y"));
-        STATIC_ITEM(_UxGT(" "));
+        STATIC_EMPTY_LINE();
         STATIC_ITEM(_UxGT("Please wait."));
         END_SCREEN();
       }
@@ -3352,7 +3353,7 @@ void kill_screen(const char* lcd_msg) {
 
         LCD_PRINT_EXT_TEMP();
         STATIC_ITEM(_UxGT("Status:heating nozzle"));
-        STATIC_ITEM(_UxGT(" "));
+        STATIC_EMPTY_LINE();
         STATIC_ITEM(_UxGT("Please wait."));
         
       #endif
@@ -3378,7 +3379,7 @@ void kill_screen(const char* lcd_msg) {
 
       LCD_PRINT_EXT_TEMP_STABLE();
       STATIC_ITEM(_UxGT("Status:  heating done"));
-      STATIC_ITEM(_UxGT(" "));
+      STATIC_EMPTY_LINE();
       STATIC_ITEM(_UxGT("Click to continue."));
       END_SCREEN();
     }
@@ -3401,7 +3402,7 @@ void kill_screen(const char* lcd_msg) {
 
       LCD_PRINT_EXT_TEMP_STABLE();
       STATIC_ITEM(_UxGT("Status: loading"));
-      STATIC_ITEM(_UxGT(" "));
+      STATIC_EMPTY_LINE();
       STATIC_ITEM(_UxGT("Please wait."));
       END_SCREEN();
     }
@@ -3413,7 +3414,7 @@ void kill_screen(const char* lcd_msg) {
 
       LCD_PRINT_EXT_TEMP_STABLE();
       STATIC_ITEM(_UxGT("Status: unloading"));
-      STATIC_ITEM(_UxGT(" "));
+      STATIC_EMPTY_LINE();
       STATIC_ITEM(_UxGT("Please wait."));
       END_SCREEN();
     }
@@ -3434,7 +3435,7 @@ void kill_screen(const char* lcd_msg) {
       } 
 
       STATIC_ITEM(_UxGT("Status: moving"));
-      STATIC_ITEM(_UxGT(" "));
+      STATIC_EMPTY_LINE();
       STATIC_ITEM(_UxGT("Please wait."));
       END_SCREEN();
     }
