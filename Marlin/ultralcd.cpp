@@ -2816,6 +2816,36 @@ void kill_screen(const char* lcd_msg) {
     // Shows screen
     lcd_goto_screen(beevc_trinamic_warning_screen_display);
 
+    // Print warning via Serial
+    SERIAL_ECHO("Testing TMC - ");
+    if (!(trinamic_ok & 0x1F))
+    {
+      if(!(trinamic_ok & 0x01))
+      {
+        SERIAL_ECHO("X NOK ");
+      }
+      
+      if(!(trinamic_ok & 0x02))
+      {
+        SERIAL_ECHO("Y NOK ");
+      }
+
+      if(!(trinamic_ok & 0x04))
+      {
+        SERIAL_ECHO("Z NOK ");
+      }
+
+      if(!(trinamic_ok & 0x08))
+      {
+        SERIAL_ECHO("E1 NOK ");
+      }
+
+      if(!(trinamic_ok & 0x10))
+      {
+        SERIAL_ECHO("E2 NOK ");
+      }
+    }
+
     // Wait for click
     beevc_wait_click();
 
