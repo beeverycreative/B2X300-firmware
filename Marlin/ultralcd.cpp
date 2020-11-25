@@ -958,15 +958,48 @@ uint16_t max_display_update_time = 0;
   #define ACTIVE_FILAMENT_SENSOR_WAITING (((READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING) && (active_extruder == 1)) || ((READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING)  && (active_extruder == 0))) 
   #define ACTIVE_FILAMENT_SENSOR_TRIGERED !(((READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING) && (active_extruder == 1)) || ((READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING)  && (active_extruder == 0))) 
 
-  static void beevc_move_axis(AxisEnum axis,float move_mm, float feed_mms){
+  static void beevc_move_axis(AxisEnum axis,float move_mm, float feed_mms,bool absolute = false){
     // Sets the motion ammount and executes movement at requested speed
-    current_position[axis] += move_mm;
+    if(absolute)
+      current_position[axis] = move_mm;
+    else
+      current_position[axis] += move_mm;
     planner.buffer_line_kinematic(current_position, feed_mms, active_extruder);
   }
 
-  static void beevc_move_axis_blocking(AxisEnum axis,float move_mm, float feed_mms){
+  // Use current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS] if you want an axis to maintains position in absolute motion
+  static void beevc_move_multiple_axis(float move_mm_x, float move_mm_y, float move_mm_z, float feed_mms,bool absolute = false)
+  {
+    // Sets the motion ammount and executes movement at requested speed
+    if(absolute)
+    {
+      current_position[X_AXIS] = move_mm_x;
+      current_position[Y_AXIS] = move_mm_y;
+      current_position[Z_AXIS] = move_mm_z;
+    }
+    else
+    {
+      current_position[X_AXIS] += move_mm_x;
+      current_position[Y_AXIS] += move_mm_y;
+      current_position[Z_AXIS] += move_mm_z;
+    }
+
+    planner.buffer_line_kinematic(current_position, feed_mms, active_extruder);
+  }
+
+  // Use current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS] if you want an axis to maintains position in absolute motion
+  static void beevc_move_multiple_axis_blocking(float move_mm_x, float move_mm_y, float move_mm_z, float feed_mms, bool absolute = false)
+  {
     // Plans the motion
-    beevc_move_axis(axis, move_mm, feed_mms);
+    beevc_move_multiple_axis(move_mm_x, move_mm_y, move_mm_z, feed_mms,absolute);
+
+    // Waits for movement to finish
+    while(planner.movesplanned() > 0) idle();
+  }
+
+  static void beevc_move_axis_blocking(AxisEnum axis,float move_mm, float feed_mms, bool absolute = false){
+    // Plans the motion
+    beevc_move_axis(axis, move_mm, feed_mms,absolute);
 
     // Waits for movement to finish
     while(planner.movesplanned() > 0) idle();
@@ -1016,8 +1049,8 @@ uint16_t max_display_update_time = 0;
       // Avoid returning to status screen
       defer_return_to_status = true;
 
-      // Manage idle time
-      idle(true);
+      // Keep running background tasks while waiting
+      loop();
     }
   }
 
@@ -1074,8 +1107,8 @@ uint16_t max_display_update_time = 0;
       u8g.print(" seconds");
       }
       
-      // Manage idle time
-      idle(true);
+      // Keep running background tasks while waiting
+      loop();
     }
   }
 
