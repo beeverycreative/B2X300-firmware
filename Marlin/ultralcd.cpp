@@ -7319,7 +7319,7 @@ void beevc_machine_setup_test_hotend (uint8_t extruder){
   lcd_self_test_wizard_show_screen(self_test_hotend_test);
 
   // Stores idle temperature for the other extruder
-  uint16_t idle_temp = thermalManager.degHotend(extruder == 0 ? 1 : 0)+10;
+  uint16_t idle_temp = thermalManager.degHotend(extruder == 0 ? 1 : 0)+15;
 
   while(thermalManager.degHotend(active_extruder) < thermalManager.degTargetHotend(active_extruder)){
 
