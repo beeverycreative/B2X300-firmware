@@ -93,6 +93,7 @@ void manage_inactivity(bool ignore_stepper_queue = false);
 ////////////     Better autoleveling     //////////////
 #ifdef BEEVC_B2X300
 	extern bool G28_stow;
+  extern float beevc_bed_leveling_correction[4];
 #endif
 ///////////////////////////////////////////////////////
 

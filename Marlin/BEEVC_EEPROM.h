@@ -1,7 +1,8 @@
 /** 
  * This file stores different defines for the B2X300 EEPROM access
  * 
- * B03 EEPROM map byte address
+  *  B03 - Added support for SN storage, and corrected SD card file name storage, changed offset to 150
+ *  B03 EEPROM map byte address
  *  Adress  Bytes   Type      Description
  *  0       4       float     SN
  *  4       4       float     Z position
@@ -24,8 +25,11 @@
  *  112     1       uint8_t   Reserved
  *  113     1       uint8_t   Bed PWM max
  *  114     1       uint8_t   8 bit boolean Non spi flag (NA NA NA X Y Z E1 E2)
- *  115     35                Free space
- * 
+ *  115     1       int8_t    Bed leveling improvement (Front left corner)
+ *  116     1       int8_t    Bed leveling improvement (Back left corner)
+ *  117     1       int8_t    Bed leveling improvement (Back right corner)
+ *  118     1       int8_t    Bed leveling improvement (Front right corner)
+ *  119     31                Free space
  */
 
 #ifndef BEEVC_EEPROM_H
@@ -54,6 +58,10 @@
     #define SIZE_RESERVED   1
     #define SIZE_BED_PWM    1
     #define SIZE_STP_SPI    1
+    #define SIZE_LEV_PT1    1
+    #define SIZE_LEV_PT2    1
+    #define SIZE_LEV_PT3    1
+    #define SIZE_LEV_PT4    1
     
     // Variable EEPROM address defines
     #define ADDRESS_SN         0
@@ -77,6 +85,10 @@
     #define ADDRESS_RESERVED2  ADDRESS_RESERVED1+ SIZE_RESERVED
     #define ADDRESS_BED_PWM    ADDRESS_RESERVED2+ SIZE_RESERVED
     #define ADDRESS_STP_SPI    ADDRESS_BED_PWM+ SIZE_BED_PWM
+    #define ADDRESS_LEV_PT1    ADDRESS_STP_SPI+ SIZE_STP_SPI
+    #define ADDRESS_LEV_PT2    ADDRESS_LEV_PT1+ SIZE_LEV_PT1
+    #define ADDRESS_LEV_PT3    ADDRESS_LEV_PT2+ SIZE_LEV_PT2
+    #define ADDRESS_LEV_PT4    ADDRESS_LEV_PT3+ SIZE_LEV_PT3
 
     // NON CRC Version
     // Necessary to write to eeprom

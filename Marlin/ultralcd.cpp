@@ -261,6 +261,22 @@ uint16_t max_display_update_time = 0;
   #endif
   ///////////////////////////////////////////////////////
 
+  //////////// Better autoleveling and z offset //////////////
+  #ifdef BEEVC_B2X300
+    float last_bed_correction = 0;
+    uint8_t beevc_offset_leveling_current_screen = 0;
+    bool beevc_is_offset_screen = 0;
+    enum beevc_offset_leveling_screens {
+      beevc_offset_leveling_homing,
+      beevc_offset_leveling_home_complete,
+      beevc_offset_leveling_explain,
+      beevc_offset_leveling_moving,
+      beevc_offset_leveling_complete,
+      beevc_offset_leveling_calibrate
+    };
+  #endif
+  ///////////////////////////////////////////////////////
+
   ////////////   Self-test Wizard    //////////////
 	#ifdef BEEVC_B2X300
 		void beevc_machine_setup();
@@ -1871,176 +1887,310 @@ void beevc_set_serial_run(){
  *
  *
  */
- #ifdef BEEVC_B2X300
+#ifdef BEEVC_B2X300
 
- void beevc_set_offset_home_complete(){
-   START_SCREEN();
-   STATIC_ITEM(_UxGT("Set nozzle height"), true, true);
-   STATIC_ITEM(_UxGT("Leveling done!"));
-   STATIC_ITEM(_UxGT("Moving to calibration"));
-   STATIC_ITEM(_UxGT("position"));
-   END_SCREEN();
- }
+  void beevc_offset_leveling_screens();
 
- void beevc_set_offset_explain(){
-  START_SCREEN();
-  STATIC_ITEM("Set nozzle height", true, true);
-  STATIC_ITEM("Please, adjust the Z");
-  STATIC_ITEM("height by turning the");
-  STATIC_ITEM("LCD knob.");
-  STATIC_ITEM("(scroll to read more)");
-  STATIC_EMPTY_LINE();
-  STATIC_ITEM("Place a paper sheet ");
-  STATIC_ITEM("between the nozzle ");
-  STATIC_ITEM("and the print surface");
-  STATIC_ITEM(". Adjust until the ");
-  STATIC_ITEM("paper is neither free");
-  STATIC_ITEM("nor completely stuck");
-  STATIC_EMPTY_LINE();
-  STATIC_ITEM("Please, check the");
-  STATIC_ITEM("\"Other Codes\" chapter");
-  STATIC_ITEM("on the User Manual ");
-  STATIC_ITEM("for more information.");
-  STATIC_EMPTY_LINE();
-  STATIC_ITEM("Proc. code: OC01");
-  STATIC_EMPTY_LINE();
-  STATIC_ITEM("Click to continue.");
-  END_SCREEN();
- }
+  void beevc_offset_leveling_goto_screen(uint8_t screen)
+  {
+    // Required to ensure refresh on screen change
+    currentScreen = beevc_empty_screen;
+    beevc_offset_leveling_current_screen = screen;
+    lcd_goto_screen(beevc_offset_leveling_screens);
+  }
 
- void beevc_set_offset_homing(){
-   START_SCREEN();
-   STATIC_ITEM(_UxGT("Set nozzle height"), true, true);
-   STATIC_ITEM(_UxGT("Nozzle height: -----"));
-   STATIC_ITEM(_UxGT("Status: finding mesh"));
-   STATIC_ITEM(_UxGT(" "));
-   STATIC_ITEM(_UxGT("Please wait."));
-   END_SCREEN();
- }
+  void beevc_set_offset_leveling_calibrate()
+  {
+    if (lcd_clicked)
+    {
+      z_offset_finished = true;
 
- void beevc_set_offset_moving(){
-   START_SCREEN();
-   STATIC_ITEM(_UxGT("Set nozzle height"), true, true);
-   STATIC_ITEM(_UxGT("Nozzle height: -----"));
-   STATIC_ITEM(_UxGT("Status: moving"));
-   STATIC_ITEM(_UxGT(" "));
-   STATIC_ITEM(_UxGT("Please wait."));
-   END_SCREEN();
- }
+      if(beevc_is_offset_screen)
+      {
+        zprobe_zoffset = (float)(round((current_position[Z_AXIS] + zprobe_zoffset)*100))/100;
+        lcd_completion_feedback(settings.save());
 
- void beevc_set_offset_complete(){
-   START_SCREEN();
-   STATIC_ITEM(_UxGT("Set nozzle height"), true, true);
-   STATIC_ITEM(_UxGT(" "));
-   lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr42sign(zprobe_zoffset));
-   STATIC_ITEM(_UxGT("Status: OK!"));
-   STATIC_ITEM(_UxGT(" "));
-   STATIC_ITEM(_UxGT("Click to continue."));
-   END_SCREEN();
- }
+        // Lifts nozzle 5mm, homes XY and moves X carriage 20mm to the left
+        enqueue_and_echo_commands_P(PSTR("G91\nG1 Z5\nG28 X Y\nG1 X-20\nG90\nM84"));
+      }
+      else
+      {
+        last_bed_correction = (float)(round((current_position[Z_AXIS])*100))/100;
+      }
+      lcd_clicked = false;
+      beevc_offset_leveling_goto_screen(beevc_offset_leveling_complete);
+    }
 
- void beevc_set_offset_calibrate(){
-   if (lcd_clicked)
-     {
-       zprobe_zoffset = (float)(round((current_position[Z_AXIS] + zprobe_zoffset)*100))/100;
-       lcd_completion_feedback(settings.save());
-       z_offset_finished = true;
+    ENCODER_DIRECTION_NORMAL();
 
-       // Lifts nozzle 5mm, homes XY and moves X carriage 20mm to the left
-       enqueue_and_echo_commands_P(PSTR("G91\nG1 Z5\nG28 X Y\nG1 X-20\nG90\nM84"));
+    if (encoderPosition) {
+      refresh_cmd_timeout();
 
-       lcd_goto_screen(beevc_set_offset_complete);
-     }
+      float min = current_position[Z_AXIS] - 1000,
+            max = current_position[Z_AXIS] + 1000;
 
-   ENCODER_DIRECTION_NORMAL();
+      // Get the new position
+      if(beevc_is_offset_screen)
+        current_position[Z_AXIS] -= float((int32_t)encoderPosition) * 0.05;
+      else
+        current_position[Z_AXIS] -= float((int32_t)encoderPosition) * 0.02;
 
-   if (encoderPosition) {
-     refresh_cmd_timeout();
+      // Limit only when trying to move towards the limit
+      if ((int32_t)encoderPosition < 0) NOLESS(current_position[Z_AXIS], min);
+      if ((int32_t)encoderPosition > 0) NOMORE(current_position[Z_AXIS], max);
 
-     float min = current_position[Z_AXIS] - 1000,
-           max = current_position[Z_AXIS] + 1000;
+      manual_move_to_current(Z_AXIS,0);
 
-     // Get the new position
-     current_position[Z_AXIS] -= float((int32_t)encoderPosition) * 0.05;
+      encoderPosition = 0;
+      lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+    }
 
+    if (lcdDrawUpdate) {
+      START_SCREEN();
+      if (beevc_is_offset_screen)
+      {
+        STATIC_ITEM(_UxGT("Set nozzle height"), true, true);
+        lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr42sign((float)(round((current_position[Z_AXIS] + zprobe_zoffset)*100))/100));
+      }
+      else
+      {
+        STATIC_ITEM(_UxGT("Leveling adjust"), true, true);
+        lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr42sign((float)(round((current_position[Z_AXIS] )*100))/100));
+      }
+      
+      lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
+      lcd_implementation_drawmenu_static(4,PSTR("Click to save.       "));
 
-     // Limit only when trying to move towards the limit
-     if ((int32_t)encoderPosition < 0) NOLESS(current_position[Z_AXIS], min);
-     if ((int32_t)encoderPosition > 0) NOMORE(current_position[Z_AXIS], max);
+      END_SCREEN();
+    }
+  }
 
-     manual_move_to_current(Z_AXIS,0);
+  void beevc_offset_leveling_screens()
+  {
+    // Handle exceptions
+    if (beevc_offset_leveling_current_screen == beevc_offset_leveling_calibrate)
+    {
+      z_offset_finished = false;
+      currentScreen = beevc_empty_screen;
+      lcd_goto_screen(beevc_set_offset_leveling_calibrate);
+    }
+        
+    else
+    {
+      START_SCREEN();
 
-     encoderPosition = 0;
-     lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
-   }
-   if (lcdDrawUpdate) {
-     START_SCREEN();
-     STATIC_ITEM(_UxGT("Set nozzle height"), true, true);
+      // Title
+      if(beevc_is_offset_screen)
+      {
+        STATIC_ITEM(_UxGT("Set nozzle height"), true, true);
+      }
+      else
+      {
+        STATIC_ITEM(_UxGT("Leveling adjust"), true, true);
+      }
 
-     lcd_implementation_drawmenu_setting_edit_generic(false, 1,PSTR("Nozzle height"),ftostr42sign((float)(round((current_position[Z_AXIS] + zprobe_zoffset)*100))/100));
-     lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
-     lcd_implementation_drawmenu_static(4,PSTR("Click to save.       "));
+      // Middle (messages)
+      if (beevc_offset_leveling_current_screen == beevc_offset_leveling_homing)
+      {
+        STATIC_ITEM(_UxGT("Nozzle height: -----"));
+        STATIC_ITEM(_UxGT("Status: finding mesh"));
+        STATIC_EMPTY_LINE();
+      }
 
-     END_SCREEN();
-   }
- }
+      if (beevc_offset_leveling_current_screen == beevc_offset_leveling_moving)
+      {
+        STATIC_ITEM(_UxGT("Nozzle height: -----"));
+        STATIC_ITEM(_UxGT("Status: Moving"));
+        STATIC_EMPTY_LINE();
+      }
 
- void beevc_set_offset(){
-   // Initializes required variable
-   z_offset_finished = false;
+      if (beevc_offset_leveling_current_screen == beevc_offset_leveling_complete)
+      {
+        if(beevc_is_offset_screen){
+          STATIC_ITEM(_UxGT("Height adjustment"));
+        }
+        else
+        {
+          STATIC_ITEM(_UxGT("Point adjustment"));
+        }
+        
+        STATIC_ITEM(_UxGT("complete!"));
+        STATIC_EMPTY_LINE();
+      }
 
-   // Show finding mesh screen
-   lcd_goto_screen(beevc_set_offset_homing);
+      if (beevc_offset_leveling_current_screen == beevc_offset_leveling_explain)
+      {
+        STATIC_ITEM("Please, adjust the Z");
+        STATIC_ITEM("height by turning the");
+        STATIC_ITEM("LCD knob.");
+        STATIC_ITEM("(scroll to read more)");
+        STATIC_EMPTY_LINE();
+        STATIC_ITEM("Place a paper sheet");
+        STATIC_ITEM("between the nozzle");
+        STATIC_ITEM("and the print surface");
+        STATIC_ITEM(". Adjust until the");
+        STATIC_ITEM("paper is neither free");
+        STATIC_ITEM("nor completely stuck");
+        if(!beevc_is_offset_screen)
+        {
+          STATIC_ITEM("Ensure a consistent");
+          STATIC_ITEM("resistance between");
+          STATIC_ITEM("adjustment points!");
+        }
+        STATIC_EMPTY_LINE();
+        STATIC_ITEM("Please, check the");
+        STATIC_ITEM("\"Other Codes\" chapter");
+        STATIC_ITEM("on the User Manual");
+        STATIC_ITEM("for more information.");
+        STATIC_EMPTY_LINE();
+        STATIC_ITEM("Proc. code: OC01");
+        STATIC_EMPTY_LINE();
+      }
 
-   // Waits for click or timeout
-   beevc_wait(1000);
+      // Ending
+      if (beevc_offset_leveling_current_screen == beevc_offset_leveling_homing
+      || beevc_offset_leveling_current_screen == beevc_offset_leveling_moving)
+      {
+        STATIC_ITEM(_UxGT("Please wait."));
+      }
 
-   // Clears parser data to avoid unexpected variables entering the home/leveling gcodes
-   parser.reset();
+      if (beevc_offset_leveling_current_screen == beevc_offset_leveling_home_complete
+      || beevc_offset_leveling_current_screen == beevc_offset_leveling_explain
+      || beevc_offset_leveling_current_screen == beevc_offset_leveling_complete)
+      {
+        STATIC_ITEM("Click to continue.");
+      }
 
-   // Homes and autoleves axes
-   gcode_G29();
+      END_SCREEN();
+    }
+  }
 
-   // Show moving screen
-   lcd_goto_screen(beevc_set_offset_moving);
+  void beevc_set_offset_leveling()
+  {
+    // Show finding mesh screen
+    beevc_offset_leveling_goto_screen(beevc_offset_leveling_homing);
 
-   // Moves the carriage and bed to the offset adjust position
-   do_blocking_move_to_xy(((X_BED_SIZE) / 2),((Y_BED_SIZE) / 2), 120);
+    // Waits for click or timeout
+    beevc_wait(1000);
 
-   // Lowers Z axis
-   current_position[Z_AXIS] = (float)(round((current_position[Z_AXIS]-8)*10))/10;
-   manual_move_to_current(Z_AXIS,0);
+    // Clears parser data to avoid unexpected variables entering the home/leveling gcodes
+    parser.reset();
 
-   // Waits a few seconds to allow movement to finish
-   uint32_t temp_time = millis() + 3200;
-   while(millis() < temp_time){
-     lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
-     idle(true);
-   }
+    // Homes and autoleves axes
+    gcode_G29();
 
-   // Shows the help screen
-   lcd_goto_screen(beevc_set_offset_explain);
-   beevc_wait(20000);
+    if(beevc_is_offset_screen)
+    {
+      // Show moving screen
+      beevc_offset_leveling_goto_screen(beevc_offset_leveling_moving);
 
-   // Shows the leveling screen
-   lcd_goto_screen(beevc_set_offset_calibrate);
+      // Moves the carriage and bed to the offset adjust position
+      beevc_move_multiple_axis_blocking(((X_BED_SIZE) / 2),((Y_BED_SIZE) / 2),2,120,true);
 
-   // Waits for conclusion of Adjustment
-   while(!z_offset_finished){
-     idle(true);
-   }
+      // Shows the help screen
+      beevc_offset_leveling_goto_screen(beevc_offset_leveling_explain);
+      beevc_wait(20000);
 
-   //Beep
-   beevc_buzz();
+      // Shows the leveling screen
+      beevc_offset_leveling_goto_screen(beevc_offset_leveling_calibrate);
 
-   //Wait for 5sec or click
-   beevc_wait(5000);
+      while(!z_offset_finished){
+        idle(true);
+      }
+    }
+    else
+    {
+      // Shows the help screen
+      beevc_offset_leveling_goto_screen(beevc_offset_leveling_explain);
+      beevc_wait(20000);
 
-   //Return to status screen
-   lcd_return_to_status();
- }
+      // Runs through the 4 corner of the bed to correct bed leveling
+      const float positions[4][2]= {{20,35},
+                                    {20,175},
+                                    {280,175},
+                                    {280,35}};
 
- #endif
+      for (uint8_t index = 0 ; index< 4; index++)
+      {
+        // Show moving screen
+        beevc_offset_leveling_goto_screen(beevc_offset_leveling_moving);
+
+        // Raise Z
+        beevc_move_axis_blocking(Z_AXIS,10,6,true);
+
+        // Move to position
+        do_blocking_move_to_xy(positions[index][0],positions[index][1], 120);
+
+        // Lower Z
+        beevc_move_axis_blocking(Z_AXIS,1,6,true);
+
+        // Adjust Z at position
+        z_offset_finished = false;
+        beevc_offset_leveling_goto_screen(beevc_offset_leveling_calibrate);
+
+        while(!z_offset_finished)
+          idle(true);
+
+        // Store correction
+        beevc_bed_leveling_correction[index] = last_bed_correction;
+
+        // Prints out what was stored
+        SERIAL_ECHOPAIR("Correction ", index);
+        SERIAL_ECHOLNPAIR(": ", beevc_bed_leveling_correction[index]);
+      }
+
+      // Lifts nozzle 5mm, homes XY and moves X carriage 20mm to the left
+      enqueue_and_echo_commands_P(PSTR("G91\nG1 Z5\nG28 X Y\nG1 X-20\nG90\nM84"));
+
+      // Save new measurement
+      settings.save();
+
+      // Shows complete screen
+      beevc_offset_leveling_goto_screen(beevc_offset_leveling_complete);
+      
+    }
+    
+    //Beep
+    beevc_buzz();
+
+    //Wait for 5sec or click
+    beevc_wait(5000);
+
+    //Return to status screen
+    lcd_return_to_status();
+  }
+
+  void beevc_calibrate_leveling()
+  {
+    beevc_is_offset_screen = false;
+    beevc_set_offset_leveling();
+  }
+
+  void beevc_set_offset()
+  {
+    beevc_is_offset_screen = true;
+    beevc_set_offset_leveling();
+  }
+
+  void beevc_save_eeprom()
+  {
+    settings.save();
+  }
+
+  void beevc_calibrate_leveling_menu()
+  {
+    START_MENU();
+    MENU_BACK();
+
+    MENU_ITEM(submenu, "Leveling adjust", beevc_calibrate_leveling);
+    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(float52,"Front left", &beevc_bed_leveling_correction[0], -1, 1, beevc_save_eeprom);
+    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(float52,"Back left", &beevc_bed_leveling_correction[1], -1, 1, beevc_save_eeprom);
+    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(float52,"Back right", &beevc_bed_leveling_correction[2], -1, 1, beevc_save_eeprom);
+    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(float52,"Front right", &beevc_bed_leveling_correction[3], -1, 1, beevc_save_eeprom);
+    
+    END_MENU();
+  }
+#endif
 
 /**
  *
@@ -2059,6 +2209,8 @@ void lcd_status_screen() {
   // Runs trinamic test and shows screen with warning if any problem is found
   if (boot_test_trinamic){
     beevc_trinamic_test();
+
+    boot_test_trinamic = false;
 
     if(trinamic_ok != 0x1F)
       beevc_trinamic_warning_screen();
@@ -2940,6 +3092,7 @@ void kill_screen(const char* lcd_msg) {
     	  #if HAS_ABL
           #ifdef BEEVC_B2X300
             MENU_ITEM(submenu, _UxGT("Set nozzle height"), beevc_set_offset);
+            MENU_ITEM(submenu, "Improve leveling", beevc_calibrate_leveling_menu);
           #else
             MENU_ITEM(submenu, _UxGT("Set nozzle height"), _lcd_z_offset_start_bed_homing);
           #endif

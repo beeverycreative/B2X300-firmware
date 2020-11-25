@@ -787,6 +787,7 @@ inline float home_dir(AxisEnum axis){
 ////////////     Better autoleveling     //////////////
 #ifdef BEEVC_B2X300
 	bool G28_stow = true;
+  float beevc_bed_leveling_correction[4] = {0,0,0,0};
 #endif
 ///////////////////////////////////////////////////////
 
@@ -2593,6 +2594,128 @@ static void clean_up_after_endstop_or_probe_move() {
     }
 
   #endif // BLTOUCH
+
+  // BEEVC bed tilt adjustment
+  // Output float array needs to have a length >= 4
+  void beevc_bed_tilt_print_point(float* point,uint8_t index){
+    SERIAL_ECHOPGM("Point ");
+    SERIAL_ECHO(index+1);
+    SERIAL_ECHOPGM(":");
+    SERIAL_ECHOLN(*point);
+  }
+
+  static float run_z_probe();
+  bool set_probe_deployed(bool deploy);
+  void beevc_bed_tilt_measure(float* output,uint8_t loops){
+    // Using the same positions as G29 for best consistency
+    float marginX = 20;
+    float marginY = 35;
+    float positions[][2] = {{marginX-X_PROBE_OFFSET_FROM_EXTRUDER,marginY-Y_PROBE_OFFSET_FROM_EXTRUDER},
+                          {marginX-X_PROBE_OFFSET_FROM_EXTRUDER,Y_BED_SIZE+10-marginY-Y_PROBE_OFFSET_FROM_EXTRUDER},
+                          {X_BED_SIZE-marginX-X_PROBE_OFFSET_FROM_EXTRUDER,Y_BED_SIZE+10-marginY-Y_PROBE_OFFSET_FROM_EXTRUDER},
+                          {X_BED_SIZE-marginX-X_PROBE_OFFSET_FROM_EXTRUDER,marginY-Y_PROBE_OFFSET_FROM_EXTRUDER}};
+
+    // Make room for probe
+    do_probe_raise(_Z_CLEARANCE_DEPLOY_PROBE);
+
+    DEPLOY_PROBE();
+    for(uint8_t loop =0; loop < loops/2; loop++){
+      // Forward
+      //SERIAL_ECHOLNPGM("Forward");
+      // Move to starting position
+      do_blocking_move_to(positions[0][0]-5, positions[0][1]-5, (current_position[Z_AXIS]));
+
+      for (uint8_t position = 0; position < 4; position++){
+        // Move to position
+        do_blocking_move_to(positions[position][0], positions[position][1], (current_position[Z_AXIS]+Z_CLEARANCE_BETWEEN_PROBES));
+
+        // Get height
+        float measured = run_z_probe();
+        output[position] += measured/loops;
+
+        // Print measurement
+        //beevc_bed_tilt_print_point(&measured,position);
+      }
+
+      // Reverse (nulifies any backlash that might affect measurement)
+      //SERIAL_ECHOLNPGM("Reverse");
+      // Move to starting position
+      do_blocking_move_to(positions[3][0]+5, positions[3][1]+5, (current_position[Z_AXIS]+Z_CLEARANCE_BETWEEN_PROBES));
+
+
+      for (int8_t position = 3; position >= 0; position--){
+        // Move to position
+        do_blocking_move_to(positions[position][0], positions[position][1], (current_position[Z_AXIS]+Z_CLEARANCE_BETWEEN_PROBES));
+
+        // Get height
+        float measured = run_z_probe();
+        output[position] += measured/loops;
+
+        // Print measurement
+        //beevc_bed_tilt_print_point(&measured,position);
+      }
+    }
+    
+    STOW_PROBE();
+  }
+
+  /* Takes pointer to a float array with size 4, offset all values by smallest
+  * Prints required corections
+  * Inputs:
+  *   float* output[4] - Array with the values to be processed
+  *   uint16_t degrees[4] - Array with the corrections to be made in degrees
+  * Output:
+  *   returns 1 if all 4 points are within max variation
+  *   returns 0 if any point is outside max variation
+  */ 
+  bool beevc_bed_tilt_calculate(float* output, uint16_t* degrees){
+    // Variable to count the number of values within expected
+    uint8_t count = 0;
+
+    float max_variation = 0.0625F;
+
+    // Consider the lowest point as zero and calculate offsets
+    float smallest = 999;
+    for(uint8_t position = 0; position < 4; position ++)
+    {
+      if (output[position] < smallest)
+        smallest = output[position];
+    }
+
+    // Offset all values according to the smallest
+    for(uint8_t position = 0; position < 4; position ++)
+      output[position]= output[position] - smallest;
+
+    // Print output
+    for(uint8_t position = 0; position < 4; position ++)
+    {
+      SERIAL_ECHOPAIR("Point ",position+1);
+      // If less than a 45º turn (0.5mm/8)
+      if(output[position]< max_variation)
+      {
+        count++;
+        SERIAL_ECHOLNPGM(":--- reference point");
+      }
+      else
+      {
+        SERIAL_ECHOPAIR_F(":",output[position]);
+        degrees[position] = (uint16_t)(output[position]/(0.5F/360));
+        SERIAL_ECHOPAIR(" to correct rotate ",degrees[position]);
+        SERIAL_ECHOPGM(" degrees clockwise!");
+
+        // Due to the way the offset is made it always returns clockwise corrections
+        // SERIAL_ECHOPGM(" degrees");
+        // if (angle >0)
+        //   SERIAL_ECHOLNPGM(" clockwise!");
+        // else
+        //   SERIAL_ECHOLNPGM(" counterclockwise!");
+      }
+    }
+    if (count == 4)
+      return 1;
+    else
+      return 0;
+  }
 
   // returns false for ok and true for failure
   bool set_probe_deployed(bool deploy) {
@@ -5834,6 +5957,43 @@ void home_all_axes() { gcode_G28(true); }
         lcd_wait_for_move = false;
       #endif
     #endif
+
+    // BEEVC correct leveling mesh
+    // Using the values obtained during set nozzle height aply a tilt to the measured mesh in order to correct the error caused by frame variation
+    #ifdef BEEVC_B2X300
+      // Print mesh 
+      SERIAL_ECHOLNPGM("Leveling mesh before correction");
+      print_bilinear_leveling_grid();
+
+      SERIAL_ECHOPAIR_F("Correction 1:",beevc_bed_leveling_correction[0]);
+      SERIAL_ECHOPAIR_F("Correction 2:",beevc_bed_leveling_correction[1]);
+      SERIAL_ECHOPAIR_F("Correction 3:",beevc_bed_leveling_correction[2]);
+      SERIAL_ECHOPAIR_F("Correction 4:",beevc_bed_leveling_correction[3]);
+
+      // First line
+      z_values[0][0] += beevc_bed_leveling_correction[0];
+      z_values[1][0] += beevc_bed_leveling_correction[0]*0.75 + beevc_bed_leveling_correction[3]*0.25;
+      z_values[2][0] += beevc_bed_leveling_correction[0]*0.5 + beevc_bed_leveling_correction[3]*0.5;
+      z_values[3][0] += beevc_bed_leveling_correction[0]*0.25 + beevc_bed_leveling_correction[3]*0.75;
+      z_values[4][0] += beevc_bed_leveling_correction[3];
+
+      // Second line
+      z_values[0][1] += beevc_bed_leveling_correction[0] *0.5 + beevc_bed_leveling_correction[1]*0.5;
+      z_values[1][1] += (beevc_bed_leveling_correction[0] *0.5 + beevc_bed_leveling_correction[1]*0.5)*0.75 +(beevc_bed_leveling_correction[2] *0.5 + beevc_bed_leveling_correction[3] *0.5)* 0.25;
+      z_values[2][1] += (beevc_bed_leveling_correction[0] *0.5 + beevc_bed_leveling_correction[1]*0.5)*0.5 +(beevc_bed_leveling_correction[2] *0.5 + beevc_bed_leveling_correction[3] *0.5)* 0.5;
+      z_values[3][1] += (beevc_bed_leveling_correction[0] *0.5 + beevc_bed_leveling_correction[1]*0.5)*0.25 +(beevc_bed_leveling_correction[2] *0.5 + beevc_bed_leveling_correction[3] *0.5)* 0.75;
+      z_values[4][1] += beevc_bed_leveling_correction[2] *0.5 + beevc_bed_leveling_correction[3] *0.5;
+
+      // Third line
+      z_values[0][2] += beevc_bed_leveling_correction[1];
+      z_values[1][2] += beevc_bed_leveling_correction[1]*0.75 + beevc_bed_leveling_correction[2]*0.25;
+      z_values[2][2] += beevc_bed_leveling_correction[1]*0.5 + beevc_bed_leveling_correction[2]*0.5;
+      z_values[3][2] += beevc_bed_leveling_correction[1]*0.25 + beevc_bed_leveling_correction[2]*0.75;
+      z_values[4][2] += beevc_bed_leveling_correction[2];
+
+      SERIAL_ECHOLNPGM("Leveling mesh after correction");
+    #endif
+    
 
     // Calculate leveling, print reports, correct the position
     if (!isnan(measured_z)) {
@@ -12229,6 +12389,7 @@ inline void gcode_M999() {
  * M730 - Prints dual nozzle Z offset test
  * M731 - Prints dual nozzle XY offset test
  * M740 - Prints a prime line with the active extruder
+ * M750 - Bed tilt test
  *
 */
 
@@ -13249,6 +13410,30 @@ inline void gcode_M999() {
       else
         tool_change(1);
     }
+  }
+
+  /**
+   * M750 - Bed tilt test
+   *
+   * Measures the bed tilt and helps adjusting it
+  */
+  inline void gcode_M750(){
+    float height[4] = {0,0,0,0};
+    uint16_t degrees[4];
+
+    // Home axis
+    G28_stow = false;
+    gcode_G28(true);
+    G28_stow = true;
+
+    // Measure height
+    beevc_bed_tilt_measure(height,2);
+
+    // Reduce measured value to offsets from lowest
+    beevc_bed_tilt_calculate(height, degrees);
+
+    // Disable motors
+    stepper.finish_and_disable();
   }
 
   /**
@@ -14775,6 +14960,10 @@ void process_parsed_command() {
           gcode_M740();
           break;
 
+      case 750: // Measures bed tilt
+          gcode_M750();
+          break;
+
 		#endif   // BEEVC_RESTORE
 
     #ifdef BEEVC_B2X300
@@ -14807,6 +14996,12 @@ void process_next_command() {
       SERIAL_ECHOPAIR("slot:", cmd_queue_index_r);
       M100_dump_routine("   Command Queue:", (const char*)command_queue, (const char*)(command_queue + sizeof(command_queue)));
     #endif
+  }
+
+  // Skip wait for user when a new command is processed
+  if(wait_for_user){
+    wait_for_user = false;
+    SERIAL_ECHOLNPGM("Exiting blocking screen");
   }
 
   // Parse the next command in the queue

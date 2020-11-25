@@ -103,7 +103,11 @@
  *  112     1       uint8_t   Reserved
  *  113     1       uint8_t   Bed PWM max
  *  114     1       uint8_t   8 bit boolean Non spi flag (NA NA NA X Y Z E1 E2)
- *  115     35                Free space
+ *  115     1       int8_t    Bed leveling improvement (Front left corner)
+ *  116     1       int8_t    Bed leveling improvement (Back left corner)
+ *  117     1       int8_t    Bed leveling improvement (Back right corner)
+ *  118     1       int8_t    Bed leveling improvement (Front right corner)
+ *  119     31                Free space
  */
 #define EEPROM_VERSION "B03"
 
@@ -499,6 +503,23 @@ void MarlinSettings::postprocess() {
     //
     // Bilinear Auto Bed Leveling
     //
+
+    // BEEVC Improve leveling
+    int8_t temp = (int8_t)(round(beevc_bed_leveling_correction[0] /0.02F));
+    SERIAL_ECHOLNPAIR("Point 1:", temp);
+    BEEVC_WRITE_EEPROM(LEV_PT1,temp);
+
+    temp = (int8_t)(round(beevc_bed_leveling_correction[1] /0.02F));
+    SERIAL_ECHOLNPAIR("Point 2:", temp);
+    BEEVC_WRITE_EEPROM(LEV_PT2,temp);
+
+    temp = (int8_t)(round(beevc_bed_leveling_correction[2] /0.02F));
+    SERIAL_ECHOLNPAIR("Point 3:", temp);
+    BEEVC_WRITE_EEPROM(LEV_PT3,temp);
+
+    temp = (int8_t)(round(beevc_bed_leveling_correction[3] /0.02F));
+    SERIAL_ECHOLNPAIR("Point 4:", temp);
+    BEEVC_WRITE_EEPROM(LEV_PT4,temp);
 
     #if ENABLED(AUTO_BED_LEVELING_BILINEAR)
       // Compile time test that sizeof(z_values) is as expected
@@ -901,6 +922,13 @@ void MarlinSettings::postprocess() {
         // Reconfigures TMC SPI settings according to current SN
         updateTrinamicSPI();
 
+        // Resets bed leveling improvements variables
+        int8_t reset = 0;
+        BEEVC_WRITE_EEPROM(LEV_PT1,reset);
+        BEEVC_WRITE_EEPROM(LEV_PT2,reset);
+        BEEVC_WRITE_EEPROM(LEV_PT3,reset);
+        BEEVC_WRITE_EEPROM(LEV_PT4,reset);
+
         // Update EEPROM version
         strcpy(stored_ver, "B03");
         eeprom_index = EEPROM_OFFSET;
@@ -938,6 +966,21 @@ void MarlinSettings::postprocess() {
 
       // BEEVC load non spi driver info
       BEEVC_READ_EEPROM(STP_SPI,tmc_spi_disabled);
+
+      // BEEVC leveling improvement
+      int8_t temp = 0;
+      BEEVC_READ_EEPROM(LEV_PT1,temp);
+      SERIAL_ECHOLNPAIR("Point 1:", temp);
+      beevc_bed_leveling_correction[0] = temp* 0.02;
+      BEEVC_READ_EEPROM(LEV_PT2,temp);
+      SERIAL_ECHOLNPAIR("Point 1:", temp);
+      beevc_bed_leveling_correction[1] = temp* 0.02;
+      BEEVC_READ_EEPROM(LEV_PT3,temp);
+      SERIAL_ECHOLNPAIR("Point 1:", temp);
+      beevc_bed_leveling_correction[2] = temp* 0.02;
+      BEEVC_READ_EEPROM(LEV_PT4,temp);
+      SERIAL_ECHOLNPAIR("Point 1:", temp);
+      beevc_bed_leveling_correction[3] = temp* 0.02;
 
       float dummy = 0;
       #if DISABLED(AUTO_BED_LEVELING_UBL) || DISABLED(FWRETRACT)
@@ -2329,26 +2372,44 @@ void MarlinSettings::reset() {
     #ifdef BEEVC_B2X300
       if(!forReplay){
         if(tmc_spi_disabled & ANY_SPI_DISABLED)
-          SERIAL_ECHO("TMC non SPI: ");
+          SERIAL_ECHOPGM("TMC non SPI: ");
         
         if(tmc_spi_disabled & X_SPI_DISABLED)
-          SERIAL_ECHO("X ");
+          SERIAL_ECHOPGM("X ");
         
         if(tmc_spi_disabled & Y_SPI_DISABLED)
-          SERIAL_ECHO("Y ");
+          SERIAL_ECHOPGM("Y ");
         
         if(tmc_spi_disabled & Z_SPI_DISABLED)
-          SERIAL_ECHO("Z ");
+          SERIAL_ECHOPGM("Z ");
         
         if(tmc_spi_disabled & E1_SPI_DISABLED)
-          SERIAL_ECHO("E1 ");
+          SERIAL_ECHOPGM("E1 ");
 
         if(tmc_spi_disabled & E1_SPI_DISABLED)
-          SERIAL_ECHO("E2 ");
+          SERIAL_ECHOPGM("E2 ");
 
-        SERIAL_ECHO("|Binary:");
+        SERIAL_ECHOPGM("|Binary:");
         SERIAL_ECHO_BIN8(tmc_spi_disabled);
-        SERIAL_ECHOLN(" ");
+        SERIAL_ECHOLNPGM(" ");
+      }
+    #endif
+
+    /**
+     * BEEVC leveling improvement
+     */
+    #ifdef BEEVC_B2X300
+      if(!forReplay)
+      {
+        SERIAL_ECHOPAIR_F("Bed leveling improvement mm:\n\tFront left ",beevc_bed_leveling_correction[0]);
+
+        SERIAL_ECHOPAIR_F("\n\tBack left ",beevc_bed_leveling_correction[1]);
+
+        SERIAL_ECHOPAIR_F("\n\tBack right ",beevc_bed_leveling_correction[2]);
+
+        SERIAL_ECHOPAIR_F("\n\tFront right ",beevc_bed_leveling_correction[3]);
+
+        SERIAL_EOL();
       }
     #endif
 
