@@ -2151,7 +2151,7 @@ void beevc_set_serial_run(){
         beevc_move_axis_blocking(Z_AXIS,10,6,true);
 
         // Move to position
-        do_blocking_move_to_xy(positions[index][0],positions[index][1], 120);
+        do_blocking_move_to_xy(positions[index][0],positions[index][1], 50);
 
         // Lower Z
         beevc_move_axis_blocking(Z_AXIS,1,6,true);
