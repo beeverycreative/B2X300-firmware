@@ -2682,10 +2682,10 @@ void kill_screen(const char* lcd_msg) {
         break;
       case cold_pull_material:
         MENU_ITEM(submenu, _UxGT("Back"), beevc_cold_pull_back);
-        MENU_ITEM(submenu, _UxGT("PLA   210\x09\x43"), beevc_cold_pull_pla); 
-        MENU_ITEM(submenu, _UxGT("PETG  230\x09\x43"), beevc_cold_pull_petg);
-        MENU_ITEM(submenu, _UxGT("ABS   240\x09\x43"), beevc_cold_pull_abs);
-        MENU_ITEM(submenu, _UxGT("PC    260\x09\x43"), beevc_cold_pull_pc);
+        MENU_ITEM(submenu, _UxGT("PLA            210\x09\x43"), beevc_cold_pull_pla); 
+        MENU_ITEM(submenu, _UxGT("PETG/NYLON     230\x09\x43"), beevc_cold_pull_petg);
+        MENU_ITEM(submenu, _UxGT("ABS            240\x09\x43"), beevc_cold_pull_abs);
+        MENU_ITEM(submenu, _UxGT("PC             260\x09\x43"), beevc_cold_pull_pc);
         break;
     }
 
@@ -2841,6 +2841,9 @@ void kill_screen(const char* lcd_msg) {
 
     // Waits for click
     beevc_wait_click();
+
+    // Disable heater
+    thermalManager.setTargetHotend(0, active_extruder);
 
     //Goes back to menu
     beevc_cold_pull_exit();
