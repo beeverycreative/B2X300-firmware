@@ -2059,23 +2059,15 @@ void beevc_set_serial_run(){
         STATIC_ITEM("between the nozzle");
         STATIC_ITEM("and the print surface");
         STATIC_ITEM(". Adjust until the");
-        
+        STATIC_ITEM("paper is neither free");
+        STATIC_ITEM("nor completely stuck");
         if(!beevc_is_offset_screen)
         {
-          STATIC_ITEM("paper is barely");
-          STATIC_ITEM("touching the tip of");
-          STATIC_ITEM("the nozzle at each");
-          STATIC_ITEM("point.");
           STATIC_ITEM("Ensure a consistent");
           STATIC_ITEM("resistance between");
           STATIC_ITEM("adjustment points,");
           STATIC_ITEM("otherwise leveling");
           STATIC_ITEM("quality decreases.");
-        }
-        else
-        {
-          STATIC_ITEM("paper is neither free");
-          STATIC_ITEM("nor completely stuck");
         }
         STATIC_EMPTY_LINE();
         STATIC_ITEM("Please, check the");
@@ -2125,11 +2117,11 @@ void beevc_set_serial_run(){
       beevc_offset_leveling_goto_screen(beevc_offset_leveling_moving);
 
       // Moves the carriage and bed to the offset adjust position
-      beevc_move_multiple_axis_blocking(((X_BED_SIZE) / 2),((Y_BED_SIZE) / 2),2,120,true);
+      beevc_move_multiple_axis_blocking(((X_BED_SIZE) / 2),((Y_BED_SIZE) / 2),2,50,true);
 
       // Shows the help screen
       beevc_offset_leveling_goto_screen(beevc_offset_leveling_explain);
-      beevc_wait(20000);
+      beevc_wait_click();
 
       // Shows the leveling screen
       beevc_offset_leveling_goto_screen(beevc_offset_leveling_calibrate);
