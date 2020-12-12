@@ -16746,6 +16746,29 @@ void idle(
     Max7219_idle_tasks();
   #endif  // MAX7219_DEBUG
 
+  // Beevc disable heater after change filament after timout elapsed
+  if(last_change_filament_E1 || last_change_filament_E2){
+    if(IS_SD_PRINTING)
+    {
+      last_change_filament_E1 = false;
+      last_change_filament_E2 = false;
+    }
+    else if (millis() > (last_change_filament + timeout_change_filament_seconds*1000))
+    {
+      if (last_change_filament_E1)
+      {
+        thermalManager.setTargetHotend(0,0);
+        last_change_filament_E1 = false;
+      }
+      
+      if (last_change_filament_E2)
+      {
+        thermalManager.setTargetHotend(0,1);
+        last_change_filament_E2 = false;
+      }
+    }
+  }
+
   lcd_update();
 
   host_keepalive();

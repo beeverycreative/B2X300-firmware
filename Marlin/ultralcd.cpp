@@ -432,6 +432,14 @@ uint16_t max_display_update_time = 0;
     bool tmc_non_spi[5] = {0,0,0,0,0};
   #endif
 
+  ////////////   Cooldown after load/unload   //////////////
+	uint32_t last_change_filament = 0;
+  bool last_change_filament_E1 = false;
+  bool last_change_filament_E2 = false;
+  int16_t timeout_change_filament_seconds = 120;
+  
+	///////////////////////////////////////////////////////
+
   ////////////   Self test wizard   //////////////
   enum self_test {
     self_test_init,
@@ -3976,6 +3984,11 @@ void kill_screen(const char* lcd_msg) {
       if(!manual_extrude && !unload_load)
         defer_return_to_status = false;
 
+      // Store the time of last change filament and what extruder was used
+      last_change_filament = millis();
+      last_change_filament_E1 = (active_extruder == 0);
+      last_change_filament_E2 = (active_extruder == 1);
+
       // Goes back to the action selection
       lcd_goto_screen(lcd_filament_change_choose_action);
     }
@@ -3992,6 +4005,9 @@ void kill_screen(const char* lcd_msg) {
     }
 
     static void lcd_filament_change_home_move () {
+      // Allows infinite time for filament change procedure
+      last_change_filament = 0xffffffff;
+
       // only moves if loading or manually extruding
       if (filament_change_load){
         // if not homed homes axis and lifts Z
@@ -4042,6 +4058,11 @@ void kill_screen(const char* lcd_msg) {
       MENU_ITEM(function, _UxGT("Manual Extrusion"), lcd_filament_change_action_move);
       MENU_ITEM(function, "Exit", lcd_return_to_status);
       END_MENU();
+
+      // Ensure the timeout doesn't happen in this screen
+      last_change_filament_E1 = (filament_change_extruder == 0);
+      last_change_filament_E2 = (filament_change_extruder == 1);
+      last_change_filament = millis()+10000;
     }
 
     static void lcd_filament_change_pla ()
@@ -4138,6 +4159,9 @@ void kill_screen(const char* lcd_msg) {
       MENU_ITEM(submenu, _UxGT("Extruder 1"), lcd_filament_change_extruder_0);
       MENU_ITEM(submenu, _UxGT("Extruder 2"), lcd_filament_change_extruder_1);
 
+      //Timeout
+      MENU_MULTIPLIER_ITEM_EDIT(int3, "Heater timeout s.", &timeout_change_filament_seconds, 0, 600);
+    
       END_MENU();
     }
 

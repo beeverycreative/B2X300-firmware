@@ -63,6 +63,13 @@
 	extern bool tmc_non_spi[5];
 	///////////////////////////////////////////////////////
 
+  ////////////   Cooldown after load/unload   //////////////
+	extern uint32_t last_change_filament;
+  extern bool last_change_filament_E1;
+  extern bool last_change_filament_E2;
+  extern int16_t timeout_change_filament_seconds;
+	///////////////////////////////////////////////////////
+
   extern uint8_t lcdDrawUpdate;
   inline void lcd_refresh() { lcdDrawUpdate = LCDVIEW_CLEAR_CALL_REDRAW; }
 
