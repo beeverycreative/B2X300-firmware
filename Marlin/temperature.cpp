@@ -540,8 +540,10 @@ void Temperature::setTargetHotend(const int16_t celsius, const uint8_t e)
       #endif
 
       // Ensure the heater is present otherwise don't try to heat up to avoid unecessary errors
-      //int16_t disabled_thermistor = 16355;
-      if (current_temperature_raw[e] >= 16355)
+      //SERIAL_ECHOPAIR("Hotend ",e);
+      //SERIAL_ECHOPAIR("RAW ",current_temperature_raw[e]);
+      //int16_t disabled_thermistor = 16320;
+      if (current_temperature_raw[e] >= 16320)
       {
         SERIAL_ECHOPAIR("Hotend ",e);
         SERIAL_ECHOLNPGM(" sensor offline. Heating was ignored! Check sensor!");
