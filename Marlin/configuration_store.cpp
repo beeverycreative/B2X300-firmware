@@ -970,16 +970,16 @@ void MarlinSettings::postprocess() {
       // BEEVC leveling improvement
       int8_t temp = 0;
       BEEVC_READ_EEPROM(LEV_PT1,temp);
-      SERIAL_ECHOLNPAIR("Point 1:", temp);
+      //SERIAL_ECHOLNPAIR("Point 1:", temp);
       beevc_bed_leveling_correction[0] = temp* 0.02;
       BEEVC_READ_EEPROM(LEV_PT2,temp);
-      SERIAL_ECHOLNPAIR("Point 1:", temp);
+      //SERIAL_ECHOLNPAIR("Point 2:", temp);
       beevc_bed_leveling_correction[1] = temp* 0.02;
       BEEVC_READ_EEPROM(LEV_PT3,temp);
-      SERIAL_ECHOLNPAIR("Point 1:", temp);
+      //SERIAL_ECHOLNPAIR("Point 3:", temp);
       beevc_bed_leveling_correction[2] = temp* 0.02;
       BEEVC_READ_EEPROM(LEV_PT4,temp);
-      SERIAL_ECHOLNPAIR("Point 1:", temp);
+      //SERIAL_ECHOLNPAIR("Point 4:", temp);
       beevc_bed_leveling_correction[3] = temp* 0.02;
 
       float dummy = 0;
