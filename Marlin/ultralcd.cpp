@@ -2099,6 +2099,9 @@ void beevc_set_serial_run(){
 
   void beevc_set_offset_leveling()
   {
+    // Do not allow timeout to menu
+    defer_return_to_status = true;
+
     // Show finding mesh screen
     beevc_offset_leveling_goto_screen(beevc_offset_leveling_homing);
 
@@ -2124,6 +2127,7 @@ void beevc_set_serial_run(){
       beevc_wait_click();
 
       // Shows the leveling screen
+      z_offset_finished = false;
       beevc_offset_leveling_goto_screen(beevc_offset_leveling_calibrate);
 
       while(!z_offset_finished){
@@ -2169,24 +2173,26 @@ void beevc_set_serial_run(){
         // Prints out what was stored
         SERIAL_ECHOPAIR("Correction ", index);
         SERIAL_ECHOLNPAIR(": ", beevc_bed_leveling_correction[index]);
-      }
-
-      // Lifts nozzle 5mm, homes XY and moves X carriage 20mm to the left
-      enqueue_and_echo_commands_P(PSTR("G91\nG1 Z5\nG28 X Y\nG1 X-20\nG90\nM84"));
-
-      // Save new measurement
-      settings.save();
-
-      // Shows complete screen
-      beevc_offset_leveling_goto_screen(beevc_offset_leveling_complete);
-      
+      }   
     }
+
+    // Lifts nozzle 5mm, homes XY and moves X carriage 20mm to the left
+    enqueue_and_echo_commands_P(PSTR("G91\nG1 Z5\nG28 X Y\nG1 X-20\nG90\nM84"));
+
+    // Save new measurement
+    settings.save();
+
+    // Shows complete screen
+    beevc_offset_leveling_goto_screen(beevc_offset_leveling_complete);
     
     //Beep
     beevc_buzz();
 
     //Wait for 5sec or click
     beevc_wait(5000);
+
+    // Allow timeout to menu
+    defer_return_to_status = false;
 
     //Return to status screen
     lcd_return_to_status();
