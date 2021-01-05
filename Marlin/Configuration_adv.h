@@ -902,35 +902,52 @@
   //hBp Selects the correct load and unload length for bowden
   #ifndef BEEVC_Bowden
 
-	#define FILAMENT_CHANGE_UNLOAD_LENGTH 100
-	#define FILAMENT_CHANGE_LOAD_FEEDRATE 6
-	#define FILAMENT_CHANGE_LOAD_LENGTH 0
-	#define ADVANCED_PAUSE_EXTRUDE_FEEDRATE 3
-	#define ADVANCED_PAUSE_EXTRUDE_LENGTH 50
+    #define FILAMENT_CHANGE_UNLOAD_LENGTH 100
+    #define FILAMENT_CHANGE_LOAD_FEEDRATE 6
+    #define FILAMENT_CHANGE_LOAD_LENGTH 0
+    #define ADVANCED_PAUSE_EXTRUDE_FEEDRATE 3
+    #define ADVANCED_PAUSE_EXTRUDE_LENGTH 50
 
   #else
-	#define FILAMENT_CHANGE_UNLOAD_LENGTH 800   // Unload filament length from hotend in mm
-                                              // Longer length for bowden printers to unload filament from whole bowden tube,
-                                              // shorter length for printers without bowden to unload filament from extruder only,
-                                              // 0 to disable unloading for manual unloading
-	#define FILAMENT_CHANGE_LOAD_FEEDRATE 60     // Load filament feedrate in mm/s - filament loading into the bowden tube can be fast
+    #define FILAMENT_CHANGE_UNLOAD_LENGTH 800   // Unload filament length from hotend in mm
+                                                // Longer length for bowden printers to unload filament from whole bowden tube,
+                                                // shorter length for printers without bowden to unload filament from extruder only,
+                                                // 0 to disable unloading for manual unloading
+    #define FILAMENT_CHANGE_LOAD_FEEDRATE 60     // Load filament feedrate in mm/s - filament loading into the bowden tube can be fast
 
-	//DR - 20/10/2017
-	//DEBUG - Allows for a smaller bowden tube
-  #ifndef BEEVC_Bowden_500
-		#define FILAMENT_CHANGE_LOAD_LENGTH 560       // Load filament length over hotend in mm
-                                              // Longer length for bowden printers to fast load filament into whole bowden tube over the hotend,
-                                              // Short or zero length for printers without bowden where loading is not used
-  #else
-		#define FILAMENT_CHANGE_LOAD_LENGTH 460
+    //DR - 20/10/2017
+    //DEBUG - Allows for a smaller bowden tube
+    #ifndef BEEVC_Bowden_500
+      #define FILAMENT_CHANGE_LOAD_LENGTH 560       // Load filament length over hotend in mm
+                                                // Longer length for bowden printers to fast load filament into whole bowden tube over the hotend,
+                                                // Short or zero length for printers without bowden where loading is not used
+    #else
+      #define FILAMENT_CHANGE_LOAD_LENGTH 460
 
+    #endif
+
+    #define ADVANCED_PAUSE_EXTRUDE_FEEDRATE 4  // Extrude filament feedrate in mm/s - must be slower than load feedrate
+    #define ADVANCED_PAUSE_EXTRUDE_LENGTH 100   // Extrude filament length in mm after filament is loaded over the hotend,
+                                                // 0 to disable for manual extrusion
+                                                // Filament can be extruded repeatedly from the filament exchange menu to fill the hotend,
+                                                // or until outcoming filament color is not clear for filament color change
   #endif
 
-	#define ADVANCED_PAUSE_EXTRUDE_FEEDRATE 4  // Extrude filament feedrate in mm/s - must be slower than load feedrate
-	#define ADVANCED_PAUSE_EXTRUDE_LENGTH 100   // Extrude filament length in mm after filament is loaded over the hotend,
-                                              // 0 to disable for manual extrusion
-                                              // Filament can be extruded repeatedly from the filament exchange menu to fill the hotend,
-                                              // or until outcoming filament color is not clear for filament color change
+  // If no specific value is set use defaults
+  #ifndef BEEVC_FILAMENT_CHANGE_UNLOAD_LENGTH
+    #define BEEVC_FILAMENT_CHANGE_UNLOAD_LENGTH FILAMENT_CHANGE_UNLOAD_LENGTH
+  #endif
+  #ifndef BEEVC_FILAMENT_CHANGE_LOAD_FEEDRATE
+    #define BEEVC_FILAMENT_CHANGE_LOAD_FEEDRATE FILAMENT_CHANGE_LOAD_FEEDRATE
+  #endif
+  #ifndef BEEVC_FILAMENT_CHANGE_LOAD_LENGTH
+    #define BEEVC_FILAMENT_CHANGE_LOAD_LENGTH FILAMENT_CHANGE_LOAD_LENGTH
+  #endif
+  #ifndef BEEVC_ADVANCED_PAUSE_EXTRUDE_FEEDRATE
+    #define BEEVC_ADVANCED_PAUSE_EXTRUDE_FEEDRATE ADVANCED_PAUSE_EXTRUDE_FEEDRATE
+  #endif
+  #ifndef BEEVC_ADVANCED_PAUSE_EXTRUDE_LENGTH
+    #define BEEVC_ADVANCED_PAUSE_EXTRUDE_LENGTH ADVANCED_PAUSE_EXTRUDE_LENGTH
   #endif
 
 

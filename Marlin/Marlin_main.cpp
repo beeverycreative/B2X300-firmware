@@ -7591,11 +7591,11 @@ inline void gcode_M17() {
       #endif
 
       // Load filament
-      do_pause_e_move(50, ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
-      do_pause_e_move(load_length, FILAMENT_CHANGE_LOAD_FEEDRATE);
+      do_pause_e_move(50, BEEVC_ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+      do_pause_e_move(load_length, BEEVC_FILAMENT_CHANGE_LOAD_FEEDRATE);
     }
 
-    #if ENABLED(ULTIPANEL) && ADVANCED_PAUSE_EXTRUDE_LENGTH > 0
+    #if ENABLED(ULTIPANEL) && BEEVC_ADVANCED_PAUSE_EXTRUDE_LENGTH > 0
 
       if (!thermalManager.tooColdToExtrude(active_extruder)) {
         float extrude_length = initial_extrude_length;
@@ -7606,7 +7606,7 @@ inline void gcode_M17() {
             lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_EXTRUDE);
 
             // Extrude filament to get into hotend
-            do_pause_e_move(extrude_length, ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+            do_pause_e_move(extrude_length, BEEVC_ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
           }
 
           // Show "Extrude More" / "Resume" menu and wait for reply
@@ -7616,7 +7616,7 @@ inline void gcode_M17() {
           while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
           KEEPALIVE_STATE(IN_HANDLER);
 
-          extrude_length = ADVANCED_PAUSE_EXTRUDE_LENGTH;
+          extrude_length = BEEVC_ADVANCED_PAUSE_EXTRUDE_LENGTH;
 
           // Keep looping if "Extrude More" was selected
         } while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE);
@@ -11031,15 +11031,15 @@ inline void gcode_M502() {
 
     // Unload filament
     const float unload_length = parser.seen('U') ? parser.value_axis_units(E_AXIS) : 0
-      #if defined(FILAMENT_CHANGE_UNLOAD_LENGTH) && FILAMENT_CHANGE_UNLOAD_LENGTH > 0
-        - (FILAMENT_CHANGE_UNLOAD_LENGTH)
+      #if defined(BEEVC_FILAMENT_CHANGE_UNLOAD_LENGTH) && BEEVC_FILAMENT_CHANGE_UNLOAD_LENGTH > 0
+        - (BEEVC_FILAMENT_CHANGE_UNLOAD_LENGTH)
       #endif
     ;
 
     // Load filament
     const float load_length = parser.seen('L') ? parser.value_axis_units(E_AXIS) : 0
-      #ifdef FILAMENT_CHANGE_LOAD_LENGTH
-        + FILAMENT_CHANGE_LOAD_LENGTH
+      #ifdef BEEVC_FILAMENT_CHANGE_LOAD_LENGTH
+        + BEEVC_FILAMENT_CHANGE_LOAD_LENGTH
       #endif
     ;
 
@@ -11055,7 +11055,7 @@ inline void gcode_M502() {
 
     if (pause_print(retract, park_point, unload_length, beep_count, true)) {
       wait_for_filament_reload(beep_count);
-      resume_print(load_length, ADVANCED_PAUSE_EXTRUDE_LENGTH, beep_count);
+      resume_print(load_length, BEEVC_ADVANCED_PAUSE_EXTRUDE_LENGTH, beep_count);
     }
 
     // Resume the print job timer if it was running

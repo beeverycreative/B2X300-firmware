@@ -1045,12 +1045,12 @@ uint16_t max_display_update_time = 0;
 
   static void beevc_unload_pull_filament(){
     // Unloads filament
-    beevc_move_axis_blocking(E_AXIS,-(FILAMENT_CHANGE_UNLOAD_LENGTH),FILAMENT_CHANGE_UNLOAD_FEEDRATE);     
+    beevc_move_axis_blocking(E_AXIS,-(BEEVC_FILAMENT_CHANGE_UNLOAD_LENGTH),FILAMENT_CHANGE_UNLOAD_FEEDRATE);     
   }
 
   static void beevc_unload_filament(){
     // Extrudes a small ammount to fluidify the tip of the filament
-    beevc_move_axis_blocking(E_AXIS,15,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+    beevc_move_axis_blocking(E_AXIS,15,BEEVC_ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
     
     // Unloads filament
     beevc_unload_pull_filament();
@@ -1058,30 +1058,30 @@ uint16_t max_display_update_time = 0;
 
   static void beevc_load_filament(){
     // Extrudes a small ammount to help guide the tip of the filament into PTFE
-    beevc_move_axis_blocking(E_AXIS,15,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+    beevc_move_axis_blocking(E_AXIS,15,BEEVC_ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
 
     //Checks if Bowden to apply the correct 2 phase load process
     #ifdef BEEVC_Bowden
       //Bowden
       // Load filament slowly into PTFE tube
-      beevc_move_axis_blocking(E_AXIS,50,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+      beevc_move_axis_blocking(E_AXIS,50,BEEVC_ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
     #endif // BEEVC_Bowden
     
     // Load filament fast
     
     // Checks if flex material being loaded (temp 235ºC) and aplly a slower speed
     if(thermalManager.target_temperature[active_extruder] == 235)
-      beevc_move_axis_blocking(E_AXIS,FILAMENT_CHANGE_LOAD_LENGTH,FILAMENT_CHANGE_LOAD_FEEDRATE/2);
+      beevc_move_axis_blocking(E_AXIS,BEEVC_FILAMENT_CHANGE_LOAD_LENGTH,BEEVC_FILAMENT_CHANGE_LOAD_FEEDRATE/2);
     else
-      beevc_move_axis_blocking(E_AXIS,FILAMENT_CHANGE_LOAD_LENGTH,FILAMENT_CHANGE_LOAD_FEEDRATE);
+      beevc_move_axis_blocking(E_AXIS,BEEVC_FILAMENT_CHANGE_LOAD_LENGTH,BEEVC_FILAMENT_CHANGE_LOAD_FEEDRATE);
   }
 
   static void beevc_extrude_filament(){
     // Extrude filament to get into hotend
     if(thermalManager.target_temperature[active_extruder] == 235)
-      beevc_move_axis_blocking(E_AXIS,ADVANCED_PAUSE_EXTRUDE_LENGTH,ADVANCED_PAUSE_EXTRUDE_FEEDRATE/4);
+      beevc_move_axis_blocking(E_AXIS,BEEVC_ADVANCED_PAUSE_EXTRUDE_LENGTH,BEEVC_ADVANCED_PAUSE_EXTRUDE_FEEDRATE/4);
     else
-      beevc_move_axis_blocking(E_AXIS,ADVANCED_PAUSE_EXTRUDE_LENGTH,ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+      beevc_move_axis_blocking(E_AXIS,BEEVC_ADVANCED_PAUSE_EXTRUDE_LENGTH,BEEVC_ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
   }
 
   static void beevc_buzz(){
@@ -2830,10 +2830,10 @@ void kill_screen(const char* lcd_msg) {
     beevc_cold_pull_show(cold_pull_during);
 
     // Increase max move speed for the extruder
-    planner.max_feedrate_mm_s[E_AXIS+active_extruder] = 120;
+    planner.max_feedrate_mm_s[E_AXIS+active_extruder] = BEEVC_COLD_PULL_SPEED;
 
     // Pulls filament out
-    beevc_move_axis_blocking(E_AXIS,-100,120);
+    beevc_move_axis_blocking(E_AXIS,BEEVC_COLD_PULL_LENGTH,BEEVC_COLD_PULL_SPEED);
     beevc_unload_pull_filament();
 
     // Resets max move speed for the extruder
@@ -3827,8 +3827,8 @@ void kill_screen(const char* lcd_msg) {
         beevc_load_filament();
         // #ifndef BEEVC_Bowden
         //   // Load filament
-        //   destination[E_AXIS] += FILAMENT_CHANGE_LOAD_LENGTH;
-        //   RUNPLAN(FILAMENT_CHANGE_LOAD_FEEDRATE);
+        //   destination[E_AXIS] += BEEVC_FILAMENT_CHANGE_LOAD_LENGTH;
+        //   RUNPLAN(BEEVC_FILAMENT_CHANGE_LOAD_FEEDRATE);
         //   stepper.synchronize();
       
         // Extrude filament
@@ -4162,7 +4162,7 @@ void kill_screen(const char* lcd_msg) {
 
       //Timeout
       MENU_MULTIPLIER_ITEM_EDIT(int3, "Heater timeout s.", &timeout_change_filament_seconds, 0, 600);
-    
+
       END_MENU();
     }
 

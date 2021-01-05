@@ -44,6 +44,22 @@
 //#define BEEVC_SG2_DEBUG_STEPPER_Y
 //#define BEEVC_SG2_DEBUG_STEPPER_E
 //
+
+
+//===========================================================================
+//============================= B2X300 settings ============================
+//===========================================================================
+#define BEEVC_COLD_PULL_SPEED                 120
+#define BEEVC_COLD_PULL_LENGTH                -100
+
+// defining the following will override automatic values
+//#define BEEVC_FILAMENT_CHANGE_UNLOAD_LENGTH   800
+//#define BEEVC_FILAMENT_CHANGE_LOAD_FEEDRATE   60
+//#define BEEVC_FILAMENT_CHANGE_LOAD_LENGTH     560
+//#define BEEVC_ADVANCED_PAUSE_EXTRUDE_FEEDRATE 4
+//#define BEEVC_ADVANCED_PAUSE_EXTRUDE_LENGTH   100
+
+
 //===========================================================================
 //============================= B2X300 re-define ============================
 //===========================================================================
