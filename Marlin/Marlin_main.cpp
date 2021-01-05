@@ -16753,16 +16753,18 @@ void idle(
       last_change_filament_E1 = false;
       last_change_filament_E2 = false;
     }
-    else if (millis() > (last_change_filament + timeout_change_filament_seconds*1000))
+    else if (millis() > (last_change_filament + (uint32_t)timeout_change_filament_seconds*(uint32_t)1000))
     {
       if (last_change_filament_E1)
       {
+        SERIAL_ECHOLNPGM("E0 disabled");
         thermalManager.setTargetHotend(0,0);
         last_change_filament_E1 = false;
       }
       
       if (last_change_filament_E2)
       {
+        SERIAL_ECHOLNPGM("E1 disabled");
         thermalManager.setTargetHotend(0,1);
         last_change_filament_E2 = false;
       }

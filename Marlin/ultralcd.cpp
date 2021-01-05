@@ -4061,9 +4061,9 @@ void kill_screen(const char* lcd_msg) {
       END_MENU();
 
       // Ensure the timeout doesn't happen in this screen
+      last_change_filament = millis()+10000;
       last_change_filament_E1 = (filament_change_extruder == 0);
       last_change_filament_E2 = (filament_change_extruder == 1);
-      last_change_filament = millis()+10000;
     }
 
     static void lcd_filament_change_pla ()
