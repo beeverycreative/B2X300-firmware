@@ -52,7 +52,7 @@ extern const char errormagic[] PROGMEM;
 #define SERIAL_PROTOCOLPAIR(name, value)    (serial_echopair_P(PSTR(name),(value)))
 #define SERIAL_PROTOCOLLNPAIR(name, value)  do{ SERIAL_PROTOCOLPAIR(name, value); SERIAL_EOL(); }while(0)
 
-#define SERIAL_ECHO_START()            (serialprintPGM(echomagic))
+#define SERIAL_ECHO_START()            //(serialprintPGM(echomagic))
 #define SERIAL_ECHO(x)                 SERIAL_PROTOCOL(x)
 #define SERIAL_ECHOPGM(x)              SERIAL_PROTOCOLPGM(x)
 #define SERIAL_ECHOLN(x)               SERIAL_PROTOCOLLN(x)

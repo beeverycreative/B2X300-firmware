@@ -71,6 +71,12 @@ void manage_inactivity(bool ignore_stepper_queue = false);
 #endif
 ///////////////////////////////////////////////////////
 
+////////////    Trinamic test on boot    //////////////
+#ifdef HAVE_TMC2130
+	extern bool boot_test_trinamic;
+#endif
+///////////////////////////////////////////////////////
+
 ////////////     Sensorless homing     //////////////
 #ifdef HAVE_TMC2130
 	extern bool calibrating_sensorless_homing;
@@ -87,6 +93,7 @@ void manage_inactivity(bool ignore_stepper_queue = false);
 ////////////     Better autoleveling     //////////////
 #ifdef BEEVC_B2X300
 	extern bool G28_stow;
+  extern float beevc_bed_leveling_correction[4];
 #endif
 ///////////////////////////////////////////////////////
 
@@ -95,6 +102,28 @@ void manage_inactivity(bool ignore_stepper_queue = false);
 	extern uint32_t serialNumber;
 #endif
 ///////////////////////////////////////////////////////
+
+////////////        TMC2209/2226         //////////////
+#ifdef BEEVC_B2X300
+	extern uint8_t tmc_spi_disabled;
+  #define X_SPI_DISABLED    0x01<<4
+  #define Y_SPI_DISABLED    0x01<<3
+  #define Z_SPI_DISABLED    0x01<<2
+  #define E1_SPI_DISABLED   0x01<<1
+  #define E2_SPI_DISABLED   0x01
+  #define ANY_SPI_DISABLED  0x1F
+#endif
+///////////////////////////////////////////////////////
+
+
+///////////// Servo motion ////////
+
+#if HAS_SERVOS
+  #include "servo.h"
+  extern Servo servo[NUM_SERVOS];
+#endif
+
+/////////////////////////////
 
 
 #if ENABLED(DUAL_X_CARRIAGE) || ENABLED(DUAL_NOZZLE_DUPLICATION_MODE)

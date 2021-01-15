@@ -13,6 +13,8 @@
  * 
  */
 #include "BEEVC_B2X300_SN.h"
+#include "ultralcd.h"
+#include "BEEVC_EEPROM.h"
 
 // Only valid for B2X300
 #ifdef BEEVC_B2X300
@@ -198,6 +200,27 @@
             return true;
 
         return false;
+    }
+
+    /**
+     * updateTrinamicSPI: reconfigures TMC SPI settings according to SN
+     *
+     *  @return {void}    
+     */
+    void updateTrinamicSPI(){
+        BEEVC_READ_EEPROM(SN,serialNumber); 
+
+        uint8_t SPI_RESET;
+        // If older SN set all axis stepper driver as SPI version
+        if(serialNumber < BEEVC_B2X300_PROD5_SN_START){
+          SERIAL_ECHOLNPGM("Setting all TMC as SPI.");
+          SPI_RESET = 0x00;
+        }
+        else{
+          SERIAL_ECHOLNPGM("Setting extruder TMC as non SPI");
+          SPI_RESET = 0x03;
+        }
+        BEEVC_WRITE_EEPROM(STP_SPI,SPI_RESET);
     }
 
 #endif //BEEVC_B2X300

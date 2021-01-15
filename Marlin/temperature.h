@@ -31,6 +31,8 @@
 
 #include "MarlinConfig.h"
 
+#include "ultralcd.h"
+
 #if ENABLED(PID_EXTRUSION_SCALING)
   #include "stepper.h"
 #endif
@@ -415,21 +417,7 @@ class Temperature {
       static void start_watching_bed();
     #endif
 
-    static void setTargetHotend(const int16_t celsius, const uint8_t e) {
-      #if HOTENDS == 1
-        UNUSED(e);
-      #endif
-      #ifdef MILLISECONDS_PREHEAT_TIME
-        if (celsius == 0)
-          reset_preheat_time(HOTEND_INDEX);
-        else if (target_temperature[HOTEND_INDEX] == 0)
-          start_preheat_time(HOTEND_INDEX);
-      #endif
-      target_temperature[HOTEND_INDEX] = celsius;
-      #if WATCH_HOTENDS
-        start_watching_heater(HOTEND_INDEX);
-      #endif
-    }
+    void setTargetHotend(const int16_t celsius, const uint8_t e) ;
 
     static void setTargetBed(const int16_t celsius) {
       #if HAS_HEATER_BED

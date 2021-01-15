@@ -759,6 +759,12 @@ inline float home_dir(AxisEnum axis){
 #endif
 ///////////////////////////////////////////////////////
 
+////////////    Trinamic test on boot    //////////////
+#ifdef HAVE_TMC2130
+	bool boot_test_trinamic = true;
+#endif
+///////////////////////////////////////////////////////
+
 ////////////   Startup wizard   //////////////
 #ifdef BEEVC_B2X300
 	uint8_t toCalibrate = 0;
@@ -781,6 +787,7 @@ inline float home_dir(AxisEnum axis){
 ////////////     Better autoleveling     //////////////
 #ifdef BEEVC_B2X300
 	bool G28_stow = true;
+  float beevc_bed_leveling_correction[4] = {0,0,0,0};
 #endif
 ///////////////////////////////////////////////////////
 
@@ -788,6 +795,12 @@ inline float home_dir(AxisEnum axis){
 #ifdef BEEVC_B2X300
   // Initializes seriaNumber value to default (lates B2X300 version) in case load fails
 	uint32_t serialNumber = BEEVC_B2X300_LATEST_SN;
+#endif
+///////////////////////////////////////////////////////
+
+////////////        TMC2209/2226         //////////////
+#ifdef BEEVC_B2X300
+	uint8_t tmc_spi_disabled = 0;
 #endif
 ///////////////////////////////////////////////////////
 
@@ -2581,6 +2594,128 @@ static void clean_up_after_endstop_or_probe_move() {
     }
 
   #endif // BLTOUCH
+
+  // BEEVC bed tilt adjustment
+  // Output float array needs to have a length >= 4
+  void beevc_bed_tilt_print_point(float* point,uint8_t index){
+    SERIAL_ECHOPGM("Point ");
+    SERIAL_ECHO(index+1);
+    SERIAL_ECHOPGM(":");
+    SERIAL_ECHOLN(*point);
+  }
+
+  static float run_z_probe();
+  bool set_probe_deployed(bool deploy);
+  void beevc_bed_tilt_measure(float* output,uint8_t loops){
+    // Using the same positions as G29 for best consistency
+    float marginX = 20;
+    float marginY = 35;
+    float positions[][2] = {{marginX-X_PROBE_OFFSET_FROM_EXTRUDER,marginY-Y_PROBE_OFFSET_FROM_EXTRUDER},
+                          {marginX-X_PROBE_OFFSET_FROM_EXTRUDER,Y_BED_SIZE+10-marginY-Y_PROBE_OFFSET_FROM_EXTRUDER},
+                          {X_BED_SIZE-marginX-X_PROBE_OFFSET_FROM_EXTRUDER,Y_BED_SIZE+10-marginY-Y_PROBE_OFFSET_FROM_EXTRUDER},
+                          {X_BED_SIZE-marginX-X_PROBE_OFFSET_FROM_EXTRUDER,marginY-Y_PROBE_OFFSET_FROM_EXTRUDER}};
+
+    // Make room for probe
+    do_probe_raise(_Z_CLEARANCE_DEPLOY_PROBE);
+
+    DEPLOY_PROBE();
+    for(uint8_t loop =0; loop < loops/2; loop++){
+      // Forward
+      //SERIAL_ECHOLNPGM("Forward");
+      // Move to starting position
+      do_blocking_move_to(positions[0][0]-5, positions[0][1]-5, (current_position[Z_AXIS]));
+
+      for (uint8_t position = 0; position < 4; position++){
+        // Move to position
+        do_blocking_move_to(positions[position][0], positions[position][1], (current_position[Z_AXIS]+Z_CLEARANCE_BETWEEN_PROBES));
+
+        // Get height
+        float measured = run_z_probe();
+        output[position] += measured/loops;
+
+        // Print measurement
+        //beevc_bed_tilt_print_point(&measured,position);
+      }
+
+      // Reverse (nulifies any backlash that might affect measurement)
+      //SERIAL_ECHOLNPGM("Reverse");
+      // Move to starting position
+      do_blocking_move_to(positions[3][0]+5, positions[3][1]+5, (current_position[Z_AXIS]+Z_CLEARANCE_BETWEEN_PROBES));
+
+
+      for (int8_t position = 3; position >= 0; position--){
+        // Move to position
+        do_blocking_move_to(positions[position][0], positions[position][1], (current_position[Z_AXIS]+Z_CLEARANCE_BETWEEN_PROBES));
+
+        // Get height
+        float measured = run_z_probe();
+        output[position] += measured/loops;
+
+        // Print measurement
+        //beevc_bed_tilt_print_point(&measured,position);
+      }
+    }
+    
+    STOW_PROBE();
+  }
+
+  /* Takes pointer to a float array with size 4, offset all values by smallest
+  * Prints required corections
+  * Inputs:
+  *   float* output[4] - Array with the values to be processed
+  *   uint16_t degrees[4] - Array with the corrections to be made in degrees
+  * Output:
+  *   returns 1 if all 4 points are within max variation
+  *   returns 0 if any point is outside max variation
+  */ 
+  bool beevc_bed_tilt_calculate(float* output, uint16_t* degrees){
+    // Variable to count the number of values within expected
+    uint8_t count = 0;
+
+    float max_variation = 0.0625F;
+
+    // Consider the lowest point as zero and calculate offsets
+    float smallest = 999;
+    for(uint8_t position = 0; position < 4; position ++)
+    {
+      if (output[position] < smallest)
+        smallest = output[position];
+    }
+
+    // Offset all values according to the smallest
+    for(uint8_t position = 0; position < 4; position ++)
+      output[position]= output[position] - smallest;
+
+    // Print output
+    for(uint8_t position = 0; position < 4; position ++)
+    {
+      SERIAL_ECHOPAIR("Point ",position+1);
+      // If less than a 45º turn (0.5mm/8)
+      if(output[position]< max_variation)
+      {
+        count++;
+        SERIAL_ECHOLNPGM(":--- reference point");
+      }
+      else
+      {
+        SERIAL_ECHOPAIR_F(":",output[position]);
+        degrees[position] = (uint16_t)(output[position]/(0.5F/360));
+        SERIAL_ECHOPAIR(" to correct rotate ",degrees[position]);
+        SERIAL_ECHOPGM(" degrees clockwise!");
+
+        // Due to the way the offset is made it always returns clockwise corrections
+        // SERIAL_ECHOPGM(" degrees");
+        // if (angle >0)
+        //   SERIAL_ECHOLNPGM(" clockwise!");
+        // else
+        //   SERIAL_ECHOLNPGM(" counterclockwise!");
+      }
+    }
+    if (count == 4)
+      return 1;
+    else
+      return 0;
+  }
 
   // returns false for ok and true for failure
   bool set_probe_deployed(bool deploy) {
@@ -5823,6 +5958,43 @@ void home_all_axes() { gcode_G28(true); }
       #endif
     #endif
 
+    // BEEVC correct leveling mesh
+    // Using the values obtained during set nozzle height aply a tilt to the measured mesh in order to correct the error caused by frame variation
+    #ifdef BEEVC_B2X300
+      // Print mesh 
+      SERIAL_ECHOLNPGM("Leveling mesh before correction");
+      print_bilinear_leveling_grid();
+
+      SERIAL_ECHOPAIR_F("Correction 1:",beevc_bed_leveling_correction[0]);
+      SERIAL_ECHOPAIR_F("Correction 2:",beevc_bed_leveling_correction[1]);
+      SERIAL_ECHOPAIR_F("Correction 3:",beevc_bed_leveling_correction[2]);
+      SERIAL_ECHOPAIR_F("Correction 4:",beevc_bed_leveling_correction[3]);
+
+      // First line
+      z_values[0][0] += beevc_bed_leveling_correction[0];
+      z_values[1][0] += beevc_bed_leveling_correction[0]*0.75 + beevc_bed_leveling_correction[3]*0.25;
+      z_values[2][0] += beevc_bed_leveling_correction[0]*0.5 + beevc_bed_leveling_correction[3]*0.5;
+      z_values[3][0] += beevc_bed_leveling_correction[0]*0.25 + beevc_bed_leveling_correction[3]*0.75;
+      z_values[4][0] += beevc_bed_leveling_correction[3];
+
+      // Second line
+      z_values[0][1] += beevc_bed_leveling_correction[0] *0.5 + beevc_bed_leveling_correction[1]*0.5;
+      z_values[1][1] += (beevc_bed_leveling_correction[0] *0.5 + beevc_bed_leveling_correction[1]*0.5)*0.75 +(beevc_bed_leveling_correction[2] *0.5 + beevc_bed_leveling_correction[3] *0.5)* 0.25;
+      z_values[2][1] += (beevc_bed_leveling_correction[0] *0.5 + beevc_bed_leveling_correction[1]*0.5)*0.5 +(beevc_bed_leveling_correction[2] *0.5 + beevc_bed_leveling_correction[3] *0.5)* 0.5;
+      z_values[3][1] += (beevc_bed_leveling_correction[0] *0.5 + beevc_bed_leveling_correction[1]*0.5)*0.25 +(beevc_bed_leveling_correction[2] *0.5 + beevc_bed_leveling_correction[3] *0.5)* 0.75;
+      z_values[4][1] += beevc_bed_leveling_correction[2] *0.5 + beevc_bed_leveling_correction[3] *0.5;
+
+      // Third line
+      z_values[0][2] += beevc_bed_leveling_correction[1];
+      z_values[1][2] += beevc_bed_leveling_correction[1]*0.75 + beevc_bed_leveling_correction[2]*0.25;
+      z_values[2][2] += beevc_bed_leveling_correction[1]*0.5 + beevc_bed_leveling_correction[2]*0.5;
+      z_values[3][2] += beevc_bed_leveling_correction[1]*0.25 + beevc_bed_leveling_correction[2]*0.75;
+      z_values[4][2] += beevc_bed_leveling_correction[2];
+
+      SERIAL_ECHOLNPGM("Leveling mesh after correction");
+    #endif
+    
+
     // Calculate leveling, print reports, correct the position
     if (!isnan(measured_z)) {
       #if ENABLED(AUTO_BED_LEVELING_BILINEAR)
@@ -7419,11 +7591,11 @@ inline void gcode_M17() {
       #endif
 
       // Load filament
-      do_pause_e_move(50, ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
-      do_pause_e_move(load_length, FILAMENT_CHANGE_LOAD_FEEDRATE);
+      do_pause_e_move(50, BEEVC_ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+      do_pause_e_move(load_length, BEEVC_FILAMENT_CHANGE_LOAD_FEEDRATE);
     }
 
-    #if ENABLED(ULTIPANEL) && ADVANCED_PAUSE_EXTRUDE_LENGTH > 0
+    #if ENABLED(ULTIPANEL) && BEEVC_ADVANCED_PAUSE_EXTRUDE_LENGTH > 0
 
       if (!thermalManager.tooColdToExtrude(active_extruder)) {
         float extrude_length = initial_extrude_length;
@@ -7434,7 +7606,7 @@ inline void gcode_M17() {
             lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_EXTRUDE);
 
             // Extrude filament to get into hotend
-            do_pause_e_move(extrude_length, ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
+            do_pause_e_move(extrude_length, BEEVC_ADVANCED_PAUSE_EXTRUDE_FEEDRATE);
           }
 
           // Show "Extrude More" / "Resume" menu and wait for reply
@@ -7444,7 +7616,7 @@ inline void gcode_M17() {
           while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_WAIT_FOR) idle(true);
           KEEPALIVE_STATE(IN_HANDLER);
 
-          extrude_length = ADVANCED_PAUSE_EXTRUDE_LENGTH;
+          extrude_length = BEEVC_ADVANCED_PAUSE_EXTRUDE_LENGTH;
 
           // Keep looping if "Extrude More" was selected
         } while (advanced_pause_menu_response == ADVANCED_PAUSE_RESPONSE_EXTRUDE_MORE);
@@ -10813,6 +10985,7 @@ inline void gcode_M502() {
     // 2) When starting a print, printer always assumes E1, if it has no filament it will trigger filament runout
     //    ignore filament runout until leveling is complete.
     if (pause_filament_runout){
+      filament_ran_out = false;
       // ignore filament runout until leveling is complete, aka still in start gcode
       if(!planner.leveling_active){
         SERIAL_PROTOCOLLNPGM("False filament runout detected. In start Gcode");
@@ -10858,15 +11031,15 @@ inline void gcode_M502() {
 
     // Unload filament
     const float unload_length = parser.seen('U') ? parser.value_axis_units(E_AXIS) : 0
-      #if defined(FILAMENT_CHANGE_UNLOAD_LENGTH) && FILAMENT_CHANGE_UNLOAD_LENGTH > 0
-        - (FILAMENT_CHANGE_UNLOAD_LENGTH)
+      #if defined(BEEVC_FILAMENT_CHANGE_UNLOAD_LENGTH) && BEEVC_FILAMENT_CHANGE_UNLOAD_LENGTH > 0
+        - (BEEVC_FILAMENT_CHANGE_UNLOAD_LENGTH)
       #endif
     ;
 
     // Load filament
     const float load_length = parser.seen('L') ? parser.value_axis_units(E_AXIS) : 0
-      #ifdef FILAMENT_CHANGE_LOAD_LENGTH
-        + FILAMENT_CHANGE_LOAD_LENGTH
+      #ifdef BEEVC_FILAMENT_CHANGE_LOAD_LENGTH
+        + BEEVC_FILAMENT_CHANGE_LOAD_LENGTH
       #endif
     ;
 
@@ -10882,7 +11055,7 @@ inline void gcode_M502() {
 
     if (pause_print(retract, park_point, unload_length, beep_count, true)) {
       wait_for_filament_reload(beep_count);
-      resume_print(load_length, ADVANCED_PAUSE_EXTRUDE_LENGTH, beep_count);
+      resume_print(load_length, BEEVC_ADVANCED_PAUSE_EXTRUDE_LENGTH, beep_count);
     }
 
     // Resume the print job timer if it was running
@@ -11209,31 +11382,36 @@ inline void gcode_M502() {
 
     static void tmc_debug_loop(const TMC_debug_enum i) {
       #if X_IS_TRINAMIC
-        tmc_status(stepperX, TMC_X, i, planner.axis_steps_per_mm[X_AXIS]);
+        if (!(tmc_spi_disabled & X_SPI_DISABLED))
+          tmc_status(stepperX, TMC_X, i, planner.axis_steps_per_mm[X_AXIS]);
       #endif
       #if X2_IS_TRINAMIC
         tmc_status(stepperX2, TMC_X2, i, planner.axis_steps_per_mm[X_AXIS]);
       #endif
 
       #if Y_IS_TRINAMIC
-        tmc_status(stepperY, TMC_Y, i, planner.axis_steps_per_mm[Y_AXIS]);
+        if (!(tmc_spi_disabled & Y_SPI_DISABLED))
+          tmc_status(stepperY, TMC_Y, i, planner.axis_steps_per_mm[Y_AXIS]);
       #endif
       #if Y2_IS_TRINAMIC
         tmc_status(stepperY2, TMC_Y2, i, planner.axis_steps_per_mm[Y_AXIS]);
       #endif
 
       #if Z_IS_TRINAMIC
-        tmc_status(stepperZ, TMC_Z, i, planner.axis_steps_per_mm[Z_AXIS]);
+        if (!(tmc_spi_disabled & Z_SPI_DISABLED))
+          tmc_status(stepperZ, TMC_Z, i, planner.axis_steps_per_mm[Z_AXIS]);
       #endif
       #if Z2_IS_TRINAMIC
         tmc_status(stepperZ2, TMC_Z2, i, planner.axis_steps_per_mm[Z_AXIS]);
       #endif
 
       #if E0_IS_TRINAMIC
-        tmc_status(stepperE0, TMC_E0, i, planner.axis_steps_per_mm[E_AXIS]);
+        if (!(tmc_spi_disabled & E1_SPI_DISABLED))
+          tmc_status(stepperE0, TMC_E0, i, planner.axis_steps_per_mm[E_AXIS]);
       #endif
       #if E1_IS_TRINAMIC
-        tmc_status(stepperE1, TMC_E1, i, planner.axis_steps_per_mm[E_AXIS+1]);
+        if (!(tmc_spi_disabled & E2_SPI_DISABLED))
+          tmc_status(stepperE1, TMC_E1, i, planner.axis_steps_per_mm[E_AXIS+1]);
       #endif
       #if E2_IS_TRINAMIC
         tmc_status(stepperE2, TMC_E2, i, planner.axis_steps_per_mm[E_AXIS+2]);
@@ -11250,31 +11428,36 @@ inline void gcode_M502() {
 
     static void drv_status_loop(const TMC_drv_status_enum i) {
       #if X_IS_TRINAMIC
-        tmc_parse_drv_status(stepperX, TMC_X, i);
+        if (!(tmc_spi_disabled & X_SPI_DISABLED))
+          tmc_parse_drv_status(stepperX, TMC_X, i);
       #endif
       #if X2_IS_TRINAMIC
         tmc_parse_drv_status(stepperX2, TMC_X2, i);
       #endif
 
       #if Y_IS_TRINAMIC
-        tmc_parse_drv_status(stepperY, TMC_Y, i);
+        if (!(tmc_spi_disabled & Y_SPI_DISABLED))
+          tmc_parse_drv_status(stepperY, TMC_Y, i);
       #endif
       #if Y2_IS_TRINAMIC
         tmc_parse_drv_status(stepperY2, TMC_Y2, i);
       #endif
 
       #if Z_IS_TRINAMIC
-        tmc_parse_drv_status(stepperZ, TMC_Z, i);
+        if (!(tmc_spi_disabled & Z_SPI_DISABLED))
+          tmc_parse_drv_status(stepperZ, TMC_Z, i);
       #endif
       #if Z2_IS_TRINAMIC
         tmc_parse_drv_status(stepperZ2, TMC_Z2, i);
       #endif
 
       #if E0_IS_TRINAMIC
-        tmc_parse_drv_status(stepperE0, TMC_E0, i);
+        if (!(tmc_spi_disabled & E1_SPI_DISABLED))
+          tmc_parse_drv_status(stepperE0, TMC_E0, i);
       #endif
       #if E1_IS_TRINAMIC
-        tmc_parse_drv_status(stepperE1, TMC_E1, i);
+        if (!(tmc_spi_disabled & E2_SPI_DISABLED))
+          tmc_parse_drv_status(stepperE1, TMC_E1, i);
       #endif
       #if E2_IS_TRINAMIC
         tmc_parse_drv_status(stepperE2, TMC_E2, i);
@@ -11298,7 +11481,7 @@ inline void gcode_M502() {
           report_tmc_status = false;
       } else {
         SERIAL_ECHOPGM("\t");                 tmc_debug_loop(TMC_CODES);
-        SERIAL_ECHOPGM("Enabled");          tmc_debug_loop(TMC_ENABLED);
+        SERIAL_ECHOPGM("Enabled\t");          tmc_debug_loop(TMC_ENABLED);
         SERIAL_ECHOPGM("Set current");        tmc_debug_loop(TMC_CURRENT);
         SERIAL_ECHOPGM("RMS current");        tmc_debug_loop(TMC_RMS_CURRENT);
         //SERIAL_ECHOPGM("MAX current");        tmc_debug_loop(TMC_MAX_CURRENT);
@@ -12206,6 +12389,7 @@ inline void gcode_M999() {
  * M730 - Prints dual nozzle Z offset test
  * M731 - Prints dual nozzle XY offset test
  * M740 - Prints a prime line with the active extruder
+ * M750 - Bed tilt test
  *
 */
 
@@ -12665,13 +12849,20 @@ inline void gcode_M999() {
     //Stores part cooling fan speed
     BEEVC_READ_EEPROM(FAN,fanSpeeds[0]);
   
-    //Stores extruder temps
+    //Stores extruder temps if thermistors are ok (otherwise causes bootloop)
+    int16_t temperature_store = 0;
     // E0
-    BEEVC_READ_EEPROM(T_E0,thermalManager.target_temperature[0]);
+    BEEVC_READ_EEPROM(T_E0,temperature_store);
+    if(thermalManager.current_temperature[0] > -10)
+      thermalManager.target_temperature[0] = temperature_store;
     // E1
-    BEEVC_READ_EEPROM(T_E1,thermalManager.target_temperature[1]);
+    BEEVC_READ_EEPROM(T_E1,temperature_store);
+    if(thermalManager.current_temperature[1] > -10)
+      thermalManager.target_temperature[1] = temperature_store;
     // BED
-    BEEVC_READ_EEPROM(T_BED,thermalManager.target_temperature_bed);
+    BEEVC_READ_EEPROM(T_BED,temperature_store);
+    if(thermalManager.target_temperature_bed > -10)
+      thermalManager.target_temperature_bed = temperature_store;
 
     //Stores SD card position
     uint32_t tempSdpos = 0;
@@ -12714,10 +12905,12 @@ inline void gcode_M999() {
       z_lift = false;
     }
 
-    // Caps extruder temperatures to avoid dripping while heating bed
+    // Caps extruder temperatures to avoid dripping while heating bed only if hotends aren't already hot
     float E1_temp = thermalManager.target_temperature[0];
     float E2_temp = thermalManager.target_temperature[1];
-    NOMORE(thermalManager.target_temperature[0], 100);
+    if(E1_temp < 100)
+      NOMORE(thermalManager.target_temperature[0], 100);
+    if(E2_temp < 100)
     NOMORE(thermalManager.target_temperature[1], 100);
 
     //Heats up bed to avoid the print from lifting
@@ -12746,7 +12939,7 @@ inline void gcode_M999() {
       }
       // Ensures the loop does't try heating up to low temperatures or cooling down if hot enough
       else {
-        if(thermalManager.degTargetHotend(0) <30 || thermalManager.degTargetHotend(0) > 100 ) break;
+        if(thermalManager.degTargetHotend(0) <30 || thermalManager.degHotend(0) > 100 ) break;
         else idle();
       }
     }
@@ -12758,8 +12951,9 @@ inline void gcode_M999() {
         now = millis()+1000;
         thermalManager.print_heaterstates();
       }
+      // Ensures the loop does't try heating up to low temperatures or cooling down if hot enough
       else{
-        if(thermalManager.degTargetHotend(1) <30 || thermalManager.degTargetHotend(1) > 100 ) break;
+        if(thermalManager.degTargetHotend(1) <30 || thermalManager.degHotend(1) > 100 ) break;
         else idle();
       }
     }
@@ -13216,6 +13410,30 @@ inline void gcode_M999() {
       else
         tool_change(1);
     }
+  }
+
+  /**
+   * M750 - Bed tilt test
+   *
+   * Measures the bed tilt and helps adjusting it
+  */
+  inline void gcode_M750(){
+    float height[4] = {0,0,0,0};
+    uint16_t degrees[4];
+
+    // Home axis
+    G28_stow = false;
+    gcode_G28(true);
+    G28_stow = true;
+
+    // Measure height
+    beevc_bed_tilt_measure(height,2);
+
+    // Reduce measured value to offsets from lowest
+    beevc_bed_tilt_calculate(height, degrees);
+
+    // Disable motors
+    stepper.finish_and_disable();
   }
 
   /**
@@ -14742,6 +14960,10 @@ void process_parsed_command() {
           gcode_M740();
           break;
 
+      case 750: // Measures bed tilt
+          gcode_M750();
+          break;
+
 		#endif   // BEEVC_RESTORE
 
     #ifdef BEEVC_B2X300
@@ -14774,6 +14996,12 @@ void process_next_command() {
       SERIAL_ECHOPAIR("slot:", cmd_queue_index_r);
       M100_dump_routine("   Command Queue:", (const char*)command_queue, (const char*)(command_queue + sizeof(command_queue)));
     #endif
+  }
+
+  // Skip wait for user when a new command is processed
+  if(wait_for_user){
+    wait_for_user = false;
+    SERIAL_ECHOLNPGM("Exiting blocking screen");
   }
 
   // Parse the next command in the queue
@@ -16518,6 +16746,31 @@ void idle(
     Max7219_idle_tasks();
   #endif  // MAX7219_DEBUG
 
+  // Beevc disable heater after change filament after timout elapsed
+  if(last_change_filament_E1 || last_change_filament_E2){
+    if(IS_SD_PRINTING)
+    {
+      last_change_filament_E1 = false;
+      last_change_filament_E2 = false;
+    }
+    else if (millis() > (last_change_filament + (uint32_t)timeout_change_filament_seconds*(uint32_t)1000))
+    {
+      if (last_change_filament_E1)
+      {
+        SERIAL_ECHOLNPGM("E0 disabled");
+        thermalManager.setTargetHotend(0,0);
+        last_change_filament_E1 = false;
+      }
+      
+      if (last_change_filament_E2)
+      {
+        SERIAL_ECHOLNPGM("E1 disabled");
+        thermalManager.setTargetHotend(0,1);
+        last_change_filament_E2 = false;
+      }
+    }
+  }
+
   lcd_update();
 
   host_keepalive();
@@ -16924,15 +17177,21 @@ void setup() {
 			toRecover = true;
 			lcd_setstatus("Powerloss-print saved");
 
-      // Restores bed temperature to avoid printed parts from releasing
-      BEEVC_READ_EEPROM(T_BED,thermalManager.target_temperature_bed);
+      // Read destination bed temp
+      int16_t bed_target = 0;
+      BEEVC_READ_EEPROM(T_BED,bed_target);
 
-      if(abs(thermalManager.target_temperature_bed - thermalManager.current_temperature_bed) < 5){
+      // Restores bed temperature to avoid printed parts from releasing
+      // If bed thermistor is off (temp < -10ºc) do not try heating
+      if(thermalManager.current_temperature_bed > -10)
+        thermalManager.target_temperature_bed = bed_target;
+
+      if(abs(bed_target - thermalManager.current_temperature_bed) < 5){
         toRecoverNow = true;
       }
 
       // If the bed temperature exceeds the max temperature, something has gone wrong hence disable heating and restore
-      if(thermalManager.target_temperature_bed > BED_MAXTEMP){
+      if(bed_target > BED_MAXTEMP){
         thermalManager.target_temperature_bed = 0;
         toRecover = false;
         toRecoverNow = false;

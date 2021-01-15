@@ -527,6 +527,41 @@ uint8_t Temperature::soft_pwm_amount[HOTENDS],
   uint8_t Temperature::ADCKey_count = 0;
 #endif
 
+void Temperature::setTargetHotend(const int16_t celsius, const uint8_t e)
+{
+      #if HOTENDS == 1
+        UNUSED(e);
+      #endif
+      #ifdef MILLISECONDS_PREHEAT_TIME
+        if (celsius == 0)
+          reset_preheat_time(HOTEND_INDEX);
+        else if (target_temperature[HOTEND_INDEX] == 0)
+          start_preheat_time(HOTEND_INDEX);
+      #endif
+
+      // Ensure the heater is present otherwise don't try to heat up to avoid unecessary errors
+      //SERIAL_ECHOPAIR("Hotend ",e);
+      //SERIAL_ECHOPAIR("RAW ",current_temperature_raw[e]);
+      //int16_t disabled_thermistor = 16320;
+      if (current_temperature_raw[e] >= 16320)
+      {
+        SERIAL_ECHOPAIR("Hotend ",e);
+        SERIAL_ECHOLNPGM(" sensor offline. Heating was ignored! Check sensor!");
+        if (e == 0)
+          lcd_setstatus("E1 problem detected!");
+        else 
+          lcd_setstatus("E2 problem detected!");
+          
+      }
+      else
+      {
+        target_temperature[HOTEND_INDEX] = celsius;
+        #if WATCH_HOTENDS
+          start_watching_heater(HOTEND_INDEX);
+        #endif
+      }
+    }
+
 #if HAS_PID_HEATING
 
   /**
@@ -1698,7 +1733,7 @@ void Temperature::disable_all_heaters() {
     planner.autotemp_enabled = false;
   #endif
 
-  HOTEND_LOOP() setTargetHotend(0, e);
+  HOTEND_LOOP() thermalManager.setTargetHotend(0, e);
   setTargetBed(0);
 
   // Unpause and reset everything
@@ -1710,7 +1745,7 @@ void Temperature::disable_all_heaters() {
   print_job_timer.stop();
 
   #define DISABLE_HEATER(NR) { \
-    setTargetHotend(0, NR); \
+    thermalManager.setTargetHotend(0, NR); \
     soft_pwm_amount[NR] = 0; \
     WRITE_HEATER_ ##NR (LOW); \
   }
