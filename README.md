@@ -7,6 +7,26 @@ For support, please visit https://beeverycreative.com/forum
 
 ## Changelog
 
+#### `B2X300-20210115`
+- Improvements to filament runout detection
+- M503 serial output improved
+- Implemented latest SN
+- Powerloss recovery improvements when one extruder is non functional (thermistor damage,etc)
+- Powerloss recovery no longer cools down extruders before restore
+- Improved filament change routines and materials
+- Self test wizard, improved EC22 error detection
+- Cold pull now includes more materials
+- Better handling of one extruder being non functional (thermistor damage, etc)
+- Set nozzle height now does not timeout to menu
+- Slight improvement to texts
+
+**NEW FEATURES**:
+- Support for non SPI stepper drivers
+- Warning screen on boot if a stepper driver fault is detected
+- Leveling improvement, allows the correction of non orthogonal structure that affectsleveling
+- Self test wizard now tests Servo and Z axis
+- M750 Gcode to allow bed tramming using the measured mesh
+
 #### `B2X300-20191202`
 - Corrected some errors wth serial number identification
 
