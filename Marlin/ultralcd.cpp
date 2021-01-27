@@ -2712,6 +2712,10 @@ void kill_screen(const char* lcd_msg) {
     // Disable timeout to status
     defer_return_to_status = true;
 
+    // Disable timeout after filament change to avoid problems
+    last_change_filament_E1 = 0;
+    last_change_filament_E2 = 0;
+
     // Enables constant screen update
     beevc_screen_constant_update = true;
 
