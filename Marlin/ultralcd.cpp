@@ -3829,11 +3829,6 @@ void kill_screen(const char* lcd_msg) {
 
         // Load filament
         beevc_load_filament();
-        // #ifndef BEEVC_Bowden
-        //   // Load filament
-        //   destination[E_AXIS] += BEEVC_FILAMENT_CHANGE_LOAD_LENGTH;
-        //   RUNPLAN(BEEVC_FILAMENT_CHANGE_LOAD_FEEDRATE);
-        //   stepper.synchronize();
       
         // Extrude filament
         do {
@@ -3878,7 +3873,7 @@ void kill_screen(const char* lcd_msg) {
       planner.set_e_position_mm(current_position[E_AXIS]);
 
       // Starts heating
-      HOTEND_LOOP() thermalManager.setTargetHotend(changetemp, filament_change_extruder);
+      thermalManager.setTargetHotend(changetemp, filament_change_extruder);
 
       //Disables the timeout to status screen
       defer_return_to_status = true;
@@ -4010,8 +4005,13 @@ void kill_screen(const char* lcd_msg) {
     }
 
     static void lcd_filament_change_home_move () {
-      // Allows infinite time for filament change procedure
+      // Disable filament change timeout during the movement untill the end of the procedure
       last_change_filament = 0xffffffff;
+      last_change_filament_E1 = 0;
+      last_change_filament_E2 = 0;
+
+      // Ensure the heating is still enabled
+      thermalManager.setTargetHotend(filament_change_temp, filament_change_extruder);
 
       // only moves if loading or manually extruding
       if (filament_change_load){
@@ -4039,6 +4039,7 @@ void kill_screen(const char* lcd_msg) {
     static void lcd_filament_change_action_unload () {
       filament_change_load = false ;
       filament_change_manual = false ;
+
       lcd_goto_screen(lcd_filament_change_home_move);
     }
 
@@ -4065,7 +4066,7 @@ void kill_screen(const char* lcd_msg) {
       END_MENU();
 
       // Ensure the timeout doesn't happen in this screen
-      last_change_filament = millis()+10000;
+      last_change_filament = millis()+20000;
       last_change_filament_E1 = (filament_change_extruder == 0);
       last_change_filament_E2 = (filament_change_extruder == 1);
     }
