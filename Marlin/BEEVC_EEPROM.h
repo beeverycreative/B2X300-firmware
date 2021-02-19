@@ -29,7 +29,8 @@
  *  116     1       int8_t    Bed leveling improvement (Back left corner)
  *  117     1       int8_t    Bed leveling improvement (Back right corner)
  *  118     1       int8_t    Bed leveling improvement (Front right corner)
- *  119     31                Free space
+ *  119     2       int16_t   Filament change timeout
+ *  121     29                Free space
  */
 
 #ifndef BEEVC_EEPROM_H
@@ -62,6 +63,7 @@
     #define SIZE_LEV_PT2    1
     #define SIZE_LEV_PT3    1
     #define SIZE_LEV_PT4    1
+    #define SIZE_TIMEOUT    2
     
     // Variable EEPROM address defines
     #define ADDRESS_SN         0
@@ -89,6 +91,7 @@
     #define ADDRESS_LEV_PT2    ADDRESS_LEV_PT1+ SIZE_LEV_PT1
     #define ADDRESS_LEV_PT3    ADDRESS_LEV_PT2+ SIZE_LEV_PT2
     #define ADDRESS_LEV_PT4    ADDRESS_LEV_PT3+ SIZE_LEV_PT3
+    #define ADDRESS_TIMEOUT    ADDRESS_LEV_PT4+ SIZE_LEV_PT4
 
     // NON CRC Version
     // Necessary to write to eeprom

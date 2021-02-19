@@ -107,7 +107,8 @@
  *  116     1       int8_t    Bed leveling improvement (Back left corner)
  *  117     1       int8_t    Bed leveling improvement (Back right corner)
  *  118     1       int8_t    Bed leveling improvement (Front right corner)
- *  119     31                Free space
+ *  119     2       int16_t   Filament change timeout
+ *  121     29                Free space
  */
 #define EEPROM_VERSION "B03"
 
@@ -981,6 +982,17 @@ void MarlinSettings::postprocess() {
       BEEVC_READ_EEPROM(LEV_PT4,temp);
       //SERIAL_ECHOLNPAIR("Point 4:", temp);
       beevc_bed_leveling_correction[3] = temp* 0.02;
+
+      // Filament change timeout
+      BEEVC_READ_EEPROM(TIMEOUT,timeout_change_filament_seconds);
+      // If value is invalid replace with default setting of 120s
+      if(timeout_change_filament_seconds<0 || timeout_change_filament_seconds >600)
+      {
+        timeout_change_filament_seconds = 120;
+        BEEVC_WRITE_EEPROM(TIMEOUT,timeout_change_filament_seconds);
+      }
+        
+
 
       float dummy = 0;
       #if DISABLED(AUTO_BED_LEVELING_UBL) || DISABLED(FWRETRACT)

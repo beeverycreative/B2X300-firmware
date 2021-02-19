@@ -4154,6 +4154,10 @@ void kill_screen(const char* lcd_msg) {
       menu_action_back();
     }
 
+    static void lcd_filament_change_timeout_save(){
+      BEEVC_WRITE_EEPROM(TIMEOUT,timeout_change_filament_seconds);
+    }
+
 
     static void lcd_filament_change()
     {
@@ -4166,7 +4170,7 @@ void kill_screen(const char* lcd_msg) {
       MENU_ITEM(submenu, _UxGT("Extruder 2"), lcd_filament_change_extruder_1);
 
       //Timeout
-      MENU_MULTIPLIER_ITEM_EDIT(int3, "Heater timeout s.", &timeout_change_filament_seconds, 0, 600);
+      MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, "Heater timeout s.", &timeout_change_filament_seconds, 0, 600,lcd_filament_change_timeout_save);
 
       END_MENU();
     }
