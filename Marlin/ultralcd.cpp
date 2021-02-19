@@ -4106,6 +4106,13 @@ void kill_screen(const char* lcd_msg) {
       lcd_goto_screen(lcd_filament_change_choose_action);
     }
 
+    static void lcd_filament_change_cpe ()
+    {
+      filament_change_temp = 280;
+      thermalManager.setTargetHotend(filament_change_temp, filament_change_extruder);
+      lcd_goto_screen(lcd_filament_change_choose_action);
+    }
+
     static void lcd_filament_change_choose_temp() {
       START_MENU();
 
@@ -4118,6 +4125,7 @@ void kill_screen(const char* lcd_msg) {
       MENU_ITEM(submenu, _UxGT("TPU/FLEX       235\x09\x43"), lcd_filament_change_flex);
       MENU_ITEM(submenu, _UxGT("ABS/ASA        240\x09\x43"), lcd_filament_change_abs);
       MENU_ITEM(submenu, _UxGT("PC             260\x09\x43"), lcd_filament_change_pc);
+      MENU_ITEM(submenu, _UxGT("CPE            280\x09\x43"), lcd_filament_change_cpe);
 
       END_MENU();
     }
