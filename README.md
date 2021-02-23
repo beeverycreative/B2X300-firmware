@@ -7,6 +7,13 @@ For support, please visit https://beeverycreative.com/forum
 
 ## Changelog
 
+#### `B2X300-20210223`
+- Bugfix for filament load/unload errors
+- Bugfix for filament change timeout
+- Filament change timeout is now stored in EEPROM
+- Included CPE material on load/unload
+- Bed can now be preheated to 125ºC
+
 #### `B2X300-20210115`
 - Improvements to filament runout detection
 - M503 serial output improved
