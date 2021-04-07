@@ -45,6 +45,9 @@
 #ifndef MSG_SD_INSERTED
   #define MSG_SD_INSERTED                     _UxGT("Card inserted")
 #endif
+#ifndef MSG_SD_REINSERT
+  #define MSG_SD_REINSERT                     _UxGT("SD NOK, reinsert SD!")
+#endif
 #ifndef MSG_SD_REMOVED
   #define MSG_SD_REMOVED                      _UxGT("Card removed")
 #endif

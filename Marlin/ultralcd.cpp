@@ -9662,12 +9662,19 @@ void lcd_update() {
     if (sd_status != lcd_sd_status && lcd_detected()) {
 
       if (sd_status) {
+        // A small delay allows the SD connection to stabilize
+        delay(200);
         unsigned long slow_card_timeout = millis() + 1000UL;
         do {
           card.initsd();
           thermalManager.manage_heater();
+          //idle();
         } while (!card.cardOK && PENDING(millis(), slow_card_timeout));
-        if (lcd_sd_status != 2) LCD_MESSAGEPGM(MSG_SD_INSERTED);
+        
+        if(!card.cardOK)
+          LCD_MESSAGEPGM(MSG_SD_REINSERT);
+        else if (lcd_sd_status != 2) 
+          LCD_MESSAGEPGM(MSG_SD_INSERTED);
       }
       else {
         card.release();
