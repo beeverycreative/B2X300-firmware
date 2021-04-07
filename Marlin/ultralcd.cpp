@@ -7797,6 +7797,10 @@ void beevc_machine_setup_test_servo (){
         MENU_ITEM(submenu, _UxGT("Mode:       Normal "), beevc_machine_mode);
     #endif
 
+    #if HAS_LCD_CONTRAST
+      MENU_ITEM_EDIT_CALLBACK(int3, MSG_CONTRAST, &lcd_contrast, LCD_CONTRAST_MIN, LCD_CONTRAST_MAX, lcd_callback_set_contrast, true);
+    #endif
+
     MENU_ITEM(submenu, MSG_TEMPERATURE, beevc_machine_temperature_menu);
 
     MENU_ITEM(submenu, MSG_MOTION, beevc_machine_motion_menu);
@@ -9958,7 +9962,10 @@ void lcd_reset_alert_level() { lcd_status_message_level = 0; }
 #if HAS_LCD_CONTRAST
 
   void set_lcd_contrast(const uint16_t value) {
-    lcd_contrast = constrain(value, LCD_CONTRAST_MIN, LCD_CONTRAST_MAX);
+    // If value is outside of valid range reset to default
+    if (value > LCD_CONTRAST_MAX || value < LCD_CONTRAST_MIN)
+      lcd_contrast = DEFAULT_LCD_CONTRAST;
+    //lcd_contrast = constrain(value, LCD_CONTRAST_MIN, LCD_CONTRAST_MAX);
     u8g.setContrast(lcd_contrast);
   }
 

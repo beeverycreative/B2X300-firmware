@@ -2238,14 +2238,14 @@ void MarlinSettings::reset() {
 
     #endif // PIDTEMP || PIDTEMPBED
 
-    #if HAS_LCD_CONTRAST
-      if (!forReplay) {
-        CONFIG_ECHO_START;
-        SERIAL_ECHOLNPGM("LCD Contrast:");
-      }
-      CONFIG_ECHO_START;
-      SERIAL_ECHOLNPAIR("  M250 C", lcd_contrast);
-    #endif
+    // #if HAS_LCD_CONTRAST
+    //   if (!forReplay) {
+    //     CONFIG_ECHO_START;
+    //     SERIAL_ECHOLNPGM("LCD Contrast:");
+    //   }
+    //   CONFIG_ECHO_START;
+    //   SERIAL_ECHOLNPAIR("  M250 C", lcd_contrast);
+    // #endif
 
     #if ENABLED(FWRETRACT)
 

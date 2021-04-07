@@ -222,7 +222,7 @@
 
 #include "utf_mapper.h"
 
-uint16_t lcd_contrast; // Initialized by settings.load()
+int16_t lcd_contrast; // Initialized by settings.load()
 static char currentfont = 0;
 
 // The current graphical page being rendered
@@ -374,7 +374,8 @@ static void lcd_implementation_init() {
   #endif
 
   #if ENABLED(MKS_MINI_12864) // DR - Fix for MKS_MINI_12864 with SN: 12864G-1
-    u8g.setContrast(195);
+    //u8g.setContrast(lcd_contrast);
+    set_lcd_contrast(lcd_contrast);
   #endif
 
   #if ENABLED(LCD_SCREEN_ROT_90)

@@ -139,7 +139,7 @@
   #if ENABLED(MAKRPANEL) || ENABLED(MINIPANEL)
     #define DOGLCD
     #define ULTIPANEL
-    #define DEFAULT_LCD_CONTRAST 17
+    #define DEFAULT_LCD_CONTRAST 195
   #endif
 
   // Generic support for SSD1306 / SH1106 OLED based LCDs.
@@ -334,14 +334,15 @@
      || ENABLED(VIKI2) \
      || ENABLED(miniVIKI) \
      || ENABLED(ELB_FULL_GRAPHIC_CONTROLLER) \
+     || ENABLED(MKS_MINI_12864) \
     )
 
     #if HAS_LCD_CONTRAST
       #ifndef LCD_CONTRAST_MIN
-        #define LCD_CONTRAST_MIN 0
+        #define LCD_CONTRAST_MIN 185
       #endif
       #ifndef LCD_CONTRAST_MAX
-        #define LCD_CONTRAST_MAX 63
+        #define LCD_CONTRAST_MAX 255
       #endif
       #ifndef DEFAULT_LCD_CONTRAST
         #define DEFAULT_LCD_CONTRAST 32
