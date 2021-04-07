@@ -2111,11 +2111,11 @@ void beevc_set_serial_run(){
     // Clears parser data to avoid unexpected variables entering the home/leveling gcodes
     parser.reset();
 
-    // Homes and autoleves axes
-    gcode_G29();
-
     if(beevc_is_offset_screen)
     {
+      // Homes and autoleves axes
+      gcode_G29();
+
       // Show moving screen
       beevc_offset_leveling_goto_screen(beevc_offset_leveling_moving);
 
@@ -2136,6 +2136,13 @@ void beevc_set_serial_run(){
     }
     else
     {
+      // Reset bed leveling compensation
+      for (uint8_t k = 0; k< 4; k++)
+        beevc_bed_leveling_correction[k]=0;
+
+      // Homes and autoleves axes
+      gcode_G29();
+
       // Shows the help screen
       beevc_offset_leveling_goto_screen(beevc_offset_leveling_explain);
       beevc_wait(20000);
