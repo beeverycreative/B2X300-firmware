@@ -238,7 +238,12 @@
       _TMC2130_INIT(E0, planner.axis_steps_per_mm[E_AXIS]);
     #endif
     #if ENABLED(E1_IS_TMC2130)
-      { constexpr int extruder = 1; _TMC2130_INIT(E1, planner.axis_steps_per_mm[E_AXIS_N]); }
+      { 
+        #if EXTRUDERS > 1
+          constexpr int extruder = 1; 
+        #endif
+       _TMC2130_INIT(E1, planner.axis_steps_per_mm[E_AXIS_N]); 
+      }
     #endif
     #if ENABLED(E2_IS_TMC2130)
       { constexpr int extruder = 2; _TMC2130_INIT(E2, planner.axis_steps_per_mm[E_AXIS_N]); }

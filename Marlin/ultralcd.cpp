@@ -293,7 +293,11 @@ uint16_t max_display_update_time = 0;
       bool testY = !(tmc_spi_disabled & Y_SPI_DISABLED);
       bool testZ = !(tmc_spi_disabled & Z_SPI_DISABLED);
       bool testE1 = !(tmc_spi_disabled & E1_SPI_DISABLED);
-      bool testE2 = !(tmc_spi_disabled & E2_SPI_DISABLED);
+      #if EXTRUDERS > 1
+        bool testE2 = !(tmc_spi_disabled & E2_SPI_DISABLED);
+      #else
+        bool testE2 = false;
+      #endif
 
       // X
       #if ENABLED(X_IS_TMC2130)
@@ -522,7 +526,9 @@ uint16_t max_display_update_time = 0;
   static void lcd_filament_change();
   static void lcd_filament_change_start();
   static void lcd_filament_change_extruder_0();
-  static void lcd_filament_change_extruder_1();
+  #if EXTRUDERS > 1
+    static void lcd_filament_change_extruder_1();
+  #endif
   static void lcd_filament_change_choose_temp ();
   static void lcd_filament_change_pla ();
   static void lcd_filament_change_petg ();
@@ -1619,7 +1625,7 @@ void beevc_set_serial_run(){
 			u8g.print("Nozzle E1: ");
 
       if(round(thermalManager.degHotend(0)) <100)
-			u8g.print(" ");
+			  u8g.print(" ");
 
 			u8g.print(round(thermalManager.degHotend(0)));
 			u8g.print("/");
@@ -1631,7 +1637,7 @@ void beevc_set_serial_run(){
 			u8g.print("Nozzle E2: ");
 
       if(round(thermalManager.degHotend(1)) <100)
-			u8g.print(" ");
+			  u8g.print(" ");
 
 			u8g.print(round(thermalManager.degHotend(1)));
 			u8g.print("/");
@@ -1969,7 +1975,11 @@ void beevc_set_serial_run(){
       if ((int32_t)encoderPosition < 0) NOLESS(current_position[Z_AXIS], min);
       if ((int32_t)encoderPosition > 0) NOMORE(current_position[Z_AXIS], max);
 
-      manual_move_to_current(Z_AXIS,0);
+      #if EXTRUDERS > 1
+        manual_move_to_current(Z_AXIS,0);
+      #else
+        manual_move_to_current(Z_AXIS);
+      #endif
 
       encoderPosition = 0;
       lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
@@ -2691,7 +2701,9 @@ void kill_screen(const char* lcd_msg) {
         // Go back to previous menu
         MENU_ITEM(submenu, _UxGT("Back"), beevc_cold_pull_exit);
         MENU_ITEM(submenu, _UxGT("Extruder 1"), beevc_cold_pull_extruder1);
-        MENU_ITEM(submenu, _UxGT("Extruder 2"), beevc_cold_pull_extruder2);
+        #if EXTRUDERS > 1
+          MENU_ITEM(submenu, _UxGT("Extruder 2"), beevc_cold_pull_extruder2);
+        #endif
         break;
       case cold_pull_material:
         MENU_ITEM(submenu, _UxGT("Back"), beevc_cold_pull_back);
@@ -4148,16 +4160,18 @@ void kill_screen(const char* lcd_msg) {
       beevc_force_screen_update();
     }
 
+    #if EXTRUDERS > 1
     static void lcd_filament_change_extruder_1()
-    {
-      filament_change_extruder = 1;
-      active_extruder = 1;
+      {
+        filament_change_extruder = 1;
+        active_extruder = 1;
 
-      lcd_goto_screen(lcd_filament_change_choose_temp);
+        lcd_goto_screen(lcd_filament_change_choose_temp);
 
-      // Force screen update
-      beevc_force_screen_update();
-    }
+        // Force screen update
+        beevc_force_screen_update();
+      }
+    #endif
 
     static void lcd_filament_change_exit(){
       // Allows returning to status
@@ -4182,7 +4196,9 @@ void kill_screen(const char* lcd_msg) {
       MENU_ITEM(submenu, _UxGT("Back"), lcd_filament_change_exit);
 
       MENU_ITEM(submenu, _UxGT("Extruder 1"), lcd_filament_change_extruder_0);
-      MENU_ITEM(submenu, _UxGT("Extruder 2"), lcd_filament_change_extruder_1);
+      #if EXTRUDERS > 1
+        MENU_ITEM(submenu, _UxGT("Extruder 2"), lcd_filament_change_extruder_1);
+      #endif
 
       //Timeout
       MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, "Heater timeout s.", &timeout_change_filament_seconds, 0, 600,lcd_filament_change_timeout_save);
@@ -4259,7 +4275,9 @@ void kill_screen(const char* lcd_msg) {
 
     // Nozzle:
     MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_TEMPERATURE MSG_SE1, &thermalManager.target_temperature[0], 0, HEATER_0_MAXTEMP - 15, watch_temp_callback_E0);
-    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_TEMPERATURE MSG_SE2, &thermalManager.target_temperature[1], 0, HEATER_1_MAXTEMP - 15, watch_temp_callback_E1);
+    #if EXTRUDERS > 1
+      MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_TEMPERATURE MSG_SE2, &thermalManager.target_temperature[1], 0, HEATER_1_MAXTEMP - 15, watch_temp_callback_E1);
+    #endif
 
     // Bed:
     MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3,MSG_TEMPERATURE MSG_SBED, &thermalManager.target_temperature_bed, 0, BED_MAXTEMP - 5, watch_temp_callback_bed);
@@ -4277,7 +4295,9 @@ void kill_screen(const char* lcd_msg) {
     // Flow:
     //MENU_ITEM_EDIT_CALLBACK(int3, MSG_FLOW, &planner.flow_percentage[active_extruder], 10, 999, _lcd_refresh_e_factor);
     MENU_ITEM_EDIT_CALLBACK(int3, MSG_FLOW MSG_SE1, &planner.flow_percentage[0], 10, 999, _lcd_refresh_e_factor_0);
-    MENU_ITEM_EDIT_CALLBACK(int3, MSG_FLOW MSG_SE2, &planner.flow_percentage[1], 10, 999, _lcd_refresh_e_factor_1);
+    #if EXTRUDERS > 1
+      MENU_ITEM_EDIT_CALLBACK(int3, MSG_FLOW MSG_SE2, &planner.flow_percentage[1], 10, 999, _lcd_refresh_e_factor_1);
+    #endif
 
     END_MENU();
   }
@@ -7276,7 +7296,12 @@ void beevc_machine_setup_set_offset(){
 
   // Raise Z 20mm for probe safety
   current_position[Z_AXIS] += (float)20;
-  manual_move_to_current(Z_AXIS,0);
+  #if EXTRUDERS > 1
+    manual_move_to_current(Z_AXIS,0);
+  #else
+    manual_move_to_current(Z_AXIS);
+  #endif
+  
 
   // Homes and autolevels axes
   gcode_G29();
@@ -7289,7 +7314,11 @@ void beevc_machine_setup_set_offset(){
 
   // Lowers Z axis
   current_position[Z_AXIS] = (float)(round((current_position[Z_AXIS]-8)*10))/10;
-  manual_move_to_current(Z_AXIS,0);
+  #if EXTRUDERS > 1
+    manual_move_to_current(Z_AXIS,0);
+  #else
+    manual_move_to_current(Z_AXIS);
+  #endif
 
   // Waits a few seconds to allow movement to finish
   uint32_t temp_time = millis() + 3200;
@@ -7321,7 +7350,11 @@ void beevc_machine_setup_set_offset(){
 
   // Lift Z 20mm
   current_position[Z_AXIS] += (float)20;
-  manual_move_to_current(Z_AXIS,0);
+  #if EXTRUDERS > 1
+    manual_move_to_current(Z_AXIS,0);
+  #else
+    manual_move_to_current(Z_AXIS);
+  #endif
 
   //Beep
   beevc_buzz();
@@ -7678,7 +7711,9 @@ void beevc_machine_setup_test_servo (){
 
     // Verify E2 connection
       // Test E2
-      beevc_machine_setup_test_hotend(2);
+      #if EXTRUDERS > 1
+        beevc_machine_setup_test_hotend(2);
+      #endif
 
     // Verify hotbed connections
     beevc_machine_setup_test_hotbed();
@@ -7960,10 +7995,15 @@ void beevc_machine_setup_test_servo (){
     MENU_ITEM(function, MSG_COOLDOWN, lcd_cooldown);
 
     MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_PID_AUTOTUNE " " MSG_E1, &autotune_temp[0], 175, heater_maxtemp[0] - 15, lcd_autotune_callback_E0);
-    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_PID_AUTOTUNE " " MSG_E2, &autotune_temp[1], 175, heater_maxtemp[1] - 15, lcd_autotune_callback_E1);
-
+    #if EXTRUDERS > 1
+      MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_PID_AUTOTUNE " " MSG_E2, &autotune_temp[1], 175, heater_maxtemp[1] - 15, lcd_autotune_callback_E1);
+    #endif
+    
     _PID_BASE_MENU_ITEMS(" " MSG_E1, 0);
-    _PID_BASE_MENU_ITEMS(" " MSG_E2, 1);
+    
+    #if EXTRUDERS > 1
+      _PID_BASE_MENU_ITEMS(" " MSG_E2, 1);
+    #endif
 
   END_MENU();
   }
@@ -7980,7 +8020,9 @@ void beevc_machine_setup_test_servo (){
 
     // Nozzle:
     MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_TEMPERATURE MSG_SE1, &thermalManager.target_temperature[0], 0, HEATER_0_MAXTEMP - 15, watch_temp_callback_E0);
-    MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_TEMPERATURE MSG_SE2, &thermalManager.target_temperature[1], 0, HEATER_1_MAXTEMP - 15, watch_temp_callback_E1);
+    #if EXTRUDERS > 1 
+      MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3, MSG_TEMPERATURE MSG_SE2, &thermalManager.target_temperature[1], 0, HEATER_1_MAXTEMP - 15, watch_temp_callback_E1);
+    #endif
 
     // Bed:
     MENU_MULTIPLIER_ITEM_EDIT_CALLBACK(int3,MSG_TEMPERATURE MSG_SBED, &thermalManager.target_temperature_bed, 0, BED_MAXTEMP - 5, watch_temp_callback_bed);
@@ -8385,80 +8427,83 @@ void beevc_machine_setup_test_servo (){
    *
    */
 
-  void beevc_machine_motion_offset_adjust() {
-    if (lcd_clicked)
-      {
-        // Save to EEPRom
-        lcd_completion_feedback(settings.save());
+  #if EXTRUDERS > 1
 
-        // Changes the displayed screen to the previous menu
-        lcd_goto_screen(beevc_machine_motion_offset_menu);
+    void beevc_machine_motion_offset_adjust() {
+      if (lcd_clicked)
+        {
+          // Save to EEPRom
+          lcd_completion_feedback(settings.save());
 
-        // Necessary as this function is called as a submenu
-        lcd_goto_previous_menu();
+          // Changes the displayed screen to the previous menu
+          lcd_goto_screen(beevc_machine_motion_offset_menu);
+
+          // Necessary as this function is called as a submenu
+          lcd_goto_previous_menu();
+        }
+
+      ENCODER_DIRECTION_NORMAL();
+
+      if (encoderPosition) {
+        refresh_cmd_timeout();
+
+        // Get the new position
+        hotend_offset[isX?X_AXIS:Y_AXIS][1] += float((int32_t)encoderPosition) * 0.05;
+
+        // Limit only when trying to move towards the limit
+        if ((int32_t)encoderPosition < 0) NOLESS(hotend_offset[isX?X_AXIS:Y_AXIS][1], (isX?12:-1));
+        if ((int32_t)encoderPosition > 0) NOMORE(hotend_offset[isX?X_AXIS:Y_AXIS][1], (isX?14:1));
+        
+        encoderPosition = 0;
+        lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
       }
 
-    ENCODER_DIRECTION_NORMAL();
+      if (lcdDrawUpdate) {
+        START_SCREEN();
+        STATIC_ITEM(_UxGT("Offset XY"), true, true);
 
-    if (encoderPosition) {
-      refresh_cmd_timeout();
+        lcd_implementation_drawmenu_setting_edit_generic(false, 1,(isX?PSTR("Offset X"):PSTR("Offset Y")),itostr3((int)((hotend_offset[ isX?X_AXIS:Y_AXIS ][1]-old_hotend_offset) /0.05) ));
+        //lcd_implementation_drawmenu_setting_edit_generic(false, 2,PSTR("Absolute value"),ftostr42sign(isX?(hotend_offset[X_AXIS][1] - 13):hotend_offset[Y_AXIS][1]));
+        lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
+        lcd_implementation_drawmenu_static(4,PSTR("Click to save.       "));
 
-      // Get the new position
-      hotend_offset[isX?X_AXIS:Y_AXIS][1] += float((int32_t)encoderPosition) * 0.05;
-
-      // Limit only when trying to move towards the limit
-      if ((int32_t)encoderPosition < 0) NOLESS(hotend_offset[isX?X_AXIS:Y_AXIS][1], (isX?12:-1));
-      if ((int32_t)encoderPosition > 0) NOMORE(hotend_offset[isX?X_AXIS:Y_AXIS][1], (isX?14:1));
-      
-      encoderPosition = 0;
-      lcdDrawUpdate = LCDVIEW_REDRAW_NOW;
+        END_SCREEN();
+      }
     }
 
-    if (lcdDrawUpdate) {
-      START_SCREEN();
-      STATIC_ITEM(_UxGT("Offset XY"), true, true);
+    void beevc_machine_motion_offset_x() {
+      isX = true;
+      old_hotend_offset = hotend_offset[X_AXIS][1];
 
-      lcd_implementation_drawmenu_setting_edit_generic(false, 1,(isX?PSTR("Offset X"):PSTR("Offset Y")),itostr3((int)((hotend_offset[ isX?X_AXIS:Y_AXIS ][1]-old_hotend_offset) /0.05) ));
-      //lcd_implementation_drawmenu_setting_edit_generic(false, 2,PSTR("Absolute value"),ftostr42sign(isX?(hotend_offset[X_AXIS][1] - 13):hotend_offset[Y_AXIS][1]));
-      lcd_implementation_drawmenu_static(2,PSTR("Status: please adjust"));
-      lcd_implementation_drawmenu_static(4,PSTR("Click to save.       "));
-
-      END_SCREEN();
+      lcd_goto_screen (beevc_machine_motion_offset_adjust);
     }
-  }
 
-  void beevc_machine_motion_offset_x() {
-    isX = true;
-    old_hotend_offset = hotend_offset[X_AXIS][1];
+    void beevc_machine_motion_offset_y() {
+      isX = false;
+      old_hotend_offset = hotend_offset[Y_AXIS][1];
 
-    lcd_goto_screen (beevc_machine_motion_offset_adjust);
-  }
+      lcd_goto_screen (beevc_machine_motion_offset_adjust);
+    }
 
-  void beevc_machine_motion_offset_y() {
-    isX = false;
-    old_hotend_offset = hotend_offset[Y_AXIS][1];
+    /**
+     *  BEEVC
+     *
+     * "Machine settings > Motion > Offset" submenu
+     *
+     */
+    void beevc_machine_motion_offset_menu() {
+      START_MENU();
+      MENU_BACK();
 
-    lcd_goto_screen (beevc_machine_motion_offset_adjust);
-  }
+      // Offset X
+      MENU_ITEM(submenu, _UxGT("Offset X"), beevc_machine_motion_offset_x);
 
-  /**
-   *  BEEVC
-   *
-   * "Machine settings > Motion > Offset" submenu
-   *
-   */
-  void beevc_machine_motion_offset_menu() {
-    START_MENU();
-    MENU_BACK();
+      // Offset Y
+      MENU_ITEM(submenu, _UxGT("Offset Y"), beevc_machine_motion_offset_y);
 
-    // Offset X
-    MENU_ITEM(submenu, _UxGT("Offset X"), beevc_machine_motion_offset_x);
-
-    // Offset Y
-    MENU_ITEM(submenu, _UxGT("Offset Y"), beevc_machine_motion_offset_y);
-
-    END_MENU();
-  }
+      END_MENU();
+    }
+  #endif
 
   /**
    *  BEEVC
@@ -8486,8 +8531,10 @@ void beevc_machine_setup_test_servo (){
     // M92 - Steps Per mm
     MENU_ITEM(submenu, MSG_STEPS_PER_MM, lcd_control_motion_steps_per_mm_menu);
 
-    // M218 T1 - Second extruder offset
-    MENU_ITEM(submenu, _UxGT("Offset"), beevc_machine_motion_offset_menu);
+    #if EXTRUDERS > 1
+      // M218 T1 - Second extruder offset
+      MENU_ITEM(submenu, _UxGT("Offset"), beevc_machine_motion_offset_menu);
+    #endif
 
     END_MENU();
   }

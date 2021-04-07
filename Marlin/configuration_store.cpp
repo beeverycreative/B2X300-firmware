@@ -1720,9 +1720,15 @@ void MarlinSettings::reset() {
     #endif
     {
       #ifdef BEEVC_B2X300
-        PID_PARAM(Kp, e) = getPID(e+1,serialNumber,'P');
-        PID_PARAM(Ki, e) = scalePID_i(getPID(e+1,serialNumber,'I'));
-        PID_PARAM(Kd, e) = scalePID_d(getPID(e+1,serialNumber,'D'));
+        #if EXTRUDERS > 1
+          PID_PARAM(Kp, e) = getPID(e+1,serialNumber,'P');
+          PID_PARAM(Ki, e) = scalePID_i(getPID(e+1,serialNumber,'I'));
+          PID_PARAM(Kd, e) = scalePID_d(getPID(e+1,serialNumber,'D'));
+        #else
+          PID_PARAM(Kp, e) = getPID(1,serialNumber,'P');
+          PID_PARAM(Ki, e) = scalePID_i(getPID(1,serialNumber,'I'));
+          PID_PARAM(Kd, e) = scalePID_d(getPID(1,serialNumber,'D'));
+        #endif
       #else
         PID_PARAM(Kp, e) = DEFAULT_Kp;
         PID_PARAM(Ki, e) = scalePID_i(DEFAULT_Ki);

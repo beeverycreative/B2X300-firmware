@@ -3326,9 +3326,12 @@ static void clean_up_after_endstop_or_probe_move() {
           c1 = z_values[x1][y1], c2 = z_values[x2][y2];
 
     // Treat far unprobed points as zero, near as equal to far
-    if (isnan(a2)) a2 = 0.0; if (isnan(a1)) a1 = a2;
-    if (isnan(b2)) b2 = 0.0; if (isnan(b1)) b1 = b2;
-    if (isnan(c2)) c2 = 0.0; if (isnan(c1)) c1 = c2;
+    if (isnan(a2)) a2 = 0.0; 
+    if (isnan(a1)) a1 = a2;
+    if (isnan(b2)) b2 = 0.0; 
+    if (isnan(b1)) b1 = b2;
+    if (isnan(c2)) c2 = 0.0; 
+    if (isnan(c1)) c1 = c2;
 
     const float a = 2 * a1 - a2, b = 2 * b1 - b2, c = 2 * c1 - c2;
 
@@ -12483,7 +12486,9 @@ inline void gcode_M999() {
     SERIAL_DEBUG_MESSAGE("Forced disabling of heating elements !");
     WRITE_HEATER_BED(LOW);
     WRITE_HEATER_0(LOW);
-    WRITE_HEATER_1(LOW);
+    #if EXTRUDERS > 1
+      WRITE_HEATER_1(LOW);
+    #endif
 
     // Disables all stepper motors
     SERIAL_DEBUG_MESSAGE("Stopping stepper drivers !");
@@ -12498,16 +12503,18 @@ inline void gcode_M999() {
 
     // Corrects the dual extruder offset to avoid incorrect recovery
     SERIAL_DEBUG_MESSAGE("Stopping stepper drivers !");
-    if (active_extruder == 1){
-      SERIAL_DEBUG_MESSAGE_VALUE("X axis E2: ", current_position[X_AXIS]);
-      SERIAL_DEBUG_MESSAGE_VALUE("Y axis E2: ", current_position[Y_AXIS]);
+    #if EXTRUDERS > 1
+      if (active_extruder == 1){
+        SERIAL_DEBUG_MESSAGE_VALUE("X axis E2: ", current_position[X_AXIS]);
+        SERIAL_DEBUG_MESSAGE_VALUE("Y axis E2: ", current_position[Y_AXIS]);
 
-      current_position[X_AXIS] -= hotend_offset[X_AXIS][1];
-      current_position[Y_AXIS] -=  hotend_offset[Y_AXIS][1];
+        current_position[X_AXIS] -= hotend_offset[X_AXIS][1];
+        current_position[Y_AXIS] -=  hotend_offset[Y_AXIS][1];
 
-      SERIAL_DEBUG_MESSAGE_VALUE("X axis E2: ", current_position[X_AXIS]);
-      SERIAL_DEBUG_MESSAGE_VALUE("Y axis E2: ", current_position[Y_AXIS]);
-    }
+        SERIAL_DEBUG_MESSAGE_VALUE("X axis E2: ", current_position[X_AXIS]);
+        SERIAL_DEBUG_MESSAGE_VALUE("Y axis E2: ", current_position[Y_AXIS]);
+      }
+    #endif
     
     // EEPROM map on BEEVC_EEPROM.h file
     // Saves the variables to EEPROM
@@ -12750,7 +12757,8 @@ inline void gcode_M999() {
 
       //Makes sure the ports are configured as outputs
       // Y
-      DDRF |= (1 << DDF2) || (1 << DDF6) || (1 << DDF7);
+      //DDRF |= (1 << DDF2) || (1 << DDF6) || (1 << DDF7); // Not used as it causes warning
+      DDRF |= 0b11000100;
 
       //Choses the best direction to move Y into and calculates move distance
       float movedistance = 0;
@@ -17238,7 +17246,9 @@ void setup() {
 			SERIAL_DEBUG_MESSAGE("Forced disabling of heating elements !");
 			WRITE_HEATER_BED(LOW);
 			WRITE_HEATER_0(LOW);
-			WRITE_HEATER_1(LOW);
+      #if EXTRUDERS > 1
+			  WRITE_HEATER_1(LOW);
+      #endif
 
 			// Disables all stepper motors
 			SERIAL_DEBUG_MESSAGE("Stopping stepper drivers !");
@@ -17253,16 +17263,18 @@ void setup() {
 
       // Corrects the dual extruder offset to avoid incorrect recovery
 			SERIAL_DEBUG_MESSAGE("Stopping stepper drivers !");
-      if (active_extruder == 1){
-        SERIAL_DEBUG_MESSAGE_VALUE("X axis E2: ", current_position[X_AXIS]);
-        SERIAL_DEBUG_MESSAGE_VALUE("Y axis E2: ", current_position[Y_AXIS]);
+      #if EXTRUDERS > 1
+        if (active_extruder == 1){
+          SERIAL_DEBUG_MESSAGE_VALUE("X axis E2: ", current_position[X_AXIS]);
+          SERIAL_DEBUG_MESSAGE_VALUE("Y axis E2: ", current_position[Y_AXIS]);
 
-        current_position[X_AXIS] -= hotend_offset[X_AXIS][1];
-        current_position[Y_AXIS] -=  hotend_offset[Y_AXIS][1];
+          current_position[X_AXIS] -= hotend_offset[X_AXIS][1];
+          current_position[Y_AXIS] -=  hotend_offset[Y_AXIS][1];
 
-        SERIAL_DEBUG_MESSAGE_VALUE("X axis E2: ", current_position[X_AXIS]);
-        SERIAL_DEBUG_MESSAGE_VALUE("Y axis E2: ", current_position[Y_AXIS]);
-      }
+          SERIAL_DEBUG_MESSAGE_VALUE("X axis E2: ", current_position[X_AXIS]);
+          SERIAL_DEBUG_MESSAGE_VALUE("Y axis E2: ", current_position[Y_AXIS]);
+        }
+      #endif
       
       
       // EEPROM map on BEEVC_EEPROM.h file
@@ -17297,7 +17309,9 @@ void setup() {
 			// E0
       BEEVC_WRITE_EEPROM(T_E0,thermalManager.target_temperature[0]);
 			// E1
-			BEEVC_WRITE_EEPROM(T_E1,thermalManager.target_temperature[1]);
+      #if EXTRUDERS > 1
+			  BEEVC_WRITE_EEPROM(T_E1,thermalManager.target_temperature[1]);
+      #endif
 			// BED
 			BEEVC_WRITE_EEPROM(T_BED,thermalManager.target_temperature_bed);
 
@@ -17546,7 +17560,8 @@ void setup() {
 
         //Makes sure the ports are configured as outputs
         // Y
-        DDRF |= (1 << DDF2) || (1 << DDF6) || (1 << DDF7);
+        //DDRF |= (1 << DDF2) || (1 << DDF6) || (1 << DDF7); // Not used as it causes warning
+        DDRF |= 0b11000100;
 
         //Choses the best direction to move Y into and calculates move distance
         float movedistance = 0;
