@@ -5965,31 +5965,45 @@ void home_all_axes() { gcode_G28(true); }
       SERIAL_ECHOLNPGM("Leveling mesh before correction");
       print_bilinear_leveling_grid();
 
-      SERIAL_ECHOPAIR_F("Correction 1:",beevc_bed_leveling_correction[0]);
-      SERIAL_ECHOPAIR_F("Correction 2:",beevc_bed_leveling_correction[1]);
-      SERIAL_ECHOPAIR_F("Correction 3:",beevc_bed_leveling_correction[2]);
-      SERIAL_ECHOPAIR_F("Correction 4:",beevc_bed_leveling_correction[3]);
+      // Reduce correction values to minimum to decrease errors
+      // Find smallest
+      float smallest = 10;
+      for(uint8_t k = 0; k< 4; k++)
+        if (beevc_bed_leveling_correction[k] < smallest)
+          smallest = beevc_bed_leveling_correction[k];
+
+      // Remove smallest from all values before applying
+      float beevc_bed_leveling_correction_to_apply[4];
+      for(uint8_t k = 0; k< 4; k++)
+        beevc_bed_leveling_correction_to_apply[k] = beevc_bed_leveling_correction[k] - smallest;
+
+      // Prints the calibration that will be applied
+      SERIAL_ECHOPAIR_F("\nFront left :",beevc_bed_leveling_correction_to_apply[0]);
+      SERIAL_ECHOPAIR_F("\nBack left  :",beevc_bed_leveling_correction_to_apply[1]);
+      SERIAL_ECHOPAIR_F("\nBack right :",beevc_bed_leveling_correction_to_apply[2]);
+      SERIAL_ECHOPAIR_F("\nFront right:",beevc_bed_leveling_correction_to_apply[3]);
+
 
       // First line
-      z_values[0][0] += beevc_bed_leveling_correction[0];
-      z_values[1][0] += beevc_bed_leveling_correction[0]*0.75 + beevc_bed_leveling_correction[3]*0.25;
-      z_values[2][0] += beevc_bed_leveling_correction[0]*0.5 + beevc_bed_leveling_correction[3]*0.5;
-      z_values[3][0] += beevc_bed_leveling_correction[0]*0.25 + beevc_bed_leveling_correction[3]*0.75;
-      z_values[4][0] += beevc_bed_leveling_correction[3];
+      z_values[0][0] += beevc_bed_leveling_correction_to_apply[0];
+      z_values[1][0] += beevc_bed_leveling_correction_to_apply[0]*0.75 + beevc_bed_leveling_correction_to_apply[3]*0.25;
+      z_values[2][0] += beevc_bed_leveling_correction_to_apply[0]*0.5 + beevc_bed_leveling_correction_to_apply[3]*0.5;
+      z_values[3][0] += beevc_bed_leveling_correction_to_apply[0]*0.25 + beevc_bed_leveling_correction_to_apply[3]*0.75;
+      z_values[4][0] += beevc_bed_leveling_correction_to_apply[3];
 
       // Second line
-      z_values[0][1] += beevc_bed_leveling_correction[0] *0.5 + beevc_bed_leveling_correction[1]*0.5;
-      z_values[1][1] += (beevc_bed_leveling_correction[0] *0.5 + beevc_bed_leveling_correction[1]*0.5)*0.75 +(beevc_bed_leveling_correction[2] *0.5 + beevc_bed_leveling_correction[3] *0.5)* 0.25;
-      z_values[2][1] += (beevc_bed_leveling_correction[0] *0.5 + beevc_bed_leveling_correction[1]*0.5)*0.5 +(beevc_bed_leveling_correction[2] *0.5 + beevc_bed_leveling_correction[3] *0.5)* 0.5;
-      z_values[3][1] += (beevc_bed_leveling_correction[0] *0.5 + beevc_bed_leveling_correction[1]*0.5)*0.25 +(beevc_bed_leveling_correction[2] *0.5 + beevc_bed_leveling_correction[3] *0.5)* 0.75;
-      z_values[4][1] += beevc_bed_leveling_correction[2] *0.5 + beevc_bed_leveling_correction[3] *0.5;
+      z_values[0][1] += beevc_bed_leveling_correction_to_apply[0] *0.5 + beevc_bed_leveling_correction_to_apply[1]*0.5;
+      z_values[1][1] += (beevc_bed_leveling_correction_to_apply[0] *0.5 + beevc_bed_leveling_correction_to_apply[1]*0.5)*0.75 +(beevc_bed_leveling_correction_to_apply[2] *0.5 + beevc_bed_leveling_correction_to_apply[3] *0.5)* 0.25;
+      z_values[2][1] += (beevc_bed_leveling_correction_to_apply[0] *0.5 + beevc_bed_leveling_correction_to_apply[1]*0.5)*0.5 +(beevc_bed_leveling_correction_to_apply[2] *0.5 + beevc_bed_leveling_correction_to_apply[3] *0.5)* 0.5;
+      z_values[3][1] += (beevc_bed_leveling_correction_to_apply[0] *0.5 + beevc_bed_leveling_correction_to_apply[1]*0.5)*0.25 +(beevc_bed_leveling_correction_to_apply[2] *0.5 + beevc_bed_leveling_correction_to_apply[3] *0.5)* 0.75;
+      z_values[4][1] += beevc_bed_leveling_correction_to_apply[2] *0.5 + beevc_bed_leveling_correction_to_apply[3] *0.5;
 
       // Third line
-      z_values[0][2] += beevc_bed_leveling_correction[1];
-      z_values[1][2] += beevc_bed_leveling_correction[1]*0.75 + beevc_bed_leveling_correction[2]*0.25;
-      z_values[2][2] += beevc_bed_leveling_correction[1]*0.5 + beevc_bed_leveling_correction[2]*0.5;
-      z_values[3][2] += beevc_bed_leveling_correction[1]*0.25 + beevc_bed_leveling_correction[2]*0.75;
-      z_values[4][2] += beevc_bed_leveling_correction[2];
+      z_values[0][2] += beevc_bed_leveling_correction_to_apply[1];
+      z_values[1][2] += beevc_bed_leveling_correction_to_apply[1]*0.75 + beevc_bed_leveling_correction_to_apply[2]*0.25;
+      z_values[2][2] += beevc_bed_leveling_correction_to_apply[1]*0.5 + beevc_bed_leveling_correction_to_apply[2]*0.5;
+      z_values[3][2] += beevc_bed_leveling_correction_to_apply[1]*0.25 + beevc_bed_leveling_correction_to_apply[2]*0.75;
+      z_values[4][2] += beevc_bed_leveling_correction_to_apply[2];
 
       SERIAL_ECHOLNPGM("Leveling mesh after correction");
     #endif
