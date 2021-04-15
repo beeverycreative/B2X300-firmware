@@ -669,6 +669,7 @@ float cartes[XYZ] = { 0 };
 
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)
   static bool filament_ran_out = false;
+  static bool filament_runout_in_queue = false;
 #endif
 
 #if ENABLED(ADVANCED_PAUSE_FEATURE)
@@ -11002,16 +11003,19 @@ inline void gcode_M502() {
     // 2) When starting a print, printer always assumes E1, if it has no filament it will trigger filament runout
     //    ignore filament runout until leveling is complete.
     if (pause_filament_runout){
-      filament_ran_out = false;
       // ignore filament runout until leveling is complete, aka still in start gcode
-      if(!planner.leveling_active){
+      if(!planner.leveling_active)
+      {
         SERIAL_PROTOCOLLNPGM("False filament runout detected. In start Gcode");
+        filament_ran_out = false;
         return;
       }
 
-      // 
-      if ((READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING)  && (active_extruder == 1) && !(READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING)){
+      // Detect incorrect filament runout if E1 is unload and E2 is the active extruder 
+      if ((READ(FIL_RUNOUT_PIN) == FIL_RUNOUT_INVERTING)  && (active_extruder == 1) && !(READ(FIL_RUNOUT_PIN2) == FIL_RUNOUT_INVERTING))
+      {
         SERIAL_PROTOCOLLNPGM("False E2 filament runout detected");
+        filament_ran_out = false;
         return;
       }     
     }
@@ -11077,6 +11081,9 @@ inline void gcode_M502() {
 
     // Resume the print job timer if it was running
     if (job_running) print_job_timer.start();
+
+    // Ended the execution so a new filament runout can be detected
+    filament_runout_in_queue = false;
   }
 
 #endif // ADVANCED_PAUSE_FEATURE
@@ -16313,8 +16320,9 @@ void prepare_move_to_destination() {
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)
 
   void handle_filament_runout() {
-    if (!filament_ran_out) {
+    if (!filament_ran_out && !filament_runout_in_queue) {
       filament_ran_out = true;
+      filament_runout_in_queue = true;
       enqueue_and_echo_commands_P(PSTR(FILAMENT_RUNOUT_SCRIPT));
       stepper.synchronize();
     }
