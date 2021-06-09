@@ -268,6 +268,11 @@ void Endstops::M119() {
 		SERIAL_PROTOCOL("filament 2: ");
 		SERIAL_PROTOCOLLN(((READ(FIL_RUNOUT_PIN2)^FIL_RUNOUT_INVERTING) ? MSG_ENDSTOP_HIT : MSG_ENDSTOP_OPEN));
 	#endif
+
+  #if ENABLED(BEEVC_Restore)
+    SERIAL_PROTOCOL("Powerloss : ");
+    SERIAL_PROTOCOLLN(((READ(11)) ? "24V NOK" : "24V OK"));
+  #endif
   #endif
 } // Endstops::M119
 
