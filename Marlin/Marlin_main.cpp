@@ -201,6 +201,7 @@
  * M503 - Print the current settings (in memory): "M503 S<verbose>". S0 specifies compact output.
  * M540 - Enable/disable SD card abort on endstop hit: "M540 S<state>". (Requires ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED)
  * M600 - Pause for filament change: "M600 X<pos> Y<pos> Z<raise> E<first_retract> L<later_retract>". (Requires ADVANCED_PAUSE_FEATURE)
+ * M601 - Macro for pause print, used for compatibility with Prusa Slicer
  * M665 - Set delta configurations: "M665 L<diagonal rod> R<delta radius> S<segments/s> A<rod A trim mm> B<rod B trim mm> C<rod C trim mm> I<tower A trim angle> J<tower B trim angle> K<tower C trim angle>" (Requires DELTA)
  * M666 - Set delta endstop adjustment. (Requires DELTA)
  * M605 - Set dual x-carriage movement mode: "M605 S<mode> [X<x_offset>] [R<temp_offset>]". (Requires DUAL_X_CARRIAGE)
@@ -14774,6 +14775,10 @@ void process_parsed_command() {
           break;
 
       #endif // ADVANCED_PAUSE_FEATURE
+
+      case 601: // M601 Alias for M25
+        gcode_M25(); 
+        break;
 
       #if ENABLED(DUAL_X_CARRIAGE) || ENABLED(DUAL_NOZZLE_DUPLICATION_MODE)
         case 605: // M605: Set Dual X Carriage movement mode

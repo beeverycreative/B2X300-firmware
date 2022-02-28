@@ -7,6 +7,16 @@ For support, please visit https://beeverycreative.com/forum
 
 ## Changelog
 
+#### `B2X300-20210624`
+- LCD contrast can now be changed on machine settings
+- Small improvements to improve leveling routine
+- Warning if SDcard cant be initialized
+- Now bed leveling correction resets before allowing new calibration
+- Allows disabling second extruder (requires custom recompilation)
+- Correction for repeated filament runout on detection
+- Show powerloss status on M119
+- Implemented M601 for Prusa Slicer compatibility
+
 #### `B2X300-20210223`
 - Bugfix for filament load/unload errors
 - Bugfix for filament change timeout
