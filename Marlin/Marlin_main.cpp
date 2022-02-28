@@ -13002,7 +13002,7 @@ inline void gcode_M999() {
     // Stores read values to temporary variables
     float xPosition = current_position[X_AXIS];
     float yPosition = current_position[Y_AXIS];
-    #ifdef BEEVC_B2X300
+    #ifdef BEEVC_TMC2130READSG
       // Homes twice to prevent false homing from affecting restore
       SENSORLESSHOMEAXIS(X);
       SENSORLESSHOMEAXIS(Y);
@@ -14866,7 +14866,7 @@ void process_parsed_command() {
             break;
         #endif
 
-        #if ENABLED(HAVE_TMC2130)
+        #if ENABLED(HAVE_TMC2130) && ENABLED (BEEVC_TMC2130READSG)
           case 918: // M918: TMC Sensorless homing calibration value
             gcode_M918();
             break;

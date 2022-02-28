@@ -776,8 +776,13 @@ void MarlinSettings::postprocess() {
     EEPROM_WRITE(thrs);
 
     // SPI Sensorless homing extra calibration
-    BEEVC_WRITE_EEPROM(X_CAL,thermalManager.sg2_homing_x_calibration);
-    BEEVC_WRITE_EEPROM(Y_CAL,thermalManager.sg2_homing_y_calibration);
+    #ifdef BEEVC_TMC2130READSG
+      BEEVC_WRITE_EEPROM(X_CAL,thermalManager.sg2_homing_x_calibration);
+      BEEVC_WRITE_EEPROM(Y_CAL,thermalManager.sg2_homing_y_calibration);
+    #else
+      BEEVC_WRITE_EEPROM(X_CAL,temp);
+      BEEVC_WRITE_EEPROM(Y_CAL,temp);
+    #endif
 
     //
     // Linear Advance
@@ -1369,8 +1374,13 @@ void MarlinSettings::postprocess() {
       #endif
 
       // Extra sensorless homing calibration
-      BEEVC_READ_EEPROM(X_CAL,thermalManager.sg2_homing_x_calibration);
-      BEEVC_READ_EEPROM(Y_CAL,thermalManager.sg2_homing_y_calibration);
+      #ifdef BEEVC_TMC2130READSG
+        BEEVC_READ_EEPROM(X_CAL,thermalManager.sg2_homing_x_calibration);
+        BEEVC_READ_EEPROM(Y_CAL,thermalManager.sg2_homing_y_calibration);
+      #else
+        BEEVC_READ_EEPROM(X_CAL,temp);
+        BEEVC_READ_EEPROM(Y_CAL,temp);
+      #endif
 
       //
       // Linear Advance

@@ -2553,7 +2553,12 @@ void Temperature::isr() {
         uint8_t status[12]  = {};
 
           //Checks if a read is possible
-          if( READ(SDSS) && READ(DOGLCD_CS))
+          #ifdef DOGLCD_CS
+            if( READ(SDSS) && READ(DOGLCD_CS))
+          #else
+            if( READ(SDSS))
+          #endif
+          
           {
 
             // Reads the data for all 3 stepper drivers X Y E

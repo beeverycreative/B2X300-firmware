@@ -265,7 +265,9 @@ inline bool IsStopped() { return !Running; }
 
 bool enqueue_and_echo_command(const char* cmd, bool say_ok=false); // Add a single command to the end of the buffer. Return false on failure.
 void enqueue_and_echo_commands_P(const char * const cmd);          // Set one or more commands to be prioritized over the next Serial/SD command.
-void gcode_M918();
+#ifdef BEEVC_TMC2130READSG
+  void gcode_M918();
+#endif
 void gcode_G28(const bool always_home_all, bool onlyZ = false);
 void gcode_G29();
 void gcode_M720();

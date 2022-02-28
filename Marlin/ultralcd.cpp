@@ -3218,11 +3218,15 @@ void kill_screen(const char* lcd_msg) {
       STATIC_EMPTY_LINE();
       STATIC_ITEM("Diagnostic Info.", false, true);
 
-      strcpy(about_string,"Homing X/Y: ");
-      strncat(about_string, i8tostr3(thermalManager.sg2_homing_x_calibration),3);
-      strcat(about_string, "/");
-      strncat(about_string, i8tostr3(thermalManager.sg2_homing_y_calibration),4);
-      STATIC_STRING(about_string);
+      #ifdef BEEVC_TMC2130READSG
+        strcpy(about_string,"Homing X/Y: ");
+        strncat(about_string, i8tostr3(thermalManager.sg2_homing_x_calibration),3);
+        strcat(about_string, "/");
+        strncat(about_string, i8tostr3(thermalManager.sg2_homing_y_calibration),4);
+        STATIC_STRING(about_string);
+      #endif
+
+      
 
       STATIC_ITEM(_UxGT("Nozzle height: "), false, false, ftostr42sign(zprobe_zoffset));
 
@@ -6999,8 +7003,10 @@ void kill_screen(const char* lcd_msg) {
           STATIC_ITEM("Extruder 2: OK");
           STATIC_ITEM("Heated bed: OK");
           STATIC_ITEM("Blower Fan: OK");
-          STATIC_ITEM("Homing X:", false, false, i8tostr3(thermalManager.sg2_homing_x_calibration));
-          STATIC_ITEM("Homing Y:", false, false, i8tostr3(thermalManager.sg2_homing_y_calibration));
+          #ifdef BEEVC_TMC2130READSG
+            STATIC_ITEM("Homing X:", false, false, i8tostr3(thermalManager.sg2_homing_x_calibration));
+            STATIC_ITEM("Homing Y:", false, false, i8tostr3(thermalManager.sg2_homing_y_calibration));
+          #endif
           STATIC_ITEM("Homing Z: OK");
           STATIC_ITEM("Nozzle height: ", false, false, ftostr42sign(zprobe_zoffset));
           STATIC_EMPTY_LINE();
@@ -7266,7 +7272,9 @@ void beevc_machine_setup_sensorless_homing (){
   calibrating_sensorless_homing = true;
 
   // Start sensorless homing calibration procedure
-  gcode_M918();
+  #ifdef BEEVC_TMC2130READSG
+    gcode_M918();
+  #endif
 
   //Display sensorless homing ok screen
   lcd_self_test_wizard_show_screen(self_test_sensorless_homing_ok);
@@ -8590,12 +8598,16 @@ void beevc_machine_setup_test_servo (){
     #if ENABLED(X_IS_TMC2130)
       stepperX.setCurrent(X_CURRENT, R_SENSE, HOLD_MULTIPLIER);
       stepperX.sgt(X_HOMING_SENSITIVITY);
-      thermalManager.sg2_homing_x_calibration = 0;
+      #ifdef BEEVC_TMC2130READSG
+        thermalManager.sg2_homing_x_calibration = 0;
+      #endif
     #endif
     #if ENABLED(Y_IS_TMC2130)
       stepperY.setCurrent(Y_CURRENT, R_SENSE, HOLD_MULTIPLIER);
       stepperY.sgt(Y_HOMING_SENSITIVITY);
-      thermalManager.sg2_homing_y_calibration = 40;
+      #ifdef BEEVC_TMC2130READSG
+        thermalManager.sg2_homing_y_calibration = 40;
+      #endif
     #endif
     #if ENABLED(Z_IS_TMC2130)
       stepperZ.setCurrent(Z_CURRENT, R_SENSE, HOLD_MULTIPLIER);
@@ -8644,26 +8656,32 @@ void beevc_machine_setup_test_servo (){
      calibrating_sensorless_homing = true;
 
      // Sensorless homing auto calibration
-     gcode_M918();
+     #ifdef BEEVC_TMC2130READSG
+      gcode_M918();
+     #endif
 
      // Return to status screen
      lcd_return_to_status();
    }
 
-   void lcd_trinamic_sensorless() {
-     START_MENU();
-     MENU_BACK(_UxGT("Trinamic Settings"));
-     #if ENABLED(X_IS_TMC2130)
-       MENU_ITEM_EDIT_CALLBACK(int8, _UxGT("X calibration"), &thermalManager.sg2_homing_x_calibration, 0, 100,_void_);
-       MENU_ITEM(gcode, _UxGT("Test X homing"), PSTR("G28 X\nG28 X\nG28 X\nG28 X\nG28 X"));
-     #endif
-     #if ENABLED(Y_IS_TMC2130)
-       MENU_ITEM_EDIT_CALLBACK(int8, _UxGT("Y calibration"), &thermalManager.sg2_homing_y_calibration, 40, 200,_void_);
-       MENU_ITEM(gcode, _UxGT("Test Y homing"), PSTR("G28 Y\nG28 Y\nG28 Y\nG28 Y\nG28 Y"));
-     #endif
-     #if (ENABLED(Y_IS_TMC2130) && ENABLED(X_IS_TMC2130))
-       MENU_ITEM(function, _UxGT("Auto adjust"), lcd_trinamic_sensorless_auto_adjust);
-     #endif
+  void lcd_trinamic_sensorless() {
+    START_MENU();
+    MENU_BACK(_UxGT("Trinamic Settings"));
+    #if ENABLED(X_IS_TMC2130)
+      #ifdef BEEVC_TMC2130READSG
+        MENU_ITEM_EDIT_CALLBACK(int8, _UxGT("X calibration"), &thermalManager.sg2_homing_x_calibration, 0, 100,_void_);
+      #endif
+      MENU_ITEM(gcode, _UxGT("Test X homing"), PSTR("G28 X\nG28 X\nG28 X\nG28 X\nG28 X"));
+    #endif
+    #if ENABLED(Y_IS_TMC2130)
+      #ifdef BEEVC_TMC2130READSG
+        MENU_ITEM_EDIT_CALLBACK(int8, _UxGT("Y calibration"), &thermalManager.sg2_homing_y_calibration, 40, 200,_void_);
+      #endif
+      MENU_ITEM(gcode, _UxGT("Test Y homing"), PSTR("G28 Y\nG28 Y\nG28 Y\nG28 Y\nG28 Y"));
+    #endif
+    #if (ENABLED(Y_IS_TMC2130) && ENABLED(X_IS_TMC2130)) && ENABLED(BEEVC_TMC2130READSG)
+      MENU_ITEM(function, _UxGT("Auto adjust"), lcd_trinamic_sensorless_auto_adjust);
+    #endif
 
    END_MENU();
    }
